@@ -1,0 +1,14 @@
+{
+  "papers": [
+    {
+      "id": "emnlp-2024-518",
+      "pdf_url": "https://aclanthology.org/2024.emnlp-main.518.pdf",
+      "title": "SignCLIP: Connecting Text and Sign Language by Contrastive Learning",
+      "year": 2024,
+      "venue": "EMNLP",
+      "code_repo": "",
+      "datasets": ["OpenASL", "ASLG-PC12"],
+      "metrics": []
+    }
+  ]
+}

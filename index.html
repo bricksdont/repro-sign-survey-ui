@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paper Metadata Review</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+  <div class="app">
+
+    <!-- Left panel: PDF viewer -->
+    <div class="panel pdf-panel">
+      <div class="pdf-controls">
+        <button id="prev-btn" disabled>&#9664; Prev</button>
+        <span id="page-info">Loading…</span>
+        <button id="next-btn" disabled>Next &#9654;</button>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="pdf-canvas"></canvas>
+        <!-- iframe fallback when pdf.js can't fetch cross-origin PDF -->
+        <iframe id="pdf-iframe" class="hidden" title="PDF viewer"></iframe>
+        <div id="pdf-error" class="pdf-error hidden">
+          <p>Could not load the PDF.</p>
+          <a id="pdf-link" href="#" target="_blank" rel="noopener">Open PDF in new tab ↗</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right panel: Metadata form -->
+    <div class="panel meta-panel">
+      <h2>Paper Metadata</h2>
+
+      <!-- Title -->
+      <div class="field-group">
+        <label>Title</label>
+        <div class="field-row">
+          <span class="field-display" id="display-title"></span>
+          <input type="text" class="field-input hidden" id="input-title" placeholder="Paper title">
+          <button class="edit-btn hidden" id="edit-title" title="Edit">&#9998;</button>
+        </div>
+      </div>
+
+      <!-- Year -->
+      <div class="field-group">
+        <label>Year</label>
+        <div class="field-row">
+          <span class="field-display" id="display-year"></span>
+          <input type="number" class="field-input hidden" id="input-year" placeholder="e.g. 2024" min="1900" max="2100">
+          <button class="edit-btn hidden" id="edit-year" title="Edit">&#9998;</button>
+        </div>
+      </div>
+
+      <!-- Venue -->
+      <div class="field-group">
+        <label>Venue</label>
+        <div class="field-row">
+          <span class="field-display" id="display-venue"></span>
+          <input type="text" class="field-input hidden" id="input-venue" placeholder="e.g. EMNLP, ACL, NAACL">
+          <button class="edit-btn hidden" id="edit-venue" title="Edit">&#9998;</button>
+        </div>
+      </div>
+
+      <!-- Code repository -->
+      <div class="field-group">
+        <label>Code Repository</label>
+        <div class="field-row">
+          <input type="url" class="field-input" id="input-code-repo" placeholder="https://github.com/…">
+        </div>
+      </div>
+
+      <!-- Datasets -->
+      <div class="field-group">
+        <label>Datasets</label>
+        <div class="tag-container" id="datasets-container"></div>
+        <div class="tag-input-row">
+          <input type="text" id="dataset-input" placeholder="Add dataset…">
+          <button id="add-dataset-btn">+ Add</button>
+        </div>
+      </div>
+
+      <!-- Metrics -->
+      <div class="field-group">
+        <label>Metrics</label>
+        <div class="tag-container" id="metrics-container"></div>
+        <div class="tag-input-row">
+          <input type="text" id="metric-input" placeholder="Add metric…">
+          <button id="add-metric-btn">+ Add</button>
+        </div>
+      </div>
+
+      <div class="form-footer">
+        <button id="save-btn">Save Changes</button>
+        <span id="save-confirm" class="save-confirm hidden">Saved &#10003;</span>
+      </div>
+    </div>
+
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
