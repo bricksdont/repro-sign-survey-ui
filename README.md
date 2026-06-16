@@ -4,6 +4,8 @@ A lightweight web interface for annotating and reviewing reproducibility metadat
 
 The interface shows the paper PDF on the left and editable metadata fields on the right. Annotations are saved locally in the browser.
 
+![Screenshot of the UI showing the SignCLIP paper PDF on the left and the metadata form on the right](screenshot_ui.png)
+
 ## Features
 
 - Inline PDF viewer (pdf.js with native browser fallback)
