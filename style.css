@@ -26,17 +26,32 @@ body {
 }
 
 .pdf-panel {
-  flex: 0 0 60%;
+  flex: 0 0 auto;
+  width: 60%;
   background: #525659;
   display: flex;
   flex-direction: column;
+  min-width: 20%;
+  max-width: 80%;
+}
+
+#divider {
+  flex: 0 0 5px;
+  background: #3c3f41;
+  cursor: col-resize;
+  transition: background 0.15s;
+}
+
+#divider:hover,
+#divider.dragging {
+  background: #4a90d9;
 }
 
 .meta-panel {
-  flex: 0 0 40%;
+  flex: 1;
   background: #fff;
   padding: 28px 24px;
-  border-left: 1px solid #e0e0e0;
+  min-width: 20%;
 }
 
 /* ── PDF viewer ── */

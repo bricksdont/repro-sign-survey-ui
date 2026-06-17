@@ -266,6 +266,40 @@ function wireEvents() {
   document.getElementById('save-btn').addEventListener('click', saveChanges);
 }
 
+// ── Divider drag ──────────────────────────────────────────────────────────
+
+function initDivider() {
+  const divider = document.getElementById('divider');
+  const pdfPanel = document.querySelector('.pdf-panel');
+  const app = document.querySelector('.app');
+
+  divider.addEventListener('mousedown', e => {
+    e.preventDefault();
+    divider.classList.add('dragging');
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+
+    const onMove = e => {
+      const appRect = app.getBoundingClientRect();
+      let pct = ((e.clientX - appRect.left) / appRect.width) * 100;
+      pct = Math.max(20, Math.min(80, pct));
+      pdfPanel.style.width = pct + '%';
+    };
+
+    const onUp = () => {
+      divider.classList.remove('dragging');
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+}
+
 // ── Start ──────────────────────────────────────────────────────────────────
 
 init();
+initDivider();
