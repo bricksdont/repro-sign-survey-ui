@@ -279,6 +279,12 @@ function initDivider() {
     document.body.style.userSelect = 'none';
     document.body.style.cursor = 'col-resize';
 
+    // Prevent the iframe from swallowing mouse events during drag
+    const iframe = document.getElementById('pdf-iframe');
+    const canvas = document.getElementById('pdf-canvas');
+    iframe.style.pointerEvents = 'none';
+    canvas.style.pointerEvents = 'none';
+
     const onMove = e => {
       const appRect = app.getBoundingClientRect();
       let pct = ((e.clientX - appRect.left) / appRect.width) * 100;
@@ -290,6 +296,8 @@ function initDivider() {
       divider.classList.remove('dragging');
       document.body.style.userSelect = '';
       document.body.style.cursor = '';
+      iframe.style.pointerEvents = '';
+      canvas.style.pointerEvents = '';
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
     };
