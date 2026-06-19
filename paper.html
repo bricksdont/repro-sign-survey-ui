@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paper Review</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- Left panel: PDF viewer (native browser viewer via proxy iframe) -->
+    <div class="panel pdf-panel">
+      <iframe id="pdf-iframe" title="PDF viewer"></iframe>
+    </div>
+
+    <!-- Draggable divider -->
+    <div id="divider"></div>
+
+    <!-- Right panel: Metadata form -->
+    <div class="panel meta-panel">
+
+      <div class="meta-header">
+        <a href="index.html" class="back-link">&#8592; Overview</a>
+        <div class="paper-nav">
+          <button id="prev-paper" title="Previous paper" disabled>&#9664;</button>
+          <span id="paper-counter">1 / 1</span>
+          <button id="next-paper" title="Next paper" disabled>&#9654;</button>
+        </div>
+      </div>
+
+      <div class="status-row">
+        <span id="status-badge" class="status-badge status-needs-review">&#9679; Needs Review</span>
+      </div>
+
+      <!-- Title -->
+      <div class="field-group">
+        <label>Title</label>
+        <div class="field-row">
+          <span class="field-display" id="display-title"></span>
+          <input type="text" class="field-input hidden" id="input-title" placeholder="Paper title">
+          <button class="edit-btn hidden" id="edit-title" title="Edit">&#9998;</button>
+        </div>
+      </div>
+
+      <!-- Year -->
+      <div class="field-group">
+        <label>Year</label>
+        <div class="field-row">
+          <span class="field-display" id="display-year"></span>
+          <input type="number" class="field-input hidden" id="input-year" placeholder="e.g. 2024" min="1900" max="2100">
+          <button class="edit-btn hidden" id="edit-year" title="Edit">&#9998;</button>
+        </div>
+      </div>
+
+      <!-- Venue -->
+      <div class="field-group">
+        <label>Venue</label>
+        <div class="field-row">
+          <span class="field-display" id="display-venue"></span>
+          <input type="text" class="field-input hidden" id="input-venue" placeholder="e.g. EMNLP, ACL, NAACL">
+          <button class="edit-btn hidden" id="edit-venue" title="Edit">&#9998;</button>
+        </div>
+      </div>
+
+      <!-- Code repository -->
+      <div class="field-group">
+        <label>Code Repository</label>
+        <div class="field-row">
+          <input type="url" class="field-input" id="input-code-repo" placeholder="https://github.com/…">
+        </div>
+      </div>
+
+      <!-- Datasets -->
+      <div class="field-group">
+        <label>Datasets</label>
+        <div class="tag-container" id="datasets-container"></div>
+        <div class="tag-input-row">
+          <input type="text" id="dataset-input" placeholder="Add dataset…">
+          <button id="add-dataset-btn">+ Add</button>
+        </div>
+      </div>
+
+      <!-- Metrics -->
+      <div class="field-group">
+        <label>Metrics</label>
+        <div class="tag-container" id="metrics-container"></div>
+        <div class="tag-input-row">
+          <input type="text" id="metric-input" placeholder="Add metric…">
+          <button id="add-metric-btn">+ Add</button>
+        </div>
+      </div>
+
+      <div class="form-footer">
+        <button id="save-btn" class="btn-secondary">Save</button>
+        <button id="save-next-btn" class="btn-primary">Save &amp; Next &#8594;</button>
+        <span id="save-confirm" class="save-confirm hidden">Saved &#10003;</span>
+      </div>
+
+    </div>
+
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -63,6 +63,74 @@ body {
   border: none;
 }
 
+/* ── Overview page ── */
+
+.overview {
+  max-width: 860px;
+  margin: 48px auto;
+  padding: 0 24px;
+}
+
+.overview h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 24px;
+}
+
+.papers-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.papers-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #888;
+  padding: 8px 12px;
+  border-bottom: 2px solid #e8e8e8;
+}
+
+.papers-table td {
+  padding: 13px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+}
+
+.paper-row {
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.paper-row:hover td {
+  background: #f5f8ff;
+}
+
+.paper-id {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  color: #666;
+}
+
+.paper-title {
+  color: #111;
+}
+
+.review-link {
+  color: #4a90d9;
+  text-decoration: none;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.review-link:hover {
+  text-decoration: underline;
+}
+
 /* ── Metadata panel header ── */
 
 .meta-header {
@@ -74,10 +142,15 @@ body {
   border-bottom: 1px solid #e8e8e8;
 }
 
-.meta-header h2 {
-  font-size: 16px;
-  font-weight: 600;
-  color: #111;
+.back-link {
+  font-size: 13px;
+  color: #4a90d9;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.back-link:hover {
+  text-decoration: underline;
 }
 
 .paper-nav {

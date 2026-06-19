@@ -34,8 +34,16 @@ let metrics = [];
 
 async function init() {
   papers = await loadAllPapers();
-  const firstPending = papers.findIndex(p => p.status !== 'final');
-  loadPaper(firstPending >= 0 ? firstPending : 0);
+
+  // Honour ?id= param so direct links work (e.g. from overview page)
+  const requestedId = new URLSearchParams(window.location.search).get('id');
+  let startIndex = papers.findIndex(p => p.id === requestedId);
+  if (startIndex < 0) {
+    startIndex = papers.findIndex(p => p.status !== 'final');
+    if (startIndex < 0) startIndex = 0;
+  }
+
+  loadPaper(startIndex);
   wireEvents();
 }
 
@@ -62,6 +70,8 @@ async function loadAllPapers() {
 function loadPaper(index) {
   currentIndex = index;
   const p = papers[index];
+  history.replaceState(null, '', `?id=${p.id}`);
+  document.title = `${p.title || p.id} — Paper Review`;
   updatePaperNav();
   updateStatusBadge(p.status || 'needs_review');
   populateForm(p);
@@ -98,7 +108,6 @@ function updateStatusBadge(status) {
 
 function hideFooterMessages() {
   document.getElementById('save-confirm').classList.add('hidden');
-  document.getElementById('all-done-msg').classList.add('hidden');
 }
 
 // ── Form population ────────────────────────────────────────────────────────
@@ -237,7 +246,8 @@ function saveAndNext() {
     }
   }
 
-  flashMessage('all-done-msg');
+  // All papers final — return to overview
+  window.location.href = 'index.html';
 }
 
 function flashMessage(id) {
