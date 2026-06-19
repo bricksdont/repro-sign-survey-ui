@@ -85,7 +85,7 @@ function loadPaper(index) {
   history.replaceState(null, '', `?id=${p.id}`);
   document.title = 'SLP Paper Survey';
   updatePaperNav();
-  updateStatusBadge(p.status || 'needs_review', p.rejection_reason);
+  updateStatusBadge(p.status || 'needs_review', p.rejection_reason || p.flag_reason);
   populateForm(p);
   loadPDF(p.pdf_url);
   hideFooterMessages();
@@ -107,27 +107,44 @@ function updatePaperNav() {
   document.getElementById('next-paper').disabled = currentIndex >= papers.length - 1;
 }
 
-function updateStatusBadge(status, rejectionReason) {
+function updateStatusBadge(status, reason) {
   const badge = document.getElementById('status-badge');
+  const clearBtn = document.getElementById('clear-status-btn');
+  const flagBtn = document.getElementById('flag-btn');
   const rejectBtn = document.getElementById('reject-btn');
+
+  flagBtn.disabled = false;   flagBtn.title = '';
+  rejectBtn.disabled = false; rejectBtn.title = '';
+  clearBtn.classList.add('hidden');
+
   if (status === 'final') {
     badge.textContent = '✓ Final';
     badge.className = 'status-badge status-final';
     badge.title = '';
-    rejectBtn.disabled = false;
-    rejectBtn.title = '';
+  } else if (status === 'flagged') {
+    badge.textContent = '⚑ Flagged';
+    badge.className = 'status-badge status-flagged';
+    badge.title = reason || '';
+    flagBtn.disabled = true;
+    flagBtn.title = 'Paper already flagged';
+    rejectBtn.disabled = true;
+    rejectBtn.title = 'Paper is flagged — clear the flag before rejecting';
+    clearBtn.textContent = 'Clear flag';
+    clearBtn.classList.remove('hidden');
   } else if (status === 'rejected') {
     badge.textContent = '✕ Rejected';
     badge.className = 'status-badge status-rejected';
-    badge.title = rejectionReason || '';
+    badge.title = reason || '';
     rejectBtn.disabled = true;
     rejectBtn.title = 'Paper already rejected, cannot reject twice';
+    flagBtn.disabled = true;
+    flagBtn.title = 'Paper is rejected — revert the rejection before flagging';
+    clearBtn.textContent = 'Revert rejection';
+    clearBtn.classList.remove('hidden');
   } else {
     badge.textContent = '● Needs Review';
     badge.className = 'status-badge status-needs-review';
     badge.title = '';
-    rejectBtn.disabled = false;
-    rejectBtn.title = '';
   }
 }
 
@@ -141,6 +158,11 @@ function populateForm(p) {
   setTextField('title', p.title);
   setTextField('year', p.year != null ? String(p.year) : '');
   setTextField('venue', p.venue || '');
+
+  document.querySelectorAll('input[name="peer-reviewed"]').forEach(r => {
+    r.checked = (p.peer_reviewed === true && r.value === 'yes')
+             || (p.peer_reviewed === false && r.value === 'no');
+  });
 
   document.getElementById('input-code-repo').value = p.code_repo || '';
 
@@ -231,6 +253,7 @@ function removeTag(type, index) {
 // ── Save logic ─────────────────────────────────────────────────────────────
 
 function collectFormState() {
+  const prChecked = document.querySelector('input[name="peer-reviewed"]:checked');
   return {
     title: document.getElementById('input-title').value.trim()
       || document.getElementById('display-title').textContent.trim(),
@@ -241,6 +264,7 @@ function collectFormState() {
     ) || null,
     venue: document.getElementById('input-venue').value.trim()
       || document.getElementById('display-venue').textContent.trim(),
+    peer_reviewed: prChecked ? prChecked.value === 'yes' : null,
     code_repo: document.getElementById('input-code-repo').value.trim(),
     datasets: [...datasets],
     metrics: [...metrics]
@@ -251,32 +275,73 @@ function persistPaper(index, extra = {}) {
   const p = papers[index];
   const base = { ...collectFormState(), status: p.status };
   if (p.rejection_reason) base.rejection_reason = p.rejection_reason;
+  if (p.flag_reason) base.flag_reason = p.flag_reason;
   const data = { ...base, ...extra };
   papers[index] = { ...p, ...data };
   localStorage.setItem('paper:' + papers[index].id, JSON.stringify(data));
 }
 
 function saveCurrent() {
-  persistPaper(currentIndex, { status: 'final' });
-  updateStatusBadge('final');
+  const currentStatus = papers[currentIndex].status;
+  const isLocked = currentStatus === 'rejected' || currentStatus === 'flagged';
+  persistPaper(currentIndex, isLocked ? {} : { status: 'final' });
+  const p = papers[currentIndex];
+  updateStatusBadge(p.status, p.rejection_reason || p.flag_reason);
   flashMessage('save-confirm');
 }
 
 function saveAndNext() {
-  persistPaper(currentIndex, { status: 'final' });
-  updateStatusBadge('final');
+  const currentStatus = papers[currentIndex].status;
+  const isLocked = currentStatus === 'rejected' || currentStatus === 'flagged';
+  persistPaper(currentIndex, isLocked ? {} : { status: 'final' });
 
   const total = papers.length;
   for (let offset = 1; offset <= total; offset++) {
     const candidate = (currentIndex + offset) % total;
-    if (papers[candidate].status !== 'final') {
+    if (papers[candidate].status === 'needs_review') {
       loadPaper(candidate);
       return;
     }
   }
 
-  // All papers final — return to overview
+  // No more papers needing review — return to overview
   window.location.href = 'index.html';
+}
+
+function clearStatus() {
+  delete papers[currentIndex].rejection_reason;
+  delete papers[currentIndex].flag_reason;
+  persistPaper(currentIndex, { status: 'needs_review' });
+  updateStatusBadge('needs_review');
+}
+
+function flagCurrent() {
+  document.querySelectorAll('input[name="flag-reason"]').forEach(r => r.checked = false);
+  document.getElementById('flag-other-text').value = '';
+  document.getElementById('flag-other-text').classList.add('hidden');
+  document.getElementById('flag-confirm-btn').disabled = true;
+  document.getElementById('flag-overlay').classList.remove('hidden');
+}
+
+function closeFlagDialog() {
+  document.getElementById('flag-overlay').classList.add('hidden');
+}
+
+function confirmFlag() {
+  const selected = document.querySelector('input[name="flag-reason"]:checked');
+  if (!selected) return;
+
+  let reason;
+  if (selected.value === 'other') {
+    reason = document.getElementById('flag-other-text').value.trim();
+    if (!reason) return;
+  } else {
+    reason = selected.value;
+  }
+
+  persistPaper(currentIndex, { status: 'flagged', flag_reason: reason });
+  updateStatusBadge('flagged', reason);
+  closeFlagDialog();
 }
 
 function rejectCurrent() {
@@ -426,6 +491,35 @@ function wireEvents() {
 
   document.getElementById('save-btn').addEventListener('click', saveCurrent);
   document.getElementById('save-next-btn').addEventListener('click', saveAndNext);
+  document.getElementById('clear-status-btn').addEventListener('click', clearStatus);
+  document.getElementById('flag-btn').addEventListener('click', flagCurrent);
+  document.getElementById('flag-cancel-btn').addEventListener('click', closeFlagDialog);
+  document.getElementById('flag-confirm-btn').addEventListener('click', confirmFlag);
+
+  document.getElementById('flag-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('flag-overlay')) closeFlagDialog();
+  });
+
+  document.querySelectorAll('input[name="flag-reason"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      const otherText = document.getElementById('flag-other-text');
+      const confirmBtn = document.getElementById('flag-confirm-btn');
+      if (radio.value === 'other') {
+        otherText.classList.remove('hidden');
+        otherText.focus();
+        confirmBtn.disabled = otherText.value.trim() === '';
+      } else {
+        otherText.classList.add('hidden');
+        confirmBtn.disabled = false;
+      }
+    });
+  });
+
+  document.getElementById('flag-other-text').addEventListener('input', () => {
+    document.getElementById('flag-confirm-btn').disabled =
+      document.getElementById('flag-other-text').value.trim() === '';
+  });
+
   document.getElementById('reject-btn').addEventListener('click', rejectCurrent);
   document.getElementById('reject-cancel-btn').addEventListener('click', closeRejectDialog);
   document.getElementById('reject-confirm-btn').addEventListener('click', confirmReject);

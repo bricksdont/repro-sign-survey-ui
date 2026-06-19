@@ -31,6 +31,7 @@
 
       <div class="status-row">
         <span id="status-badge" class="status-badge status-needs-review">&#9679; Needs Review</span>
+        <button id="clear-status-btn" class="clear-status-btn hidden"></button>
       </div>
 
       <!-- Title -->
@@ -60,6 +61,19 @@
           <span class="field-display" id="display-venue"></span>
           <input type="text" class="field-input hidden" id="input-venue" placeholder="e.g. EMNLP, ACL, NAACL">
           <button class="edit-btn hidden" id="edit-venue" title="Edit">&#9998;</button>
+        </div>
+      </div>
+
+      <!-- Peer-reviewed -->
+      <div class="field-group">
+        <label>Peer-Reviewed</label>
+        <div class="radio-row">
+          <label class="radio-option">
+            <input type="radio" name="peer-reviewed" value="yes"> Yes
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="peer-reviewed" value="no"> No
+          </label>
         </div>
       </div>
 
@@ -100,12 +114,40 @@
       <div class="form-footer">
         <button id="save-btn" class="btn-secondary">Save</button>
         <button id="save-next-btn" class="btn-primary">Save &amp; Next &#8594;</button>
+        <button id="flag-btn" class="btn-flag">Flag</button>
         <button id="reject-btn" class="btn-danger">Reject</button>
         <span id="save-confirm" class="save-confirm hidden">Saved &#10003;</span>
       </div>
 
     </div>
 
+  </div>
+
+  <!-- Flag dialog -->
+  <div id="flag-overlay" class="modal-overlay hidden">
+    <div class="modal-dialog">
+      <h3 class="modal-title">Flag Paper</h3>
+      <p class="modal-subtitle">Select a reason for flagging:</p>
+      <div class="reject-options">
+        <label class="reject-option">
+          <input type="radio" name="flag-reason" value="Unclear which experiment is the main one">
+          Unclear which experiment is the main one
+        </label>
+        <label class="reject-option">
+          <input type="radio" name="flag-reason" value="Unclear if method is computational">
+          Unclear if method is computational
+        </label>
+        <label class="reject-option">
+          <input type="radio" name="flag-reason" value="other">
+          Other (explain):
+        </label>
+        <textarea id="flag-other-text" class="reject-other-text hidden" placeholder="Describe the reason&#8230;" rows="3"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button id="flag-cancel-btn" class="btn-secondary">Cancel</button>
+        <button id="flag-confirm-btn" class="btn-flag" disabled>Flag</button>
+      </div>
+    </div>
   </div>
 
   <!-- Rejection dialog -->

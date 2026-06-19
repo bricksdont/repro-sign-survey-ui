@@ -31,12 +31,15 @@ async function loadPapers() {
 
 function renderStats(papers) {
   const final = papers.filter(p => p.status === 'final').length;
+  const flagged = papers.filter(p => p.status === 'flagged').length;
   const rejected = papers.filter(p => p.status === 'rejected').length;
-  const pending = papers.length - final - rejected;
+  const pending = papers.length - final - flagged - rejected;
   document.getElementById('stats-row').innerHTML =
     `<span class="stat"><span class="stat-num">${final}</span> Final</span>` +
     `<span class="stat-sep">·</span>` +
     `<span class="stat"><span class="stat-num">${pending}</span> Needs Review</span>` +
+    `<span class="stat-sep">·</span>` +
+    `<span class="stat"><span class="stat-num">${flagged}</span> Flagged</span>` +
     `<span class="stat-sep">·</span>` +
     `<span class="stat"><span class="stat-num">${rejected}</span> Rejected</span>`;
 }
@@ -47,9 +50,11 @@ function render(papers) {
   papers.forEach(p => {
     const status = p.status || 'needs_review';
     const badgeClass = status === 'final' ? 'status-final'
+      : status === 'flagged' ? 'status-flagged'
       : status === 'rejected' ? 'status-rejected'
       : 'status-needs-review';
     const badgeText = status === 'final' ? '&#10003; Final'
+      : status === 'flagged' ? '&#9873; Flagged'
       : status === 'rejected' ? '&#10005; Rejected'
       : '&#9679; Needs Review';
 
@@ -79,6 +84,7 @@ async function init() {
       localStorage.removeItem('paper:' + p.id);
       p.status = 'needs_review';
       delete p.rejection_reason;
+      delete p.flag_reason;
     });
     document.getElementById('papers-tbody').innerHTML = '';
     render(papers);

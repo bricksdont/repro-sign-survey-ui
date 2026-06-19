@@ -229,7 +229,25 @@ body {
 /* ── Status badge ── */
 
 .status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin-bottom: 18px;
+}
+
+.clear-status-btn {
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.clear-status-btn:hover {
+  color: #555;
 }
 
 .status-badge {
@@ -249,6 +267,11 @@ body {
 .status-final {
   background: #d4edda;
   color: #155724;
+}
+
+.status-flagged {
+  background: #fef0d8;
+  color: #7a4200;
 }
 
 .status-rejected {
@@ -323,6 +346,28 @@ body {
 .edit-btn:hover {
   color: #555;
   background: #f0f0f0;
+}
+
+/* ── Radio row ── */
+
+.radio-row {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+}
+
+.radio-option input[type="radio"] {
+  cursor: pointer;
 }
 
 /* ── Tag chips ── */
@@ -480,6 +525,28 @@ body {
 
 .btn-primary:hover {
   background: #357abd;
+}
+
+.btn-flag {
+  background: #e67e22;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-flag:hover {
+  background: #ca6f1e;
+}
+
+.btn-flag:disabled {
+  background: #ccc;
+  color: #888;
+  cursor: not-allowed;
 }
 
 .btn-danger {
