@@ -100,12 +100,45 @@
       <div class="form-footer">
         <button id="save-btn" class="btn-secondary">Save</button>
         <button id="save-next-btn" class="btn-primary">Save &amp; Next &#8594;</button>
+        <button id="reject-btn" class="btn-danger">Reject</button>
         <span id="save-confirm" class="save-confirm hidden">Saved &#10003;</span>
       </div>
 
     </div>
 
   </div>
+
+  <!-- Rejection dialog -->
+  <div id="reject-overlay" class="modal-overlay hidden">
+    <div class="modal-dialog">
+      <h3 class="modal-title">Reject Paper</h3>
+      <p class="modal-subtitle">Select a reason for rejection:</p>
+      <div class="reject-options">
+        <label class="reject-option">
+          <input type="radio" name="reject-reason" value="Paper is not on Sign Language Processing">
+          Paper is not on Sign Language Processing
+        </label>
+        <label class="reject-option">
+          <input type="radio" name="reject-reason" value="Does not have quantitative experiments">
+          Does not have quantitative experiments
+        </label>
+        <label class="reject-option">
+          <input type="radio" name="reject-reason" value="Not published between 2017 and 2026">
+          Not published between 2017 and 2026
+        </label>
+        <label class="reject-option">
+          <input type="radio" name="reject-reason" value="other">
+          Other (explain):
+        </label>
+        <textarea id="reject-other-text" class="reject-other-text hidden" placeholder="Describe the reason&#8230;" rows="3"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button id="reject-cancel-btn" class="btn-secondary">Cancel</button>
+        <button id="reject-confirm-btn" class="btn-danger" disabled>Reject</button>
+      </div>
+    </div>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>
