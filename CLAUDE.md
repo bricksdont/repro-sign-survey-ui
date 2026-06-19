@@ -11,11 +11,12 @@ Plain HTML/CSS/JS — no framework, no build step, no npm. Don't introduce bundl
 ## Running
 
 ```bash
-python3 -m http.server 8765
+python3 server.py        # port 8765
+python3 server.py 9000   # custom port
 # open http://localhost:8765
 ```
 
-Must be served (not opened as `file://`) so that `fetch('data.json')` works. If it can't fetch `data.json`, it falls back to the hardcoded `FALLBACK_PAPER` constant in `app.js`.
+Use `server.py`, not bare `python3 -m http.server`. The custom server adds a `/proxy-pdf?url=<encoded>` endpoint that fetches PDFs server-side, bypassing both CORS restrictions and `X-Frame-Options: SAMEORIGIN` headers (e.g. OpenReview). Must be served (not `file://`) for `fetch('data.json')` and the proxy to work.
 
 ## File layout
 

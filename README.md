@@ -29,10 +29,12 @@ The interface shows the paper PDF on the left and editable metadata fields on th
 Requires a local HTTP server (the page fetches `data.json`):
 
 ```bash
-python3 -m http.server 8765
+python3 server.py
 ```
 
 Then open [http://localhost:8765](http://localhost:8765).
+
+`server.py` is a small wrapper around Python's built-in HTTP server that adds a `/proxy-pdf` endpoint. This lets pdf.js render PDFs from any host (including OpenReview, which blocks direct iframe embedding) by fetching them server-side.
 
 ## Seed data
 

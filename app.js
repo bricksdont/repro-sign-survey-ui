@@ -132,16 +132,22 @@ function startPDFLoad(url) {
 }
 
 async function loadPDF(url) {
-  try {
-    const loadingTask = pdfjsLib.getDocument({ url, withCredentials: false });
-    pdfDoc = await loadingTask.promise;
-    currentPage = 1;
-    updatePageInfo();
-    await renderPage(currentPage);
-  } catch (err) {
-    console.warn('pdf.js failed, falling back to iframe:', err.message);
-    fallbackToIframe(url);
+  // Try proxy first — bypasses CORS and X-Frame-Options for any PDF host
+  const proxyUrl = `/proxy-pdf?url=${encodeURIComponent(url)}`;
+  for (const candidate of [proxyUrl, url]) {
+    try {
+      const loadingTask = pdfjsLib.getDocument({ url: candidate, withCredentials: false });
+      pdfDoc = await loadingTask.promise;
+      currentPage = 1;
+      updatePageInfo();
+      await renderPage(currentPage);
+      return;
+    } catch (err) {
+      console.warn(`pdf.js failed for ${candidate}:`, err.message);
+    }
   }
+  // Last resort: native browser iframe (fails for X-Frame-Options restricted sites)
+  fallbackToIframe(url);
 }
 
 function fallbackToIframe(url) {
