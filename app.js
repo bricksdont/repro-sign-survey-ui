@@ -1,6 +1,3 @@
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
 const FALLBACK_PAPERS = [
   {
     id: 'emnlp-2024-518',
@@ -30,10 +27,6 @@ const FALLBACK_PAPERS = [
 
 let papers = [];
 let currentIndex = 0;
-let pdfDoc = null;
-let currentPage = 1;
-
-// In-memory mirrors of tag lists (kept in sync with the DOM)
 let datasets = [];
 let metrics = [];
 
@@ -41,11 +34,8 @@ let metrics = [];
 
 async function init() {
   papers = await loadAllPapers();
-
-  // Start on first paper needing review, fall back to index 0
   const firstPending = papers.findIndex(p => p.status !== 'final');
   loadPaper(firstPending >= 0 ? firstPending : 0);
-
   wireEvents();
 }
 
@@ -75,8 +65,15 @@ function loadPaper(index) {
   updatePaperNav();
   updateStatusBadge(p.status || 'needs_review');
   populateForm(p);
-  startPDFLoad(p.pdf_url);
+  loadPDF(p.pdf_url);
   hideFooterMessages();
+}
+
+function loadPDF(url) {
+  // Route through local proxy — strips X-Frame-Options and CORS headers,
+  // so the browser's native PDF viewer works for any host.
+  const iframe = document.getElementById('pdf-iframe');
+  iframe.src = `/proxy-pdf?url=${encodeURIComponent(url)}`;
 }
 
 function updatePaperNav() {
@@ -100,113 +97,6 @@ function updateStatusBadge(status) {
 function hideFooterMessages() {
   document.getElementById('save-confirm').classList.add('hidden');
   document.getElementById('all-done-msg').classList.add('hidden');
-}
-
-// ── PDF loading ────────────────────────────────────────────────────────────
-
-function startPDFLoad(url) {
-  // Reset previous PDF state
-  if (pdfDoc) { pdfDoc.destroy(); pdfDoc = null; }
-  currentPage = 1;
-
-  const canvas = document.getElementById('pdf-canvas');
-  const iframe = document.getElementById('pdf-iframe');
-  const errorEl = document.getElementById('pdf-error');
-
-  canvas.classList.remove('hidden');
-  canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-  iframe.classList.add('hidden');
-  iframe.src = '';
-  errorEl.classList.add('hidden');
-
-  const prevBtn = document.getElementById('prev-btn');
-  const nextBtn = document.getElementById('next-btn');
-  prevBtn.classList.remove('hidden');
-  nextBtn.classList.remove('hidden');
-  prevBtn.disabled = true;
-  nextBtn.disabled = true;
-  document.getElementById('page-info').textContent = 'Loading…';
-  document.getElementById('pdf-link').href = url;
-
-  loadPDF(url);
-}
-
-async function loadPDF(url) {
-  // Always route through the local proxy (bypasses CORS + X-Frame-Options).
-  // disableRange + disableStream: proxy serves the full PDF in one response,
-  // so pdf.js must not send byte-range requests it can't handle.
-  const proxyUrl = `/proxy-pdf?url=${encodeURIComponent(url)}`;
-  try {
-    const loadingTask = pdfjsLib.getDocument({
-      url: proxyUrl,
-      withCredentials: false,
-      disableRange: true,
-      disableStream: true,
-    });
-    pdfDoc = await loadingTask.promise;
-    currentPage = 1;
-    updatePageInfo();
-    await renderPage(currentPage);
-    return;
-  } catch (err) {
-    console.warn('Proxy load failed, trying direct URL:', err.message);
-  }
-
-  // Fallback: direct URL (works when proxy is not running, e.g. same-origin PDFs)
-  try {
-    const loadingTask = pdfjsLib.getDocument({
-      url,
-      withCredentials: false,
-      disableRange: true,
-      disableStream: true,
-    });
-    pdfDoc = await loadingTask.promise;
-    currentPage = 1;
-    updatePageInfo();
-    await renderPage(currentPage);
-    return;
-  } catch (err) {
-    console.warn('Direct load failed, falling back to iframe:', err.message);
-  }
-
-  fallbackToIframe(url);
-}
-
-function fallbackToIframe(url) {
-  document.getElementById('pdf-canvas').classList.add('hidden');
-  document.getElementById('prev-btn').classList.add('hidden');
-  document.getElementById('next-btn').classList.add('hidden');
-  document.getElementById('page-info').textContent = '';
-
-  const iframe = document.getElementById('pdf-iframe');
-  iframe.src = url;
-  iframe.classList.remove('hidden');
-}
-
-async function renderPage(num) {
-  if (!pdfDoc) return;
-  const page = await pdfDoc.getPage(num);
-  const canvas = document.getElementById('pdf-canvas');
-  const wrapper = canvas.parentElement;
-
-  const naturalViewport = page.getViewport({ scale: 1 });
-  const scale = (wrapper.clientWidth - 32) / naturalViewport.width;
-  const viewport = page.getViewport({ scale });
-
-  canvas.width = viewport.width;
-  canvas.height = viewport.height;
-
-  const ctx = canvas.getContext('2d');
-  await page.render({ canvasContext: ctx, viewport }).promise;
-
-  updatePageInfo();
-  document.getElementById('prev-btn').disabled = currentPage <= 1;
-  document.getElementById('next-btn').disabled = currentPage >= pdfDoc.numPages;
-}
-
-function updatePageInfo() {
-  const total = pdfDoc ? pdfDoc.numPages : '?';
-  document.getElementById('page-info').textContent = `Page ${currentPage} / ${total}`;
 }
 
 // ── Form population ────────────────────────────────────────────────────────
@@ -336,7 +226,6 @@ function saveAndNext() {
   persistPaper(currentIndex, { status: 'final' });
   updateStatusBadge('final');
 
-  // Find next paper needing review, searching forward then wrapping around
   const total = papers.length;
   for (let offset = 1; offset <= total; offset++) {
     const candidate = (currentIndex + offset) % total;
@@ -346,7 +235,6 @@ function saveAndNext() {
     }
   }
 
-  // All papers are now final
   flashMessage('all-done-msg');
 }
 
@@ -371,11 +259,8 @@ function initDivider() {
     document.body.style.userSelect = 'none';
     document.body.style.cursor = 'col-resize';
 
-    // Prevent the iframe from swallowing mouse events during drag
     const iframe = document.getElementById('pdf-iframe');
-    const canvas = document.getElementById('pdf-canvas');
     iframe.style.pointerEvents = 'none';
-    canvas.style.pointerEvents = 'none';
 
     const onMove = e => {
       const appRect = app.getBoundingClientRect();
@@ -389,7 +274,6 @@ function initDivider() {
       document.body.style.userSelect = '';
       document.body.style.cursor = '';
       iframe.style.pointerEvents = '';
-      canvas.style.pointerEvents = '';
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
     };
@@ -402,15 +286,6 @@ function initDivider() {
 // ── Event wiring ───────────────────────────────────────────────────────────
 
 function wireEvents() {
-  // PDF page navigation
-  document.getElementById('prev-btn').addEventListener('click', async () => {
-    if (currentPage > 1) { currentPage--; await renderPage(currentPage); }
-  });
-  document.getElementById('next-btn').addEventListener('click', async () => {
-    if (pdfDoc && currentPage < pdfDoc.numPages) { currentPage++; await renderPage(currentPage); }
-  });
-
-  // Paper navigation
   document.getElementById('prev-paper').addEventListener('click', () => {
     if (currentIndex > 0) loadPaper(currentIndex - 1);
   });
@@ -418,7 +293,6 @@ function wireEvents() {
     if (currentIndex < papers.length - 1) loadPaper(currentIndex + 1);
   });
 
-  // Edit buttons for pre-filled text fields
   ['title', 'year', 'venue'].forEach(field => {
     document.getElementById('edit-' + field).addEventListener('click', () => startEditing(field));
     document.getElementById('input-' + field).addEventListener('blur', () => finishEditing(field));
@@ -427,7 +301,6 @@ function wireEvents() {
     });
   });
 
-  // Tag inputs
   document.getElementById('add-dataset-btn').addEventListener('click', () => addTag('datasets'));
   document.getElementById('add-metric-btn').addEventListener('click', () => addTag('metrics'));
   document.getElementById('dataset-input').addEventListener('keydown', e => {
@@ -437,7 +310,6 @@ function wireEvents() {
     if (e.key === 'Enter') addTag('metrics');
   });
 
-  // Save buttons
   document.getElementById('save-btn').addEventListener('click', saveCurrent);
   document.getElementById('save-next-btn').addEventListener('click', saveAndNext);
 }

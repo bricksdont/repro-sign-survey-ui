@@ -5,27 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Paper Metadata Review</title>
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
   <div class="app">
 
-    <!-- Left panel: PDF viewer -->
+    <!-- Left panel: PDF viewer (native browser viewer via proxy iframe) -->
     <div class="panel pdf-panel">
-      <div class="pdf-controls">
-        <button id="prev-btn" disabled>&#9664; Prev</button>
-        <span id="page-info">Loading…</span>
-        <button id="next-btn" disabled>Next &#9654;</button>
-      </div>
-      <div class="canvas-wrapper">
-        <canvas id="pdf-canvas"></canvas>
-        <!-- iframe fallback when pdf.js can't fetch cross-origin PDF -->
-        <iframe id="pdf-iframe" class="hidden" title="PDF viewer"></iframe>
-        <div id="pdf-error" class="pdf-error hidden">
-          <p>Could not load the PDF.</p>
-          <a id="pdf-link" href="#" target="_blank" rel="noopener">Open PDF in new tab ↗</a>
-        </div>
-      </div>
+      <iframe id="pdf-iframe" title="PDF viewer"></iframe>
     </div>
 
     <!-- Draggable divider -->

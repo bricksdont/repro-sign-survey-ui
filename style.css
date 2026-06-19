@@ -56,76 +56,11 @@ body {
 
 /* ── PDF viewer ── */
 
-.pdf-controls {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 10px 16px;
-  background: #3c3f41;
-  color: #ddd;
-  font-size: 13px;
-  flex-shrink: 0;
-}
-
-.pdf-controls button {
-  background: #555;
-  color: #ddd;
-  border: none;
-  border-radius: 4px;
-  padding: 4px 12px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: background 0.15s;
-}
-
-.pdf-controls button:hover:not(:disabled) {
-  background: #777;
-}
-
-.pdf-controls button:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-#page-info {
-  flex: 1;
-  text-align: center;
-}
-
-.canvas-wrapper {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  justify-content: center;
-  padding: 16px;
-  position: relative;
-}
-
-#pdf-canvas {
-  display: block;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
-  max-width: 100%;
-}
-
 #pdf-iframe {
+  display: block;
   width: 100%;
   height: 100%;
   border: none;
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-.pdf-error {
-  color: #ccc;
-  text-align: center;
-  padding: 40px 20px;
-  line-height: 1.8;
-}
-
-.pdf-error a {
-  color: #7ab;
-  text-decoration: underline;
 }
 
 /* ── Metadata panel header ── */
