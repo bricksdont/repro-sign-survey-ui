@@ -83,7 +83,7 @@ function loadPaper(index) {
   currentIndex = index;
   const p = papers[index];
   history.replaceState(null, '', `?id=${p.id}`);
-  document.title = `${p.title || p.id} — Paper Review`;
+  document.title = 'SLP Paper Survey';
   updatePaperNav();
   updateStatusBadge(p.status || 'needs_review');
   populateForm(p);

@@ -12,6 +12,17 @@
       "status": "needs_review"
     },
     {
+      "id": "acl-2021-570",
+      "pdf_url": "https://aclanthology.org/2021.acl-long.570.pdf",
+      "title": "Including Signed Languages in Natural Language Processing",
+      "year": 2021,
+      "venue": "ACL",
+      "code_repo": "",
+      "datasets": [],
+      "metrics": [],
+      "status": "needs_review"
+    },
+    {
       "id": "openreview-M80WgiO2Lb",
       "pdf_url": "https://openreview.net/pdf?id=M80WgiO2Lb",
       "title": "Scaling Sign Language Translation",
