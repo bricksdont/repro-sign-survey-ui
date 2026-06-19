@@ -74,8 +74,8 @@ function loadPDF(url) {
   // so the browser's native PDF viewer works for any host.
   // Pass the paper ID as filename so the viewer shows a meaningful title.
   const iframe = document.getElementById('pdf-iframe');
-  const filename = encodeURIComponent(papers[currentIndex].id + '.pdf');
-  iframe.src = `/proxy-pdf?url=${encodeURIComponent(url)}&filename=${filename}`;
+  const id = papers[currentIndex].id;
+  iframe.src = `/pdf/${id}.pdf?url=${encodeURIComponent(url)}`;
 }
 
 function updatePaperNav() {
