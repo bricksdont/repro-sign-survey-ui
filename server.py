@@ -11,7 +11,7 @@ Usage:
 """
 
 import sys
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs, unquote
 from urllib.request import urlopen, Request
 from urllib.error import URLError
@@ -51,7 +51,7 @@ class Handler(SimpleHTTPRequestHandler):
 
 if __name__ == '__main__':
     port = int(sys.argv[1]) if len(sys.argv) > 1 else PORT
-    httpd = HTTPServer(('', port), Handler)
+    httpd = ThreadingHTTPServer(('', port), Handler)
     print(f'Serving at http://localhost:{port}')
     print(f'PDF proxy: http://localhost:{port}/proxy-pdf?url=<encoded-url>')
     try:

@@ -132,21 +132,43 @@ function startPDFLoad(url) {
 }
 
 async function loadPDF(url) {
-  // Try proxy first — bypasses CORS and X-Frame-Options for any PDF host
+  // Always route through the local proxy (bypasses CORS + X-Frame-Options).
+  // disableRange + disableStream: proxy serves the full PDF in one response,
+  // so pdf.js must not send byte-range requests it can't handle.
   const proxyUrl = `/proxy-pdf?url=${encodeURIComponent(url)}`;
-  for (const candidate of [proxyUrl, url]) {
-    try {
-      const loadingTask = pdfjsLib.getDocument({ url: candidate, withCredentials: false });
-      pdfDoc = await loadingTask.promise;
-      currentPage = 1;
-      updatePageInfo();
-      await renderPage(currentPage);
-      return;
-    } catch (err) {
-      console.warn(`pdf.js failed for ${candidate}:`, err.message);
-    }
+  try {
+    const loadingTask = pdfjsLib.getDocument({
+      url: proxyUrl,
+      withCredentials: false,
+      disableRange: true,
+      disableStream: true,
+    });
+    pdfDoc = await loadingTask.promise;
+    currentPage = 1;
+    updatePageInfo();
+    await renderPage(currentPage);
+    return;
+  } catch (err) {
+    console.warn('Proxy load failed, trying direct URL:', err.message);
   }
-  // Last resort: native browser iframe (fails for X-Frame-Options restricted sites)
+
+  // Fallback: direct URL (works when proxy is not running, e.g. same-origin PDFs)
+  try {
+    const loadingTask = pdfjsLib.getDocument({
+      url,
+      withCredentials: false,
+      disableRange: true,
+      disableStream: true,
+    });
+    pdfDoc = await loadingTask.promise;
+    currentPage = 1;
+    updatePageInfo();
+    await renderPage(currentPage);
+    return;
+  } catch (err) {
+    console.warn('Direct load failed, falling back to iframe:', err.message);
+  }
+
   fallbackToIframe(url);
 }
 
