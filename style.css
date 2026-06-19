@@ -71,11 +71,33 @@ body {
   padding: 0 24px;
 }
 
+.overview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
 .overview h1 {
   font-size: 22px;
   font-weight: 700;
   color: #111;
-  margin-bottom: 24px;
+}
+
+.btn-reset {
+  background: none;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  color: #888;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.btn-reset:hover {
+  border-color: #c0392b;
+  color: #c0392b;
 }
 
 .papers-table {
