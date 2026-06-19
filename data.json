@@ -8,7 +8,19 @@
       "venue": "EMNLP",
       "code_repo": "",
       "datasets": ["OpenASL", "ASLG-PC12"],
-      "metrics": []
+      "metrics": [],
+      "status": "needs_review"
+    },
+    {
+      "id": "openreview-M80WgiO2Lb",
+      "pdf_url": "https://openreview.net/pdf?id=M80WgiO2Lb",
+      "title": "Scaling Sign Language Translation",
+      "year": null,
+      "venue": null,
+      "code_repo": "",
+      "datasets": [],
+      "metrics": [],
+      "status": "needs_review"
     }
   ]
 }

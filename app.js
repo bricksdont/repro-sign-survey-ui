@@ -1,21 +1,35 @@
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// Fallback seed data (used when data.json cannot be fetched, e.g. file:// protocol)
-const FALLBACK_PAPER = {
-  id: 'emnlp-2024-518',
-  pdf_url: 'https://aclanthology.org/2024.emnlp-main.518.pdf',
-  title: 'SignCLIP: Connecting Text and Sign Language by Contrastive Learning',
-  year: 2024,
-  venue: 'EMNLP',
-  code_repo: '',
-  datasets: ['OpenASL', 'ASLG-PC12'],
-  metrics: []
-};
+const FALLBACK_PAPERS = [
+  {
+    id: 'emnlp-2024-518',
+    pdf_url: 'https://aclanthology.org/2024.emnlp-main.518.pdf',
+    title: 'SignCLIP: Connecting Text and Sign Language by Contrastive Learning',
+    year: 2024,
+    venue: 'EMNLP',
+    code_repo: '',
+    datasets: ['OpenASL', 'ASLG-PC12'],
+    metrics: [],
+    status: 'needs_review'
+  },
+  {
+    id: 'openreview-M80WgiO2Lb',
+    pdf_url: 'https://openreview.net/pdf?id=M80WgiO2Lb',
+    title: 'Scaling Sign Language Translation',
+    year: null,
+    venue: null,
+    code_repo: '',
+    datasets: [],
+    metrics: [],
+    status: 'needs_review'
+  }
+];
 
 // ── State ──────────────────────────────────────────────────────────────────
 
-let paper = null;
+let papers = [];
+let currentIndex = 0;
 let pdfDoc = null;
 let currentPage = 1;
 
@@ -26,42 +40,98 @@ let metrics = [];
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 
 async function init() {
-  paper = await loadPaperData();
-  applyLocalStorage(paper);
-  populateForm(paper);
-  await loadPDF(paper.pdf_url);
+  papers = await loadAllPapers();
+
+  // Start on first paper needing review, fall back to index 0
+  const firstPending = papers.findIndex(p => p.status !== 'final');
+  loadPaper(firstPending >= 0 ? firstPending : 0);
+
   wireEvents();
 }
 
-async function loadPaperData() {
+async function loadAllPapers() {
+  let seed = [];
   try {
     const res = await fetch('data.json');
-    if (!res.ok) throw new Error('fetch failed');
-    const json = await res.json();
-    return json.papers[0];
-  } catch {
-    return FALLBACK_PAPER;
+    if (res.ok) seed = (await res.json()).papers;
+  } catch {}
+  if (!seed.length) seed = FALLBACK_PAPERS;
+
+  return seed.map(p => {
+    const saved = localStorage.getItem('paper:' + p.id);
+    if (saved) {
+      try { return { ...p, ...JSON.parse(saved) }; }
+      catch {}
+    }
+    return { ...p, status: p.status || 'needs_review' };
+  });
+}
+
+// ── Paper loading ──────────────────────────────────────────────────────────
+
+function loadPaper(index) {
+  currentIndex = index;
+  const p = papers[index];
+  updatePaperNav();
+  updateStatusBadge(p.status || 'needs_review');
+  populateForm(p);
+  startPDFLoad(p.pdf_url);
+  hideFooterMessages();
+}
+
+function updatePaperNav() {
+  document.getElementById('paper-counter').textContent =
+    `${currentIndex + 1} / ${papers.length}`;
+  document.getElementById('prev-paper').disabled = currentIndex <= 0;
+  document.getElementById('next-paper').disabled = currentIndex >= papers.length - 1;
+}
+
+function updateStatusBadge(status) {
+  const badge = document.getElementById('status-badge');
+  if (status === 'final') {
+    badge.textContent = '✓ Final';
+    badge.className = 'status-badge status-final';
+  } else {
+    badge.textContent = '● Needs Review';
+    badge.className = 'status-badge status-needs-review';
   }
 }
 
-function applyLocalStorage(p) {
-  const saved = localStorage.getItem('paper:' + p.id);
-  if (!saved) return;
-  try {
-    const overrides = JSON.parse(saved);
-    Object.assign(p, overrides);
-  } catch {
-    // ignore corrupt data
-  }
+function hideFooterMessages() {
+  document.getElementById('save-confirm').classList.add('hidden');
+  document.getElementById('all-done-msg').classList.add('hidden');
 }
 
 // ── PDF loading ────────────────────────────────────────────────────────────
 
-async function loadPDF(url) {
-  const errorEl = document.getElementById('pdf-error');
-  const linkEl = document.getElementById('pdf-link');
-  linkEl.href = url;
+function startPDFLoad(url) {
+  // Reset previous PDF state
+  if (pdfDoc) { pdfDoc.destroy(); pdfDoc = null; }
+  currentPage = 1;
 
+  const canvas = document.getElementById('pdf-canvas');
+  const iframe = document.getElementById('pdf-iframe');
+  const errorEl = document.getElementById('pdf-error');
+
+  canvas.classList.remove('hidden');
+  canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+  iframe.classList.add('hidden');
+  iframe.src = '';
+  errorEl.classList.add('hidden');
+
+  const prevBtn = document.getElementById('prev-btn');
+  const nextBtn = document.getElementById('next-btn');
+  prevBtn.classList.remove('hidden');
+  nextBtn.classList.remove('hidden');
+  prevBtn.disabled = true;
+  nextBtn.disabled = true;
+  document.getElementById('page-info').textContent = 'Loading…';
+  document.getElementById('pdf-link').href = url;
+
+  loadPDF(url);
+}
+
+async function loadPDF(url) {
   try {
     const loadingTask = pdfjsLib.getDocument({ url, withCredentials: false });
     pdfDoc = await loadingTask.promise;
@@ -70,7 +140,6 @@ async function loadPDF(url) {
     await renderPage(currentPage);
   } catch (err) {
     console.warn('pdf.js failed, falling back to iframe:', err.message);
-    // CORS or network error — render via browser's native PDF viewer
     fallbackToIframe(url);
   }
 }
@@ -117,7 +186,7 @@ function updatePageInfo() {
 function populateForm(p) {
   setTextField('title', p.title);
   setTextField('year', p.year != null ? String(p.year) : '');
-  setTextField('venue', p.venue);
+  setTextField('venue', p.venue || '');
 
   document.getElementById('input-code-repo').value = p.code_repo || '';
 
@@ -205,10 +274,10 @@ function removeTag(type, index) {
   renderTags(type, list);
 }
 
-// ── Save ───────────────────────────────────────────────────────────────────
+// ── Save logic ─────────────────────────────────────────────────────────────
 
-function saveChanges() {
-  const data = {
+function collectFormState() {
+  return {
     title: document.getElementById('input-title').value.trim()
       || document.getElementById('display-title').textContent.trim(),
     year: parseInt(
@@ -222,48 +291,43 @@ function saveChanges() {
     datasets: [...datasets],
     metrics: [...metrics]
   };
-
-  localStorage.setItem('paper:' + paper.id, JSON.stringify(data));
-
-  const confirm = document.getElementById('save-confirm');
-  confirm.classList.remove('hidden');
-  setTimeout(() => confirm.classList.add('hidden'), 2000);
 }
 
-// ── Event wiring ───────────────────────────────────────────────────────────
+function persistPaper(index, extra = {}) {
+  const data = { ...collectFormState(), status: papers[index].status, ...extra };
+  papers[index] = { ...papers[index], ...data };
+  localStorage.setItem('paper:' + papers[index].id, JSON.stringify(data));
+}
 
-function wireEvents() {
-  // PDF navigation
-  document.getElementById('prev-btn').addEventListener('click', async () => {
-    if (currentPage > 1) { currentPage--; await renderPage(currentPage); }
-  });
-  document.getElementById('next-btn').addEventListener('click', async () => {
-    if (pdfDoc && currentPage < pdfDoc.numPages) { currentPage++; await renderPage(currentPage); }
-  });
+function saveCurrent() {
+  persistPaper(currentIndex);
+  flashMessage('save-confirm');
+}
 
-  // Edit buttons for pre-filled text fields
-  ['title', 'year', 'venue'].forEach(field => {
-    document.getElementById('edit-' + field).addEventListener('click', () => startEditing(field));
-    document.getElementById('input-' + field).addEventListener('blur', () => finishEditing(field));
-    document.getElementById('input-' + field).addEventListener('keydown', e => {
-      if (e.key === 'Enter') finishEditing(field);
-    });
-  });
+function saveAndNext() {
+  persistPaper(currentIndex, { status: 'final' });
+  updateStatusBadge('final');
 
-  // Tag inputs — button click
-  document.getElementById('add-dataset-btn').addEventListener('click', () => addTag('datasets'));
-  document.getElementById('add-metric-btn').addEventListener('click', () => addTag('metrics'));
+  // Find next paper needing review, searching forward then wrapping around
+  const total = papers.length;
+  for (let offset = 1; offset <= total; offset++) {
+    const candidate = (currentIndex + offset) % total;
+    if (papers[candidate].status !== 'final') {
+      loadPaper(candidate);
+      return;
+    }
+  }
 
-  // Tag inputs — Enter key
-  document.getElementById('dataset-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') addTag('datasets');
-  });
-  document.getElementById('metric-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') addTag('metrics');
-  });
+  // All papers are now final
+  flashMessage('all-done-msg');
+}
 
-  // Save
-  document.getElementById('save-btn').addEventListener('click', saveChanges);
+function flashMessage(id) {
+  const el = document.getElementById(id);
+  el.classList.remove('hidden');
+  if (id === 'save-confirm') {
+    setTimeout(() => el.classList.add('hidden'), 2000);
+  }
 }
 
 // ── Divider drag ──────────────────────────────────────────────────────────
@@ -305,6 +369,49 @@ function initDivider() {
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
   });
+}
+
+// ── Event wiring ───────────────────────────────────────────────────────────
+
+function wireEvents() {
+  // PDF page navigation
+  document.getElementById('prev-btn').addEventListener('click', async () => {
+    if (currentPage > 1) { currentPage--; await renderPage(currentPage); }
+  });
+  document.getElementById('next-btn').addEventListener('click', async () => {
+    if (pdfDoc && currentPage < pdfDoc.numPages) { currentPage++; await renderPage(currentPage); }
+  });
+
+  // Paper navigation
+  document.getElementById('prev-paper').addEventListener('click', () => {
+    if (currentIndex > 0) loadPaper(currentIndex - 1);
+  });
+  document.getElementById('next-paper').addEventListener('click', () => {
+    if (currentIndex < papers.length - 1) loadPaper(currentIndex + 1);
+  });
+
+  // Edit buttons for pre-filled text fields
+  ['title', 'year', 'venue'].forEach(field => {
+    document.getElementById('edit-' + field).addEventListener('click', () => startEditing(field));
+    document.getElementById('input-' + field).addEventListener('blur', () => finishEditing(field));
+    document.getElementById('input-' + field).addEventListener('keydown', e => {
+      if (e.key === 'Enter') finishEditing(field);
+    });
+  });
+
+  // Tag inputs
+  document.getElementById('add-dataset-btn').addEventListener('click', () => addTag('datasets'));
+  document.getElementById('add-metric-btn').addEventListener('click', () => addTag('metrics'));
+  document.getElementById('dataset-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addTag('datasets');
+  });
+  document.getElementById('metric-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addTag('metrics');
+  });
+
+  // Save buttons
+  document.getElementById('save-btn').addEventListener('click', saveCurrent);
+  document.getElementById('save-next-btn').addEventListener('click', saveAndNext);
 }
 
 // ── Start ──────────────────────────────────────────────────────────────────

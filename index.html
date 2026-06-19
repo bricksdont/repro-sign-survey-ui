@@ -33,7 +33,19 @@
 
     <!-- Right panel: Metadata form -->
     <div class="panel meta-panel">
-      <h2>Paper Metadata</h2>
+
+      <div class="meta-header">
+        <h2>Paper Metadata</h2>
+        <div class="paper-nav">
+          <button id="prev-paper" title="Previous paper" disabled>&#9664;</button>
+          <span id="paper-counter">1 / 1</span>
+          <button id="next-paper" title="Next paper" disabled>&#9654;</button>
+        </div>
+      </div>
+
+      <div class="status-row">
+        <span id="status-badge" class="status-badge status-needs-review">&#9679; Needs Review</span>
+      </div>
 
       <!-- Title -->
       <div class="field-group">
@@ -94,9 +106,12 @@
       </div>
 
       <div class="form-footer">
-        <button id="save-btn">Save Changes</button>
+        <button id="save-btn" class="btn-secondary">Save</button>
+        <button id="save-next-btn" class="btn-primary">Save &amp; Next &#8594;</button>
         <span id="save-confirm" class="save-confirm hidden">Saved &#10003;</span>
+        <span id="all-done-msg" class="all-done hidden">All papers reviewed &#10003;</span>
       </div>
+
     </div>
 
   </div>

@@ -50,7 +50,7 @@ body {
 .meta-panel {
   flex: 1;
   background: #fff;
-  padding: 28px 24px;
+  padding: 20px 24px 28px;
   min-width: 20%;
 }
 
@@ -128,16 +128,82 @@ body {
   text-decoration: underline;
 }
 
-/* ── Metadata panel ── */
+/* ── Metadata panel header ── */
 
-.meta-panel h2 {
-  font-size: 16px;
-  font-weight: 600;
-  color: #111;
-  margin-bottom: 22px;
+.meta-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
   padding-bottom: 12px;
   border-bottom: 1px solid #e8e8e8;
 }
+
+.meta-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111;
+}
+
+.paper-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.paper-nav button {
+  background: #f0f0f0;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  padding: 3px 9px;
+  font-size: 11px;
+  cursor: pointer;
+  color: #444;
+  transition: background 0.15s;
+}
+
+.paper-nav button:hover:not(:disabled) {
+  background: #e0e0e0;
+}
+
+.paper-nav button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+#paper-counter {
+  font-size: 12px;
+  color: #777;
+  min-width: 36px;
+  text-align: center;
+}
+
+/* ── Status badge ── */
+
+.status-row {
+  margin-bottom: 18px;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.status-needs-review {
+  background: #fff3cd;
+  color: #7a5600;
+}
+
+.status-final {
+  background: #d4edda;
+  color: #155724;
+}
+
+/* ── Field groups ── */
 
 .field-group {
   margin-bottom: 18px;
@@ -298,22 +364,38 @@ body {
   border-top: 1px solid #e8e8e8;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-#save-btn {
-  background: #4a90d9;
-  color: #fff;
-  border: none;
+.btn-secondary {
+  background: #f0f0f0;
+  color: #444;
+  border: 1px solid #d0d0d0;
   border-radius: 6px;
-  padding: 9px 22px;
+  padding: 9px 18px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s;
 }
 
-#save-btn:hover {
+.btn-secondary:hover {
+  background: #e4e4e4;
+}
+
+.btn-primary {
+  background: #4a90d9;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-primary:hover {
   background: #357abd;
 }
 
@@ -321,6 +403,12 @@ body {
   font-size: 13px;
   color: #27ae60;
   font-weight: 500;
+}
+
+.all-done {
+  font-size: 13px;
+  color: #27ae60;
+  font-weight: 600;
 }
 
 /* ── Utility ── */
