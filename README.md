@@ -2,15 +2,20 @@
 
 A lightweight web interface for annotating and reviewing reproducibility metadata of NLP research papers. Built for a survey of sign language papers.
 
-The interface shows the paper PDF on the left and editable metadata fields on the right. Annotations are saved locally in the browser.
+An overview page lists all papers with their review status. Each paper opens a detail view showing the PDF on the left and editable metadata fields on the right. Annotations are saved locally in the browser.
 
-![Screenshot of the UI showing the SignCLIP paper PDF on the left and the metadata form on the right](screenshot_ui.png)
+![Overview page listing papers with status badges](overview-page.png)
+
+![Paper detail page with PDF viewer and metadata form](paper-page.png)
 
 ## Features
 
-- Inline PDF viewer (pdf.js with native browser fallback)
+- Overview page with paper list, status badges (Needs Review / Final), and stats
+- Native browser PDF viewer via local proxy (text selection, zoom, full controls)
 - Pre-filled fields shown read-only with one-click editing
-- Tag chip inputs for multi-value fields (datasets, metrics)
+- Tag chip inputs for datasets and metrics with autocomplete dropdowns
+- Status workflow: Save or Save & Next marks a paper as Final
+- Paper navigation (◀ ▶) and direct links from overview
 - Saves to `localStorage` — survives page refresh, no backend needed
 
 ## Metadata fields
@@ -34,7 +39,7 @@ python3 server.py
 
 Then open [http://localhost:8765](http://localhost:8765).
 
-`server.py` is a small wrapper around Python's built-in HTTP server that adds a `/proxy-pdf` endpoint. This lets pdf.js render PDFs from any host (including OpenReview, which blocks direct iframe embedding) by fetching them server-side.
+`server.py` is a small wrapper around Python's built-in HTTP server that adds a `/pdf/<id>.pdf?url=<encoded>` proxy endpoint. This lets the browser's native PDF viewer embed PDFs from any host (including OpenReview, which sets `X-Frame-Options: SAMEORIGIN`) by fetching them server-side and stripping restrictive headers.
 
 ## Seed data
 
