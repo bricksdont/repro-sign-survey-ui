@@ -10,11 +10,11 @@ An overview page lists all papers with their review status. Each paper opens a d
 
 ## Features
 
-- Overview page with paper list, status badges (Needs Review / Final), and stats
+- Overview page with paper list, status badges (Needs Review / Final / Rejected), and stats
 - Native browser PDF viewer via local proxy (text selection, zoom, full controls)
 - Pre-filled fields shown read-only with one-click editing
 - Tag chip inputs for datasets and metrics with autocomplete dropdowns
-- Status workflow: Save or Save & Next marks a paper as Final
+- Status workflow: Save or Save & Next marks a paper as Final; Reject prompts for a reason and marks it as Rejected
 - Paper navigation (◀ ▶) and direct links from overview
 - Saves to `localStorage` — survives page refresh, no backend needed
 
