@@ -29,7 +29,17 @@ async function loadPapers() {
   });
 }
 
+function renderStats(papers) {
+  const final = papers.filter(p => p.status === 'final').length;
+  const pending = papers.length - final;
+  document.getElementById('stats-row').innerHTML =
+    `<span class="stat"><span class="stat-num">${final}</span> Final</span>` +
+    `<span class="stat-sep">·</span>` +
+    `<span class="stat"><span class="stat-num">${pending}</span> Needs Review</span>`;
+}
+
 function render(papers) {
+  renderStats(papers);
   const tbody = document.getElementById('papers-tbody');
   papers.forEach(p => {
     const status = p.status || 'needs_review';
@@ -59,8 +69,12 @@ async function init() {
   render(papers);
 
   document.getElementById('reset-btn').addEventListener('click', () => {
-    papers.forEach(p => localStorage.removeItem('paper:' + p.id));
-    location.reload();
+    papers.forEach(p => {
+      localStorage.removeItem('paper:' + p.id);
+      p.status = 'needs_review';
+    });
+    document.getElementById('papers-tbody').innerHTML = '';
+    render(papers);
   });
 }
 
