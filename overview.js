@@ -59,15 +59,8 @@ async function init() {
   render(papers);
 
   document.getElementById('reset-btn').addEventListener('click', () => {
-    papers.forEach(p => {
-      const key = 'paper:' + p.id;
-      const data = JSON.parse(localStorage.getItem(key) || '{}');
-      data.status = 'needs_review';
-      localStorage.setItem(key, JSON.stringify(data));
-    });
-    document.getElementById('papers-tbody').innerHTML = '';
-    papers.forEach(p => { p.status = 'needs_review'; });
-    render(papers);
+    papers.forEach(p => localStorage.removeItem('paper:' + p.id));
+    location.reload();
   });
 }
 
