@@ -75,9 +75,12 @@
       <div class="field-group">
         <label>Datasets</label>
         <div class="tag-container" id="datasets-container"></div>
-        <div class="tag-input-row">
-          <input type="text" id="dataset-input" placeholder="Add dataset…">
-          <button id="add-dataset-btn">+ Add</button>
+        <div class="tag-input-wrapper">
+          <div class="tag-input-row">
+            <input type="text" id="dataset-input" placeholder="Add dataset…" autocomplete="off">
+            <button id="add-dataset-btn">+ Add</button>
+          </div>
+          <div id="dataset-suggestions" class="suggestions-dropdown hidden"></div>
         </div>
       </div>
 
