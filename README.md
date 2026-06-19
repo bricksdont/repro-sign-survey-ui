@@ -10,11 +10,12 @@ An overview page lists all papers with their review status. Each paper opens a d
 
 ## Features
 
-- Overview page with paper list, status badges (Needs Review / Final / Rejected), and stats
+- Overview page with paper list, status badges (Needs Review / Final / Flagged / Rejected), and stats
 - Native browser PDF viewer via local proxy (text selection, zoom, full controls)
 - Pre-filled fields shown read-only with one-click editing
 - Tag chip inputs for datasets and metrics with autocomplete dropdowns
-- Status workflow: Save or Save & Next marks a paper as Final; Reject prompts for a reason and marks it as Rejected
+- Status workflow: Save or Save & Next marks a paper as Final; Flag prompts for a reason and marks it as Flagged (for team discussion); Reject prompts for a reason and marks it as Rejected
+- Flagged and Rejected statuses are preserved on Save; can be cleared via an inline link
 - Paper navigation (◀ ▶) and direct links from overview
 - Saves to `localStorage` — survives page refresh, no backend needed
 
@@ -25,6 +26,7 @@ An overview page lists all papers with their review status. Each paper opens a d
 | Title | Free text |
 | Year | Integer |
 | Venue | Conference/workshop abbreviation (e.g. EMNLP, ACL) |
+| Peer-Reviewed | Yes / No radio |
 | Code Repository | URL to accompanying code |
 | Datasets | Multi-value tag list |
 | Metrics | Multi-value tag list |
