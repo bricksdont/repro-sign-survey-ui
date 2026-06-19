@@ -241,7 +241,8 @@ function persistPaper(index, extra = {}) {
 }
 
 function saveCurrent() {
-  persistPaper(currentIndex);
+  persistPaper(currentIndex, { status: 'final' });
+  updateStatusBadge('final');
   flashMessage('save-confirm');
 }
 
