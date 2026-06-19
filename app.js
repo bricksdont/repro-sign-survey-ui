@@ -72,8 +72,10 @@ function loadPaper(index) {
 function loadPDF(url) {
   // Route through local proxy — strips X-Frame-Options and CORS headers,
   // so the browser's native PDF viewer works for any host.
+  // Pass the paper ID as filename so the viewer shows a meaningful title.
   const iframe = document.getElementById('pdf-iframe');
-  iframe.src = `/proxy-pdf?url=${encodeURIComponent(url)}`;
+  const filename = encodeURIComponent(papers[currentIndex].id + '.pdf');
+  iframe.src = `/proxy-pdf?url=${encodeURIComponent(url)}&filename=${filename}`;
 }
 
 function updatePaperNav() {

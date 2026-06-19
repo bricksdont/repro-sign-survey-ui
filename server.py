@@ -36,9 +36,11 @@ class Handler(SimpleHTTPRequestHandler):
             req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
             with urlopen(req, timeout=30) as resp:
                 data = resp.read()
+            filename = query.get('filename', [None])[0] or 'paper.pdf'
             self.send_response(200)
             self.send_header('Content-Type', 'application/pdf')
             self.send_header('Content-Length', str(len(data)))
+            self.send_header('Content-Disposition', f'inline; filename="{filename}"')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             self.wfile.write(data)
