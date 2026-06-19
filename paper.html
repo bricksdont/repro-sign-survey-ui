@@ -85,9 +85,12 @@
       <div class="field-group">
         <label>Metrics</label>
         <div class="tag-container" id="metrics-container"></div>
-        <div class="tag-input-row">
-          <input type="text" id="metric-input" placeholder="Add metric…">
-          <button id="add-metric-btn">+ Add</button>
+        <div class="tag-input-wrapper">
+          <div class="tag-input-row">
+            <input type="text" id="metric-input" placeholder="Add metric…" autocomplete="off">
+            <button id="add-metric-btn">+ Add</button>
+          </div>
+          <div id="metric-suggestions" class="suggestions-dropdown hidden"></div>
         </div>
       </div>
 

@@ -23,6 +23,12 @@ const FALLBACK_PAPERS = [
   }
 ];
 
+const METRIC_SUGGESTIONS = [
+  'BLEU', 'BLEU-1', 'BLEU-2', 'BLEU-3', 'BLEU-4',
+  'WER', 'ROUGE', 'Accuracy', 'BLEURT', 'F1',
+  'DTW-MJE', 'chrF', 'IoU', 'Precision', 'Recall',
+];
+
 // ── State ──────────────────────────────────────────────────────────────────
 
 let papers = [];
@@ -258,6 +264,47 @@ function flashMessage(id) {
   }
 }
 
+// ── Metric autocomplete ────────────────────────────────────────────────────
+
+function initMetricAutocomplete() {
+  const input = document.getElementById('metric-input');
+  const dropdown = document.getElementById('metric-suggestions');
+
+  function refresh() {
+    const q = input.value.toLowerCase();
+    const matches = METRIC_SUGGESTIONS.filter(m =>
+      !metrics.includes(m) &&
+      (q === '' || m.toLowerCase().startsWith(q))
+    );
+
+    if (matches.length === 0) {
+      dropdown.classList.add('hidden');
+      return;
+    }
+
+    dropdown.innerHTML = '';
+    matches.forEach(m => {
+      const item = document.createElement('div');
+      item.className = 'suggestion-item';
+      item.textContent = m;
+      item.addEventListener('mousedown', e => {
+        e.preventDefault(); // keep focus on input so blur doesn't fire first
+        input.value = m;
+        addTag('metrics');
+        dropdown.classList.add('hidden');
+      });
+      dropdown.appendChild(item);
+    });
+    dropdown.classList.remove('hidden');
+  }
+
+  input.addEventListener('focus', refresh);
+  input.addEventListener('input', refresh);
+  input.addEventListener('blur', () => {
+    setTimeout(() => dropdown.classList.add('hidden'), 150);
+  });
+}
+
 // ── Divider drag ──────────────────────────────────────────────────────────
 
 function initDivider() {
@@ -330,3 +377,4 @@ function wireEvents() {
 
 init();
 initDivider();
+initMetricAutocomplete();

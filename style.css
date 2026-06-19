@@ -345,6 +345,36 @@ body {
   color: #c0392b;
 }
 
+.tag-input-wrapper {
+  position: relative;
+}
+
+.suggestions-dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 2px);
+  background: #fff;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  max-height: 180px;
+  overflow-y: auto;
+  z-index: 20;
+}
+
+.suggestion-item {
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #333;
+}
+
+.suggestion-item:hover {
+  background: #f0f5ff;
+  color: #3060c0;
+}
+
 .tag-input-row {
   display: flex;
   gap: 6px;
