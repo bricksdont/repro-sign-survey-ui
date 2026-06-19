@@ -114,12 +114,12 @@ body {
   letter-spacing: 0.05em;
   color: #888;
   padding: 8px 12px;
-  border-bottom: 2px solid #e8e8e8;
+  border-bottom: 2px solid #c8c8c8;
 }
 
 .papers-table td {
   padding: 13px 12px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #d8d8d8;
   vertical-align: middle;
 }
 
