@@ -11,6 +11,9 @@ const FALLBACK_PAPERS = [
   }
 ];
 
+let allPapers = [];
+let activeFilter = 'all';
+
 async function loadPapers() {
   let seed = [];
   try {
@@ -44,9 +47,17 @@ function renderStats(papers) {
     `<span class="stat"><span class="stat-num">${rejected}</span> Rejected</span>`;
 }
 
-function render(papers) {
-  renderStats(papers);
+function renderTable(papers) {
   const tbody = document.getElementById('papers-tbody');
+  tbody.innerHTML = '';
+
+  if (papers.length === 0) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="4" class="no-results">No papers match your search.</td>`;
+    tbody.appendChild(tr);
+    return;
+  }
+
   papers.forEach(p => {
     const status = p.status || 'needs_review';
     const badgeClass = status === 'final' ? 'status-final'
@@ -75,19 +86,47 @@ function render(papers) {
   });
 }
 
+function applyFilters() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const filtered = allPapers.filter(p => {
+    const matchesSearch = !q
+      || p.id.toLowerCase().includes(q)
+      || (p.title || '').toLowerCase().includes(q);
+    const matchesFilter = activeFilter === 'all' || (p.status || 'needs_review') === activeFilter;
+    return matchesSearch && matchesFilter;
+  });
+  renderTable(filtered);
+}
+
 async function init() {
-  const papers = await loadPapers();
-  render(papers);
+  allPapers = await loadPapers();
+  renderStats(allPapers);
+  renderTable(allPapers);
+
+  document.getElementById('search-input').addEventListener('input', applyFilters);
+
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = btn.dataset.status;
+      applyFilters();
+    });
+  });
 
   document.getElementById('reset-btn').addEventListener('click', () => {
-    papers.forEach(p => {
+    allPapers.forEach(p => {
       localStorage.removeItem('paper:' + p.id);
       p.status = 'needs_review';
       delete p.rejection_reason;
       delete p.flag_reason;
     });
-    document.getElementById('papers-tbody').innerHTML = '';
-    render(papers);
+    renderStats(allPapers);
+    activeFilter = 'all';
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.filter-btn[data-status="all"]').classList.add('active');
+    document.getElementById('search-input').value = '';
+    applyFilters();
   });
 }
 

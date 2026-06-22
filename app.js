@@ -41,6 +41,7 @@ let papers = [];
 let currentIndex = 0;
 let datasets = [];
 let metrics = [];
+let code_repos = [];
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 
@@ -164,7 +165,10 @@ function populateForm(p) {
              || (p.peer_reviewed === false && r.value === 'no');
   });
 
-  document.getElementById('input-code-repo').value = p.code_repo || '';
+  // Support old single-string code_repo field from earlier localStorage entries
+  code_repos = Array.isArray(p.code_repos) ? [...p.code_repos]
+    : (p.code_repo ? [p.code_repo] : []);
+  renderTags('code_repos', code_repos);
 
   datasets = Array.isArray(p.datasets) ? [...p.datasets] : [];
   metrics = Array.isArray(p.metrics) ? [...p.metrics] : [];
@@ -210,12 +214,23 @@ function finishEditing(field) {
 // ── Tag chips ──────────────────────────────────────────────────────────────
 
 function renderTags(type, items) {
-  const container = document.getElementById(type + '-container');
+  const containerId = type === 'code_repos' ? 'code-repos-container' : type + '-container';
+  const container = document.getElementById(containerId);
   container.innerHTML = '';
   items.forEach((item, i) => {
     const chip = document.createElement('span');
     chip.className = 'chip';
-    chip.textContent = item;
+    if (type === 'code_repos') {
+      const link = document.createElement('a');
+      link.href = item;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = item;
+      link.className = 'chip-link';
+      chip.appendChild(link);
+    } else {
+      chip.textContent = item;
+    }
 
     const removeBtn = document.createElement('button');
     removeBtn.className = 'chip-remove';
@@ -229,13 +244,16 @@ function renderTags(type, items) {
 }
 
 function addTag(type) {
-  const input = document.getElementById(
-    type === 'datasets' ? 'dataset-input' : 'metric-input'
-  );
+  const inputId = type === 'datasets' ? 'dataset-input'
+    : type === 'metrics' ? 'metric-input'
+    : 'code-repo-input';
+  const input = document.getElementById(inputId);
   const value = input.value.trim();
   if (!value) return;
 
-  const list = type === 'datasets' ? datasets : metrics;
+  const list = type === 'datasets' ? datasets
+    : type === 'metrics' ? metrics
+    : code_repos;
   if (!list.includes(value)) {
     list.push(value);
     renderTags(type, list);
@@ -245,7 +263,9 @@ function addTag(type) {
 }
 
 function removeTag(type, index) {
-  const list = type === 'datasets' ? datasets : metrics;
+  const list = type === 'datasets' ? datasets
+    : type === 'metrics' ? metrics
+    : code_repos;
   list.splice(index, 1);
   renderTags(type, list);
 }
@@ -265,7 +285,7 @@ function collectFormState() {
     venue: document.getElementById('input-venue').value.trim()
       || document.getElementById('display-venue').textContent.trim(),
     peer_reviewed: prChecked ? prChecked.value === 'yes' : null,
-    code_repo: document.getElementById('input-code-repo').value.trim(),
+    code_repos: [...code_repos],
     datasets: [...datasets],
     metrics: [...metrics]
   };
@@ -480,6 +500,10 @@ function wireEvents() {
     });
   });
 
+  document.getElementById('add-code-repo-btn').addEventListener('click', () => addTag('code_repos'));
+  document.getElementById('code-repo-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addTag('code_repos');
+  });
   document.getElementById('add-dataset-btn').addEventListener('click', () => addTag('datasets'));
   document.getElementById('add-metric-btn').addEventListener('click', () => addTag('metrics'));
   document.getElementById('dataset-input').addEventListener('keydown', e => {

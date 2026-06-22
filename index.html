@@ -14,6 +14,17 @@
     </div>
     <div id="stats-row" class="stats-row"></div>
 
+    <div class="filter-bar">
+      <input type="text" id="search-input" class="search-input" placeholder="Search by ID or title…">
+      <div class="status-filters">
+        <button class="filter-btn active" data-status="all">All</button>
+        <button class="filter-btn" data-status="needs_review">Needs Review</button>
+        <button class="filter-btn" data-status="flagged">Flagged</button>
+        <button class="filter-btn" data-status="rejected">Rejected</button>
+        <button class="filter-btn" data-status="final">Final</button>
+      </div>
+    </div>
+
     <table class="papers-table">
       <thead>
         <tr>
