@@ -98,10 +98,18 @@ function applyFilters() {
   renderTable(filtered);
 }
 
+function updateReviewNextBtn() {
+  const btn = document.getElementById('review-next-btn');
+  const unreviewed = allPapers.filter(p => (p.status || 'needs_review') === 'needs_review');
+  btn.disabled = unreviewed.length === 0;
+  btn.title = unreviewed.length === 0 ? 'No papers left to review' : '';
+}
+
 async function init() {
   allPapers = await loadPapers();
   renderStats(allPapers);
   renderTable(allPapers);
+  updateReviewNextBtn();
 
   document.getElementById('search-input').addEventListener('input', applyFilters);
 
@@ -114,6 +122,13 @@ async function init() {
     });
   });
 
+  document.getElementById('review-next-btn').addEventListener('click', () => {
+    const unreviewed = allPapers.filter(p => (p.status || 'needs_review') === 'needs_review');
+    if (unreviewed.length === 0) return;
+    const pick = unreviewed[Math.floor(Math.random() * unreviewed.length)];
+    window.location.href = `paper.html?id=${pick.id}`;
+  });
+
   document.getElementById('reset-btn').addEventListener('click', () => {
     allPapers.forEach(p => {
       localStorage.removeItem('paper:' + p.id);
@@ -122,6 +137,7 @@ async function init() {
       delete p.flag_reason;
     });
     renderStats(allPapers);
+    updateReviewNextBtn();
     activeFilter = 'all';
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     document.querySelector('.filter-btn[data-status="all"]').classList.add('active');
