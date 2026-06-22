@@ -182,6 +182,12 @@ body {
   color: #fff;
 }
 
+.results-count {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 10px;
+}
+
 .no-results {
   text-align: center;
   color: #999;

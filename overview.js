@@ -96,6 +96,15 @@ function applyFilters() {
     return matchesSearch && matchesFilter;
   });
   renderTable(filtered);
+
+  const countEl = document.getElementById('results-count');
+  const isFiltered = q !== '' || activeFilter !== 'all';
+  if (isFiltered) {
+    countEl.textContent = `Showing ${filtered.length} of ${allPapers.length} papers`;
+    countEl.classList.remove('hidden');
+  } else {
+    countEl.classList.add('hidden');
+  }
 }
 
 function updateReviewNextBtn() {
@@ -142,6 +151,7 @@ async function init() {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     document.querySelector('.filter-btn[data-status="all"]').classList.add('active');
     document.getElementById('search-input').value = '';
+    document.getElementById('results-count').classList.add('hidden');
     applyFilters();
   });
 }
