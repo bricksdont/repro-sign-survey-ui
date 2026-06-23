@@ -6,7 +6,7 @@ A two-page metadata annotation tool for reviewing research papers. An overview p
 
 ## Stack
 
-Plain HTML/CSS/JS — no framework, no build step, no npm. Don't introduce bundlers or frameworks unless explicitly asked.
+Plain HTML/CSS/JS — no framework, no build step. Node/npm is used only for dev tooling (HTML validation, Playwright tests) — not required to run the app. Don't introduce bundlers or frameworks unless explicitly asked.
 
 ## Running
 
@@ -28,6 +28,11 @@ Use `server.py`, not bare `python3 -m http.server`. The custom server adds a `/p
 | `app.js` | Detail page logic: form, localStorage persistence, autocomplete, divider drag |
 | `style.css` | Layout, form styles, tag chip styles, overview styles |
 | `data.json` | Seed metadata; one entry per paper |
+| `scripts/validate_data.py` | CI: validates data.json schema |
+| `tests/smoke.spec.js` | Playwright smoke tests (overview + detail page) |
+| `playwright.config.js` | Playwright config; auto-starts server.py for tests |
+| `package.json` | Dev dependencies: html-validate, @playwright/test |
+| `.github/workflows/ci.yml` | CI: syntax checks, JSON validation, HTML validation, Playwright |
 
 ## Key behaviours
 
@@ -45,6 +50,19 @@ Use `server.py`, not bare `python3 -m http.server`. The custom server adds a `/p
 - **Pre-filled fields** (title, year, venue): shown read-only with a pencil button. Click pencil → editable input; blur or Enter → back to display.
 - **Tag fields** (code repos, datasets, metrics): chip list with × removal; inline input + Add button (also triggered by Enter). Datasets and metrics have autocomplete dropdowns with predefined lists. Code repo chips are clickable links.
 - **Persistence**: Save serialises form state + status (+ reason if flagged/rejected) to `localStorage` under `paper:<id>`. On load, localStorage is checked first and overrides `data.json` values.
+
+## Testing
+
+CI runs on every push/PR to main. To run locally:
+
+```bash
+python3 -m py_compile server.py          # Python syntax
+python3 scripts/validate_data.py         # JSON schema
+npm run validate:html                    # HTML validation
+npx playwright test                      # Playwright smoke tests (auto-starts server)
+```
+
+Playwright tests cover: overview renders, search/filter, row click navigation, paper detail UI, Save → Final transition, ◀ ▶ navigation, back link. Each test runs in an isolated browser context with clean localStorage.
 
 ## Adding papers
 

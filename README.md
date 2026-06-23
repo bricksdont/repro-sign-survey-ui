@@ -1,5 +1,7 @@
 # repro-sign-survey-ui
 
+[![CI](https://github.com/bricksdont/repro-sign-survey-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/bricksdont/repro-sign-survey-ui/actions/workflows/ci.yml)
+
 A lightweight web interface for annotating and reviewing reproducibility metadata of NLP research papers. Built for a survey of sign language papers.
 
 An overview page lists all papers with their review status. Each paper opens a detail view showing the PDF on the left and editable metadata fields on the right. Annotations are saved locally in the browser.
@@ -50,6 +52,24 @@ Then open [http://localhost:8765](http://localhost:8765).
 
 Paper metadata lives in `data.json`. Leave unknown fields as `""` or `[]` — the form renders empty inputs for those. Edits are saved per-paper to `localStorage` (key: `paper:<id>`).
 
+## Development
+
+CI runs on every push and pull request. To run the checks locally:
+
+```bash
+# Python syntax and JSON schema
+python3 -m py_compile server.py
+python3 scripts/validate_data.py
+
+# HTML validation and Playwright smoke tests (requires Node)
+npm install
+npx playwright install chromium   # first time only
+npm run validate:html
+npx playwright test
+```
+
+The Playwright tests auto-start `server.py` on port 8765, or reuse an already-running instance.
+
 ## Tech
 
-Plain HTML/CSS/JS — no framework, no build step.
+Plain HTML/CSS/JS — no framework, no build step. Node is a dev-only dependency (HTML validation + Playwright tests).
