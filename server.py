@@ -45,6 +45,8 @@ class Handler(SimpleHTTPRequestHandler):
             self.wfile.write(data)
         except URLError as e:
             self.send_error(502, f'Could not fetch PDF: {e.reason}')
+        except BrokenPipeError:
+            pass  # client disconnected before transfer completed
 
     def log_message(self, fmt, *args):
         print(f'  {self.address_string()} {fmt % args}')
