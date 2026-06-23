@@ -1,6 +1,6 @@
 {
   "extends": ["html-validate:recommended"],
   "rules": {
-    "button-type": "off"
+    "no-implicit-button-type": "off"
   }
 }
