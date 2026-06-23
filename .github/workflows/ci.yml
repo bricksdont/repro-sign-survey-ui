@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python syntax — server.py
+        run: python3 -m py_compile server.py && echo "✓ server.py OK"
+
+      - name: JSON schema — data.json
+        run: python3 scripts/validate_data.py
+
+      - name: JS syntax — app.js
+        run: node --check app.js && echo "✓ app.js OK"
+
+      - name: JS syntax — overview.js
+        run: node --check overview.js && echo "✓ overview.js OK"
