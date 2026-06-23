@@ -22,8 +22,8 @@ Use `server.py`, not bare `python3 -m http.server`. The custom server adds a `/p
 
 | File | Purpose |
 |------|---------|
-| `index.html` | Overview page: paper list with status badges and stats |
-| `overview.js` | Overview page logic: loads data.json, merges localStorage, renders table |
+| `index.html` | Overview page: paper list with status badges, stats, search/filter |
+| `overview.js` | Overview page logic: loads data.json, merges localStorage, search/filter/render |
 | `paper.html` | Detail page: two-panel shell (PDF left, metadata form right) |
 | `app.js` | Detail page logic: form, localStorage persistence, autocomplete, divider drag |
 | `style.css` | Layout, form styles, tag chip styles, overview styles |
@@ -31,14 +31,20 @@ Use `server.py`, not bare `python3 -m http.server`. The custom server adds a `/p
 
 ## Key behaviours
 
-- **Overview page** (`index.html`): lists all papers with ID, title, status badge, and a Review link. Shows counts of Final vs Needs Review papers. "Reset to seed data" button clears all localStorage and reverts to `data.json`.
-- **PDF viewer**: native browser `<iframe>` routed through the local proxy (`/pdf/<id>.pdf?url=...`). The browser's own PDF viewer handles rendering — text selection, zoom, and all native controls work. No pdf.js.
-- **Paper navigation**: ◀ ▶ buttons in the detail page header step through papers. URL updates via `history.replaceState` (`?id=<paper-id>`), enabling direct links from the overview.
-- **Status workflow**: each paper is either `needs_review` or `final`. Clicking Save or Save & Next marks the current paper as Final and updates the status badge. Save & Next then advances to the next non-final paper (or returns to the overview if all are done).
+- **Overview page** (`index.html`): lists all papers with ID, title, status badge, and a Review link. Shows counts per status. Search box filters by ID or title (live, substring). Status filter pills narrow to a specific status. "Review Next →" navigates to a random `needs_review` paper. "Reset to seed data" clears all localStorage.
+- **PDF viewer**: native browser `<iframe>` routed through the local proxy (`/pdf/<id>.pdf?url=...`). Text selection, zoom, and all native controls work. No pdf.js.
+- **Paper navigation**: ◀ ▶ buttons step through papers. URL updates via `history.replaceState` (`?id=<paper-id>`), so every paper has a stable direct link. "Copy link" button in the header copies the current URL to clipboard.
+- **Status workflow**: four statuses — `needs_review`, `final`, `flagged`, `rejected`.
+  - Save / Save & Next → marks as `final` (only if currently `needs_review`; flagged/rejected status is preserved).
+  - Save & Next → advances to the next `needs_review` paper, skipping flagged/rejected/final.
+  - Flag → opens a dialog to choose/enter a reason; stores `status: flagged` + `flag_reason`.
+  - Reject → opens a dialog to choose/enter a reason; stores `status: rejected` + `rejection_reason`.
+  - Flag and Reject buttons disable each other (clear/revert first).
+  - "Clear flag" / "Revert rejection" link appears next to the badge to reset to `needs_review`.
+  - Rejection/flag reason shown as tooltip on the status badge.
 - **Pre-filled fields** (title, year, venue): shown read-only with a pencil button. Click pencil → editable input; blur or Enter → back to display.
-- **Empty fields** (code repo): plain input shown immediately.
-- **Tag fields** (datasets, metrics): chip list with × removal; inline input + Add button (also triggered by Enter). Both fields have autocomplete dropdowns with predefined lists, filtered by prefix as the user types.
-- **Persistence**: Save serialises form state + status to `localStorage` under `paper:<id>`. On load, localStorage is checked first and overrides `data.json` values.
+- **Tag fields** (code repos, datasets, metrics): chip list with × removal; inline input + Add button (also triggered by Enter). Datasets and metrics have autocomplete dropdowns with predefined lists. Code repo chips are clickable links.
+- **Persistence**: Save serialises form state + status (+ reason if flagged/rejected) to `localStorage` under `paper:<id>`. On load, localStorage is checked first and overrides `data.json` values.
 
 ## Adding papers
 
@@ -51,7 +57,8 @@ Add entries to `data.json`. Omit or leave `""` / `[]` for unknown fields — the
   "title": "Paper Title",
   "year": 2024,
   "venue": "ACL",
-  "code_repo": "",
+  "peer_reviewed": true,
+  "code_repos": [],
   "datasets": ["DS1"],
   "metrics": [],
   "status": "needs_review"

@@ -328,6 +328,15 @@ function saveAndNext() {
   window.location.href = 'index.html';
 }
 
+function copyLink() {
+  navigator.clipboard.writeText(window.location.href).then(() => {
+    const btn = document.getElementById('copy-link-btn');
+    const original = btn.innerHTML;
+    btn.textContent = 'Copied ✓';
+    setTimeout(() => { btn.innerHTML = original; }, 2000);
+  });
+}
+
 function clearStatus() {
   delete papers[currentIndex].rejection_reason;
   delete papers[currentIndex].flag_reason;
@@ -513,6 +522,7 @@ function wireEvents() {
     if (e.key === 'Enter') addTag('metrics');
   });
 
+  document.getElementById('copy-link-btn').addEventListener('click', copyLink);
   document.getElementById('save-btn').addEventListener('click', saveCurrent);
   document.getElementById('save-next-btn').addEventListener('click', saveAndNext);
   document.getElementById('clear-status-btn').addEventListener('click', clearStatus);

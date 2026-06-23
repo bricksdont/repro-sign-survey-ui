@@ -11,12 +11,15 @@ An overview page lists all papers with their review status. Each paper opens a d
 ## Features
 
 - Overview page with paper list, status badges (Needs Review / Final / Flagged / Rejected), and stats
+- Search by paper ID or title; filter by status; live result count
+- "Review Next →" button picks a random unreviewed paper
 - Native browser PDF viewer via local proxy (text selection, zoom, full controls)
 - Pre-filled fields shown read-only with one-click editing
-- Tag chip inputs for datasets and metrics with autocomplete dropdowns
-- Status workflow: Save or Save & Next marks a paper as Final; Flag prompts for a reason and marks it as Flagged (for team discussion); Reject prompts for a reason and marks it as Rejected
+- Tag chip inputs for datasets, metrics, and code repositories (with autocomplete for datasets and metrics)
+- Code repository chips are clickable links opening in a new tab
+- Status workflow: Save or Save & Next marks a paper as Final; Flag prompts for a reason (for team discussion); Reject prompts for a reason
 - Flagged and Rejected statuses are preserved on Save; can be cleared via an inline link
-- Paper navigation (◀ ▶) and direct links from overview
+- Paper navigation (◀ ▶); each paper has a stable URL (`paper.html?id=<id>`) with a one-click Copy link button
 - Saves to `localStorage` — survives page refresh, no backend needed
 
 ## Metadata fields
@@ -27,9 +30,9 @@ An overview page lists all papers with their review status. Each paper opens a d
 | Year | Integer |
 | Venue | Conference/workshop abbreviation (e.g. EMNLP, ACL) |
 | Peer-Reviewed | Yes / No radio |
-| Code Repository | URL to accompanying code |
-| Datasets | Multi-value tag list |
-| Metrics | Multi-value tag list |
+| Code Repositories | Multi-value URL list; entries are clickable links |
+| Datasets | Multi-value tag list with autocomplete |
+| Metrics | Multi-value tag list with autocomplete |
 
 ## Running
 
