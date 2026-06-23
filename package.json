@@ -1,0 +1,13 @@
+{
+  "name": "repro-sign-survey-ui",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "validate:html": "html-validate index.html paper.html",
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.45.0",
+    "html-validate": "^9.0.0"
+  }
+}

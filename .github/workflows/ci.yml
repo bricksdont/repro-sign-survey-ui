@@ -14,6 +14,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install npm dependencies
+        run: npm ci
+
       - name: Python syntax — server.py
         run: python3 -m py_compile server.py && echo "✓ server.py OK"
 
@@ -25,3 +33,12 @@ jobs:
 
       - name: JS syntax — overview.js
         run: node --check overview.js && echo "✓ overview.js OK"
+
+      - name: HTML validation
+        run: npm run validate:html
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Playwright smoke tests
+        run: npx playwright test
