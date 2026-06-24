@@ -783,3 +783,15 @@ body {
 .hidden {
   display: none !important;
 }
+
+/* ── Edit lock notice ── */
+
+.locked-notice {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #856404;
+  margin-bottom: 12px;
+}

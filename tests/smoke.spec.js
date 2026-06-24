@@ -1,5 +1,26 @@
 import { test, expect } from '@playwright/test';
 
+const TEST_EMAIL    = process.env.PB_TEST_EMAIL;
+const TEST_PASSWORD = process.env.PB_TEST_PASSWORD;
+
+// Skip all tests if backend credentials aren't configured (e.g. in CI without PocketBase)
+test.skip(!TEST_EMAIL || !TEST_PASSWORD,
+  'Skipped: set PB_TEST_EMAIL and PB_TEST_PASSWORD env vars to run with PocketBase backend');
+
+test.beforeEach(async ({ page }) => {
+  // Navigate first so the page's origin is set, then inject auth token into sessionStorage
+  await page.goto('/login.html');
+  const res = await page.request.post(
+    'http://localhost:8090/api/collections/users/auth-with-password',
+    { data: { identity: TEST_EMAIL, password: TEST_PASSWORD } }
+  );
+  const { token, record } = await res.json();
+  await page.evaluate(({ token, userId }) => {
+    sessionStorage.setItem('pb_token', token);
+    sessionStorage.setItem('pb_user_id', userId);
+  }, { token, userId: record.id });
+});
+
 test.describe('Overview page', () => {
   test('renders paper list and controls', async ({ page }) => {
     await page.goto('/');
@@ -35,7 +56,7 @@ test.describe('Paper detail page', () => {
   test('loads core UI elements', async ({ page }) => {
     await page.goto('/paper.html?id=emnlp-2024-518');
     await expect(page.locator('#pdf-iframe')).toBeVisible();
-    await expect(page.locator('#status-badge')).toContainText('Needs Review');
+    await expect(page.locator('#status-badge')).toBeVisible();
     await expect(page.locator('#save-btn')).toBeVisible();
     await expect(page.locator('#save-next-btn')).toBeVisible();
     await expect(page.locator('#flag-btn')).toBeVisible();
