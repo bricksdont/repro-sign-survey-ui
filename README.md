@@ -24,7 +24,7 @@ An overview page lists all papers with their review status. Each paper opens a d
 - Paper navigation (◀ ▶); each paper has a stable URL (`paper.html?id=<id>`) with a one-click Copy link button
 - Saves to a shared PocketBase backend — changes are immediately visible to all reviewers
 - Edit locking: only one reviewer can edit a paper at a time; others see a read-only notice
-- Session-based auth: login with a PocketBase user account; token stored in sessionStorage
+- Session-based auth: login with a PocketBase user account; token stored in `localStorage` with a 24-hour expiry
 
 ## Metadata fields
 
@@ -44,7 +44,7 @@ An overview page lists all papers with their review status. Each paper opens a d
 python3 server.py
 ```
 
-Then open [http://localhost:8765](http://localhost:8765). You will be redirected to a login page — enter your PocketBase email and password. The session token is stored in `sessionStorage` and cleared when the browser tab is closed.
+Then open [http://localhost:8765](http://localhost:8765). You will be redirected to a login page — enter your PocketBase email and password. The token is stored in `localStorage` and expires after 24 hours.
 
 `server.py` is a small wrapper around Python's built-in HTTP server that adds a `/pdf/<id>.pdf?url=<encoded>` proxy endpoint. This lets the browser's native PDF viewer embed PDFs from any host (including OpenReview, which sets `X-Frame-Options: SAMEORIGIN`) by fetching them server-side and stripping restrictive headers.
 

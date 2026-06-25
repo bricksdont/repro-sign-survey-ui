@@ -56,7 +56,7 @@ The parameter is read once on page load from `window.location.search` in `api.js
 
 ## Key behaviours
 
-- **Auth**: all pages redirect to `login.html` if no PocketBase token is found in `sessionStorage`. Token is stored in `sessionStorage` (not `localStorage`) so it does not survive a browser restart.
+- **Auth**: all pages redirect to `login.html` if no valid PocketBase token is found in `localStorage`. The token is stored with a 24-hour expiry timestamp (`pb_token_expiry`); `getToken()` in `api.js` returns `null` and clears the keys if the token is missing or expired. Using `localStorage` (not `sessionStorage`) means the token is shared across tabs, so copied paper links open without re-login.
 - **Overview page** (`index.html`): lists all papers with ID, title, status badge, and a Review link. Shows counts per status. Search box filters by ID or title (live, substring). Status filter pills narrow to a specific status. "Review Next →" navigates to a random `needs_review` paper.
 - **PDF viewer**: native browser `<iframe>` routed through the local proxy (`/pdf/<id>.pdf?url=...`). Text selection, zoom, and all native controls work. No pdf.js.
 - **Paper navigation**: ◀ ▶ buttons step through papers. URL updates via `history.replaceState` (`?id=<paper-id>`), so every paper has a stable direct link. "Copy link" button in the header copies the current URL to clipboard.
