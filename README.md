@@ -50,10 +50,12 @@ Then open [http://localhost:8765](http://localhost:8765). You will be redirected
 
 ## Backend
 
-The frontend connects to PocketBase automatically based on where it is served:
+The frontend picks a backend by checking `window.location.hostname` — the hostname of the page URL in your browser's address bar:
 
 - **`localhost`** → `http://localhost:8090` (local dev instance, see [backend repo](https://github.com/bricksdont/repro-sign-survey-backend))
 - **Any other host** → `https://repro-sign-survey.fly.dev` (live Fly.io deployment)
+
+So opening `http://localhost:8765` automatically talks to the local backend, and opening the same frontend from any deployed URL automatically talks to Fly.io — no config needed.
 
 You can override the auto-detection with a `?backend=` URL parameter on any page:
 

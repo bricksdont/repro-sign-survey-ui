@@ -20,12 +20,12 @@ Use `server.py`, not bare `python3 -m http.server`. The custom server adds a `/p
 
 ## Backend URL
 
-`api.js` picks the PocketBase backend automatically based on where the frontend is served:
+`api.js` checks `window.location.hostname` (the hostname in the browser's address bar) to pick a backend:
 
-| Context | Backend used |
+| `window.location.hostname` | Backend used |
 |---------|-------------|
 | `localhost` | `http://localhost:8090` |
-| Any other host | `https://repro-sign-survey.fly.dev` |
+| Anything else | `https://repro-sign-survey.fly.dev` |
 
 Override with a URL parameter on any page:
 
