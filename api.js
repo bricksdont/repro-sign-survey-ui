@@ -1,4 +1,11 @@
-const PB_URL = 'http://localhost:8090';
+const PB_URL = (() => {
+  const param = new URLSearchParams(window.location.search).get('backend');
+  if (param === 'local')  return 'http://localhost:8090';
+  if (param === 'remote') return 'https://repro-sign-survey.fly.dev';
+  return window.location.hostname === 'localhost'
+    ? 'http://localhost:8090'
+    : 'https://repro-sign-survey.fly.dev';
+})();
 
 function getToken()        { return sessionStorage.getItem('pb_token'); }
 function getUserId()       { return sessionStorage.getItem('pb_user_id'); }
