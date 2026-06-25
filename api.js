@@ -25,7 +25,7 @@ function getUserId()       { return localStorage.getItem('pb_user_id'); }
 function getEmail()        { return localStorage.getItem('pb_email'); }
 function isAuthenticated() { return !!getToken(); }
 function logout() {
-  ['pb_token', 'pb_user_id', 'pb_token_expiry', 'pb_email', 'pb_backend'].forEach(k => localStorage.removeItem(k));
+  ['pb_token', 'pb_user_id', 'pb_token_expiry', 'pb_email'].forEach(k => localStorage.removeItem(k));
 }
 
 function requireAuth() {
