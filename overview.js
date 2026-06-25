@@ -1,5 +1,7 @@
 let allPapers = [];
 let activeFilter = 'all';
+let currentPage = 1;
+const PAGE_SIZE = 50;
 
 async function loadPapers() {
   requireAuth();
@@ -34,10 +36,16 @@ function renderTable(papers) {
     const tr = document.createElement('tr');
     tr.innerHTML = `<td colspan="4" class="no-results">No papers match your search.</td>`;
     tbody.appendChild(tr);
+    renderPagination(0);
     return;
   }
 
-  papers.forEach(p => {
+  const totalPages = Math.ceil(papers.length / PAGE_SIZE);
+  if (currentPage > totalPages) currentPage = totalPages;
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = papers.slice(start, start + PAGE_SIZE);
+
+  pageItems.forEach(p => {
     const status = p.status || 'needs_review';
     const badgeClass = status === 'final'    ? 'status-final'
       : status === 'flagged'   ? 'status-flagged'
@@ -63,9 +71,24 @@ function renderTable(papers) {
     });
     tbody.appendChild(tr);
   });
+
+  renderPagination(papers.length);
 }
 
-function applyFilters() {
+function renderPagination(total) {
+  const el = document.getElementById('pagination');
+  if (total <= PAGE_SIZE) { el.classList.add('hidden'); return; }
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  el.classList.remove('hidden');
+  document.getElementById('page-indicator').textContent =
+    `Page ${currentPage} of ${totalPages}`;
+  document.getElementById('page-prev').disabled = currentPage <= 1;
+  document.getElementById('page-next').disabled = currentPage >= totalPages;
+}
+
+function applyFilters(resetPage = true) {
+  if (resetPage) currentPage = 1;
   const q = document.getElementById('search-input').value.toLowerCase();
   const filtered = allPapers.filter(p => {
     const matchesSearch = !q
@@ -108,6 +131,17 @@ async function init() {
       activeFilter = btn.dataset.status;
       applyFilters();
     });
+  });
+
+  document.getElementById('page-prev').addEventListener('click', () => {
+    currentPage--;
+    applyFilters(false);
+    window.scrollTo(0, 0);
+  });
+  document.getElementById('page-next').addEventListener('click', () => {
+    currentPage++;
+    applyFilters(false);
+    window.scrollTo(0, 0);
   });
 
   document.getElementById('review-next-btn').addEventListener('click', () => {
