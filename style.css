@@ -783,6 +783,67 @@ body {
   display: none !important;
 }
 
+/* ── Account menu ── */
+
+.account-menu {
+  position: relative;
+}
+
+.btn-account {
+  padding: 8px 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-account:hover {
+  background: #f0f0f0;
+}
+
+.account-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 220px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  padding: 12px;
+  z-index: 100;
+}
+
+.account-email {
+  font-size: 13px;
+  color: #333;
+  word-break: break-all;
+}
+
+.account-divider {
+  border: none;
+  border-top: 1px solid #eee;
+  margin: 10px 0;
+}
+
+.btn-logout {
+  width: 100%;
+  padding: 7px;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.btn-logout:hover {
+  background: #fdf2f2;
+  border-color: #e0a0a0;
+  color: #b91c1c;
+}
+
 /* ── Pagination ── */
 
 .pagination {

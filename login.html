@@ -141,6 +141,7 @@
         localStorage.setItem('pb_token', token);
         localStorage.setItem('pb_user_id', record.id);
         localStorage.setItem('pb_token_expiry', String(Date.now() + SESSION_TTL_MS));
+        localStorage.setItem('pb_email', email);
         window.location.href = next;
       } catch {
         errEl.textContent = 'Incorrect email or password.';

@@ -144,6 +144,19 @@ async function init() {
     window.scrollTo(0, 0);
   });
 
+  document.getElementById('account-email').textContent = getEmail() || getUserId() || 'Unknown user';
+  document.getElementById('account-btn').addEventListener('click', e => {
+    e.stopPropagation();
+    document.getElementById('account-dropdown').classList.toggle('hidden');
+  });
+  document.getElementById('logout-btn').addEventListener('click', () => {
+    logout();
+    window.location.href = 'login.html';
+  });
+  document.addEventListener('click', () => {
+    document.getElementById('account-dropdown').classList.add('hidden');
+  });
+
   document.getElementById('review-next-btn').addEventListener('click', () => {
     const unreviewed = allPapers.filter(p => (p.status || 'needs_review') === 'needs_review');
     if (unreviewed.length === 0) return;

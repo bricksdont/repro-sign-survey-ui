@@ -13,15 +13,17 @@ function getToken() {
   const token  = localStorage.getItem('pb_token');
   const expiry = localStorage.getItem('pb_token_expiry');
   if (!token || !expiry || Date.now() > Number(expiry)) {
-    localStorage.removeItem('pb_token');
-    localStorage.removeItem('pb_user_id');
-    localStorage.removeItem('pb_token_expiry');
+    logout();
     return null;
   }
   return token;
 }
 function getUserId()       { return localStorage.getItem('pb_user_id'); }
+function getEmail()        { return localStorage.getItem('pb_email'); }
 function isAuthenticated() { return !!getToken(); }
+function logout() {
+  ['pb_token', 'pb_user_id', 'pb_token_expiry', 'pb_email'].forEach(k => localStorage.removeItem(k));
+}
 
 function requireAuth() {
   if (!isAuthenticated())
