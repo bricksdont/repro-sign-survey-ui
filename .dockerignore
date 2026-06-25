@@ -1,0 +1,17 @@
+node_modules/
+playwright-report/
+test-results/
+tests/
+scripts/
+.github/
+package.json
+package-lock.json
+playwright.config.js
+.htmlvalidate.json
+*.png
+CLAUDE.md
+README.md
+.gitignore
+.dockerignore
+Dockerfile
+fly.toml
