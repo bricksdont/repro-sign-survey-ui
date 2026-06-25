@@ -1,28 +1,3 @@
-const FALLBACK_PAPERS = [
-  {
-    id: 'emnlp-2024-518',
-    pdf_url: 'https://aclanthology.org/2024.emnlp-main.518.pdf',
-    title: 'SignCLIP: Connecting Text and Sign Language by Contrastive Learning',
-    year: 2024,
-    venue: 'EMNLP',
-    code_repo: '',
-    datasets: ['OpenASL', 'ASLG-PC12'],
-    metrics: [],
-    status: 'needs_review'
-  },
-  {
-    id: 'openreview-M80WgiO2Lb',
-    pdf_url: 'https://openreview.net/pdf?id=M80WgiO2Lb',
-    title: 'Scaling Sign Language Translation',
-    year: null,
-    venue: null,
-    code_repo: '',
-    datasets: [],
-    metrics: [],
-    status: 'needs_review'
-  }
-];
-
 const DATASET_SUGGESTIONS = [
   'RWTH-PHOENIX-Weather-2014T', 'CSL-Daily', 'How2Sign', 'WLASL', 'MS-ASL',
   'YouTube-ASL', 'OpenASL', 'BSL-1K', 'BOBSL', 'SignBank', 'SignSuisse',
@@ -42,6 +17,8 @@ let currentIndex = 0;
 let datasets = [];
 let metrics = [];
 let code_repos = [];
+let isReadOnly = false;
+let heartbeatInterval = null;
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 
@@ -56,31 +33,27 @@ async function init() {
     if (startIndex < 0) startIndex = 0;
   }
 
-  loadPaper(startIndex);
+  await loadPaper(startIndex);
   wireEvents();
 }
 
 async function loadAllPapers() {
-  let seed = [];
-  try {
-    const res = await fetch('data.json');
-    if (res.ok) seed = (await res.json()).papers;
-  } catch {}
-  if (!seed.length) seed = FALLBACK_PAPERS;
-
-  return seed.map(p => {
-    const saved = localStorage.getItem('paper:' + p.id);
-    if (saved) {
-      try { return { ...p, ...JSON.parse(saved) }; }
-      catch {}
-    }
-    return { ...p, status: p.status || 'needs_review' };
-  });
+  requireAuth();
+  const result = await pbGet('/api/collections/papers/records?perPage=500');
+  return result.items.map(item => ({
+    ...item,
+    id: item.paper_id,   // kebab key — used everywhere existing code says p.id
+    _pb_id: item.id,     // PocketBase opaque ID — used only for API calls
+    status: item.status || 'needs_review',
+  }));
 }
 
 // ── Paper loading ──────────────────────────────────────────────────────────
 
-function loadPaper(index) {
+async function loadPaper(index) {
+  // Release lock on previous paper before switching
+  if (papers[currentIndex]?._pb_id && index !== currentIndex) await releaseLock();
+
   currentIndex = index;
   const p = papers[index];
   history.replaceState(null, '', `?id=${p.id}`);
@@ -90,6 +63,8 @@ function loadPaper(index) {
   populateForm(p);
   loadPDF(p.pdf_url);
   hideFooterMessages();
+
+  await acquireLock();
 }
 
 function loadPDF(url) {
@@ -109,44 +84,47 @@ function updatePaperNav() {
 }
 
 function updateStatusBadge(status, reason) {
-  const badge = document.getElementById('status-badge');
-  const clearBtn = document.getElementById('clear-status-btn');
-  const flagBtn = document.getElementById('flag-btn');
+  const badge     = document.getElementById('status-badge');
+  const clearBtn  = document.getElementById('clear-status-btn');
+  const flagBtn   = document.getElementById('flag-btn');
   const rejectBtn = document.getElementById('reject-btn');
 
-  flagBtn.disabled = false;   flagBtn.title = '';
+  flagBtn.disabled   = false; flagBtn.title   = '';
   rejectBtn.disabled = false; rejectBtn.title = '';
   clearBtn.classList.add('hidden');
 
   if (status === 'final') {
     badge.textContent = '✓ Final';
-    badge.className = 'status-badge status-final';
-    badge.title = '';
+    badge.className   = 'status-badge status-final';
+    badge.title       = '';
   } else if (status === 'flagged') {
     badge.textContent = '⚑ Flagged';
-    badge.className = 'status-badge status-flagged';
-    badge.title = reason || '';
-    flagBtn.disabled = true;
-    flagBtn.title = 'Paper already flagged';
+    badge.className   = 'status-badge status-flagged';
+    badge.title       = reason || '';
+    flagBtn.disabled  = true;
+    flagBtn.title     = 'Paper already flagged';
     rejectBtn.disabled = true;
-    rejectBtn.title = 'Paper is flagged — clear the flag before rejecting';
+    rejectBtn.title   = 'Paper is flagged — clear the flag before rejecting';
     clearBtn.textContent = 'Clear flag';
     clearBtn.classList.remove('hidden');
   } else if (status === 'rejected') {
-    badge.textContent = '✕ Rejected';
-    badge.className = 'status-badge status-rejected';
-    badge.title = reason || '';
+    badge.textContent  = '✕ Rejected';
+    badge.className    = 'status-badge status-rejected';
+    badge.title        = reason || '';
     rejectBtn.disabled = true;
-    rejectBtn.title = 'Paper already rejected, cannot reject twice';
-    flagBtn.disabled = true;
-    flagBtn.title = 'Paper is rejected — revert the rejection before flagging';
+    rejectBtn.title    = 'Paper already rejected, cannot reject twice';
+    flagBtn.disabled   = true;
+    flagBtn.title      = 'Paper is rejected — revert the rejection before flagging';
     clearBtn.textContent = 'Revert rejection';
     clearBtn.classList.remove('hidden');
   } else {
     badge.textContent = '● Needs Review';
-    badge.className = 'status-badge status-needs-review';
-    badge.title = '';
+    badge.className   = 'status-badge status-needs-review';
+    badge.title       = '';
   }
+
+  // Re-apply read-only disable state if locked
+  if (isReadOnly) setReadOnly(true);
 }
 
 function hideFooterMessages() {
@@ -161,7 +139,7 @@ function populateForm(p) {
   setTextField('venue', p.venue || '');
 
   document.querySelectorAll('input[name="peer-reviewed"]').forEach(r => {
-    r.checked = (p.peer_reviewed === true && r.value === 'yes')
+    r.checked = (p.peer_reviewed === true  && r.value === 'yes')
              || (p.peer_reviewed === false && r.value === 'no');
   });
 
@@ -171,15 +149,15 @@ function populateForm(p) {
   renderTags('code_repos', code_repos);
 
   datasets = Array.isArray(p.datasets) ? [...p.datasets] : [];
-  metrics = Array.isArray(p.metrics) ? [...p.metrics] : [];
+  metrics  = Array.isArray(p.metrics)  ? [...p.metrics]  : [];
   renderTags('datasets', datasets);
-  renderTags('metrics', metrics);
+  renderTags('metrics',  metrics);
 }
 
 function setTextField(field, value) {
   const display = document.getElementById('display-' + field);
-  const input = document.getElementById('input-' + field);
-  const editBtn = document.getElementById('edit-' + field);
+  const input   = document.getElementById('input-'   + field);
+  const editBtn = document.getElementById('edit-'    + field);
 
   if (value) {
     display.textContent = value;
@@ -196,8 +174,8 @@ function setTextField(field, value) {
 
 function startEditing(field) {
   const display = document.getElementById('display-' + field);
-  const input = document.getElementById('input-' + field);
-  const editBtn = document.getElementById('edit-' + field);
+  const input   = document.getElementById('input-'   + field);
+  const editBtn = document.getElementById('edit-'    + field);
 
   input.value = display.textContent;
   display.classList.add('hidden');
@@ -222,11 +200,11 @@ function renderTags(type, items) {
     chip.className = 'chip';
     if (type === 'code_repos') {
       const link = document.createElement('a');
-      link.href = item;
+      link.href   = item;
       link.target = '_blank';
-      link.rel = 'noopener noreferrer';
+      link.rel    = 'noopener noreferrer';
       link.textContent = item;
-      link.className = 'chip-link';
+      link.className   = 'chip-link';
       chip.appendChild(link);
     } else {
       chip.textContent = item;
@@ -245,14 +223,14 @@ function renderTags(type, items) {
 
 function addTag(type) {
   const inputId = type === 'datasets' ? 'dataset-input'
-    : type === 'metrics' ? 'metric-input'
+    : type === 'metrics'   ? 'metric-input'
     : 'code-repo-input';
   const input = document.getElementById(inputId);
   const value = input.value.trim();
   if (!value) return;
 
   const list = type === 'datasets' ? datasets
-    : type === 'metrics' ? metrics
+    : type === 'metrics'   ? metrics
     : code_repos;
   if (!list.includes(value)) {
     list.push(value);
@@ -264,7 +242,7 @@ function addTag(type) {
 
 function removeTag(type, index) {
   const list = type === 'datasets' ? datasets
-    : type === 'metrics' ? metrics
+    : type === 'metrics'   ? metrics
     : code_repos;
   list.splice(index, 1);
   renderTags(type, list);
@@ -286,40 +264,56 @@ function collectFormState() {
       || document.getElementById('display-venue').textContent.trim(),
     peer_reviewed: prChecked ? prChecked.value === 'yes' : null,
     code_repos: [...code_repos],
-    datasets: [...datasets],
-    metrics: [...metrics]
+    datasets:   [...datasets],
+    metrics:    [...metrics],
   };
 }
 
-function persistPaper(index, extra = {}) {
-  const p = papers[index];
+async function persistPaper(index, extra = {}) {
+  const p    = papers[index];
   const base = { ...collectFormState(), status: p.status };
   if (p.rejection_reason) base.rejection_reason = p.rejection_reason;
-  if (p.flag_reason) base.flag_reason = p.flag_reason;
+  if (p.flag_reason)      base.flag_reason      = p.flag_reason;
   const data = { ...base, ...extra };
   papers[index] = { ...p, ...data };
-  localStorage.setItem('paper:' + papers[index].id, JSON.stringify(data));
+
+  const { ok, status } = await pbPatch(
+    `/api/collections/papers/records/${p._pb_id}`,
+    {
+      title:            data.title,
+      year:             data.year,
+      venue:            data.venue,
+      peer_reviewed:    data.peer_reviewed,
+      code_repos:       data.code_repos  || [],
+      datasets:         data.datasets    || [],
+      metrics:          data.metrics     || [],
+      status:           data.status,
+      rejection_reason: data.rejection_reason || '',
+      flag_reason:      data.flag_reason      || '',
+    }
+  );
+  if (!ok && status === 404) showLockedNotice();
 }
 
-function saveCurrent() {
+async function saveCurrent() {
   const currentStatus = papers[currentIndex].status;
   const isLocked = currentStatus === 'rejected' || currentStatus === 'flagged';
-  persistPaper(currentIndex, isLocked ? {} : { status: 'final' });
+  await persistPaper(currentIndex, isLocked ? {} : { status: 'final' });
   const p = papers[currentIndex];
   updateStatusBadge(p.status, p.rejection_reason || p.flag_reason);
   flashMessage('save-confirm');
 }
 
-function saveAndNext() {
+async function saveAndNext() {
   const currentStatus = papers[currentIndex].status;
   const isLocked = currentStatus === 'rejected' || currentStatus === 'flagged';
-  persistPaper(currentIndex, isLocked ? {} : { status: 'final' });
+  await persistPaper(currentIndex, isLocked ? {} : { status: 'final' });
 
   const total = papers.length;
   for (let offset = 1; offset <= total; offset++) {
     const candidate = (currentIndex + offset) % total;
     if (papers[candidate].status === 'needs_review') {
-      loadPaper(candidate);
+      await loadPaper(candidate);
       return;
     }
   }
@@ -337,10 +331,10 @@ function copyLink() {
   });
 }
 
-function clearStatus() {
+async function clearStatus() {
   delete papers[currentIndex].rejection_reason;
   delete papers[currentIndex].flag_reason;
-  persistPaper(currentIndex, { status: 'needs_review' });
+  await persistPaper(currentIndex, { status: 'needs_review' });
   updateStatusBadge('needs_review');
 }
 
@@ -356,7 +350,7 @@ function closeFlagDialog() {
   document.getElementById('flag-overlay').classList.add('hidden');
 }
 
-function confirmFlag() {
+async function confirmFlag() {
   const selected = document.querySelector('input[name="flag-reason"]:checked');
   if (!selected) return;
 
@@ -368,7 +362,7 @@ function confirmFlag() {
     reason = selected.value;
   }
 
-  persistPaper(currentIndex, { status: 'flagged', flag_reason: reason });
+  await persistPaper(currentIndex, { status: 'flagged', flag_reason: reason });
   updateStatusBadge('flagged', reason);
   closeFlagDialog();
 }
@@ -385,7 +379,7 @@ function closeRejectDialog() {
   document.getElementById('reject-overlay').classList.add('hidden');
 }
 
-function confirmReject() {
+async function confirmReject() {
   const selected = document.querySelector('input[name="reject-reason"]:checked');
   if (!selected) return;
 
@@ -397,7 +391,7 @@ function confirmReject() {
     reason = selected.value;
   }
 
-  persistPaper(currentIndex, { status: 'rejected', rejection_reason: reason });
+  await persistPaper(currentIndex, { status: 'rejected', rejection_reason: reason });
   updateStatusBadge('rejected', reason);
   closeRejectDialog();
 }
@@ -410,10 +404,78 @@ function flashMessage(id) {
   }
 }
 
+// ── Edit locking ───────────────────────────────────────────────────────────
+
+function isLockExpired(paper) {
+  if (!paper.locked_at) return true;
+  return (Date.now() - new Date(paper.locked_at).getTime()) > 30 * 60 * 1000;
+}
+
+async function acquireLock() {
+  const p       = papers[currentIndex];
+  const ours    = p.locked_by === getUserId();
+  const expired = isLockExpired(p);
+  // If locked by someone else and lock is still fresh, go read-only immediately
+  if (p.locked_by && !ours && !expired) { setReadOnly(true); return; }
+
+  const { ok, status } = await pbPatch(
+    `/api/collections/papers/records/${p._pb_id}`,
+    { locked_by: getUserId(), locked_at: new Date().toISOString() }
+  );
+  if (!ok && status === 404) setReadOnly(true);
+  else { setReadOnly(false); startHeartbeat(); }
+}
+
+async function releaseLock() {
+  stopHeartbeat();
+  const p = papers[currentIndex];
+  if (!p?._pb_id || isReadOnly) return;
+  await pbPatch(`/api/collections/papers/records/${p._pb_id}`,
+    { locked_by: '', locked_at: null });
+}
+
+function startHeartbeat() {
+  stopHeartbeat();
+  heartbeatInterval = setInterval(() => {
+    const p = papers[currentIndex];
+    pbPatch(`/api/collections/papers/records/${p._pb_id}`,
+      { locked_at: new Date().toISOString() });
+  }, 60_000);
+}
+
+function stopHeartbeat() {
+  if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
+}
+
+function setReadOnly(ro) {
+  isReadOnly = ro;
+  document.getElementById('locked-notice').classList.toggle('hidden', !ro);
+  ['save-btn', 'save-next-btn', 'flag-btn', 'reject-btn', 'clear-status-btn']
+    .forEach(id => { document.getElementById(id).disabled = ro; });
+}
+
+function showLockedNotice() { setReadOnly(true); }
+
+// Release lock when leaving the page
+window.addEventListener('beforeunload', () => {
+  const p = papers[currentIndex];
+  if (!p?._pb_id || isReadOnly) return;
+  stopHeartbeat();
+  fetch(`${PB_URL}/api/collections/papers/records/${p._pb_id}`, {
+    method: 'PATCH',
+    keepalive: true,
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ locked_by: '', locked_at: null }),
+  });
+});
+
 // ── Autocomplete ───────────────────────────────────────────────────────────
 
 function initAutocomplete(inputId, dropdownId, suggestions, tagList, tagType) {
-  const input = document.getElementById(inputId);
+  const input    = document.getElementById(inputId);
   const dropdown = document.getElementById(dropdownId);
 
   function refresh() {
@@ -457,15 +519,15 @@ function initDatasetAutocomplete() {
 // ── Divider drag ──────────────────────────────────────────────────────────
 
 function initDivider() {
-  const divider = document.getElementById('divider');
+  const divider  = document.getElementById('divider');
   const pdfPanel = document.querySelector('.pdf-panel');
-  const app = document.querySelector('.app');
+  const app      = document.querySelector('.app');
 
   divider.addEventListener('mousedown', e => {
     e.preventDefault();
     divider.classList.add('dragging');
     document.body.style.userSelect = 'none';
-    document.body.style.cursor = 'col-resize';
+    document.body.style.cursor     = 'col-resize';
 
     const iframe = document.getElementById('pdf-iframe');
     iframe.style.pointerEvents = 'none';
@@ -480,14 +542,14 @@ function initDivider() {
     const onUp = () => {
       divider.classList.remove('dragging');
       document.body.style.userSelect = '';
-      document.body.style.cursor = '';
-      iframe.style.pointerEvents = '';
+      document.body.style.cursor     = '';
+      iframe.style.pointerEvents     = '';
       document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
+      document.removeEventListener('mouseup',   onUp);
     };
 
     document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
+    document.addEventListener('mouseup',   onUp);
   });
 }
 
@@ -502,8 +564,8 @@ function wireEvents() {
   });
 
   ['title', 'year', 'venue'].forEach(field => {
-    document.getElementById('edit-' + field).addEventListener('click', () => startEditing(field));
-    document.getElementById('input-' + field).addEventListener('blur', () => finishEditing(field));
+    document.getElementById('edit-'  + field).addEventListener('click', () => startEditing(field));
+    document.getElementById('input-' + field).addEventListener('blur',  () => finishEditing(field));
     document.getElementById('input-' + field).addEventListener('keydown', e => {
       if (e.key === 'Enter') finishEditing(field);
     });
@@ -536,7 +598,7 @@ function wireEvents() {
 
   document.querySelectorAll('input[name="flag-reason"]').forEach(radio => {
     radio.addEventListener('change', () => {
-      const otherText = document.getElementById('flag-other-text');
+      const otherText  = document.getElementById('flag-other-text');
       const confirmBtn = document.getElementById('flag-confirm-btn');
       if (radio.value === 'other') {
         otherText.classList.remove('hidden');
@@ -564,7 +626,7 @@ function wireEvents() {
 
   document.querySelectorAll('input[name="reject-reason"]').forEach(radio => {
     radio.addEventListener('change', () => {
-      const otherText = document.getElementById('reject-other-text');
+      const otherText  = document.getElementById('reject-other-text');
       const confirmBtn = document.getElementById('reject-confirm-btn');
       if (radio.value === 'other') {
         otherText.classList.remove('hidden');

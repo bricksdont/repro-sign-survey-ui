@@ -11,8 +11,15 @@
     <div class="overview-header">
       <h1>Paper Survey</h1>
       <div class="header-actions">
+        <div class="account-menu">
+          <button id="account-btn" class="btn-account">Account</button>
+          <div id="account-dropdown" class="account-dropdown hidden">
+            <div id="account-email" class="account-email"></div>
+            <hr class="account-divider">
+            <button id="logout-btn" class="btn-logout">Log out</button>
+          </div>
+        </div>
         <button id="review-next-btn" class="btn-primary">Review Next &#8594;</button>
-        <button id="reset-btn" class="btn-reset">Reset to seed data</button>
       </div>
     </div>
     <div id="stats-row" class="stats-row"></div>
@@ -41,7 +48,14 @@
       </thead>
       <tbody id="papers-tbody"></tbody>
     </table>
+
+    <div id="pagination" class="pagination hidden">
+      <button id="page-prev" class="page-btn">&#8592; Prev</button>
+      <span id="page-indicator"></span>
+      <button id="page-next" class="page-btn">Next &#8594;</button>
+    </div>
   </div>
+  <script src="api.js"></script>
   <script src="overview.js"></script>
 </body>
 </html>

@@ -1,42 +1,23 @@
-const FALLBACK_PAPERS = [
-  {
-    id: 'emnlp-2024-518',
-    title: 'SignCLIP: Connecting Text and Sign Language by Contrastive Learning',
-    status: 'needs_review'
-  },
-  {
-    id: 'openreview-M80WgiO2Lb',
-    title: 'Scaling Sign Language Translation',
-    status: 'needs_review'
-  }
-];
-
 let allPapers = [];
 let activeFilter = 'all';
+let currentPage = 1;
+const PAGE_SIZE = 50;
 
 async function loadPapers() {
-  let seed = [];
-  try {
-    const res = await fetch('data.json');
-    if (res.ok) seed = (await res.json()).papers;
-  } catch {}
-  if (!seed.length) seed = FALLBACK_PAPERS;
-
-  return seed.map(p => {
-    const saved = localStorage.getItem('paper:' + p.id);
-    if (saved) {
-      try { return { ...p, ...JSON.parse(saved) }; }
-      catch {}
-    }
-    return { ...p, status: p.status || 'needs_review' };
-  });
+  requireAuth();
+  const result = await pbGet('/api/collections/papers/records?perPage=500');
+  return result.items.map(item => ({
+    ...item,
+    id: item.paper_id,   // kebab key used everywhere existing code says p.id
+    _pb_id: item.id,     // PocketBase opaque ID used only for API calls
+  }));
 }
 
 function renderStats(papers) {
-  const final = papers.filter(p => p.status === 'final').length;
-  const flagged = papers.filter(p => p.status === 'flagged').length;
+  const final    = papers.filter(p => p.status === 'final').length;
+  const flagged  = papers.filter(p => p.status === 'flagged').length;
   const rejected = papers.filter(p => p.status === 'rejected').length;
-  const pending = papers.length - final - flagged - rejected;
+  const pending  = papers.length - final - flagged - rejected;
   document.getElementById('stats-row').innerHTML =
     `<span class="stat"><span class="stat-num">${final}</span> Final</span>` +
     `<span class="stat-sep">·</span>` +
@@ -55,18 +36,24 @@ function renderTable(papers) {
     const tr = document.createElement('tr');
     tr.innerHTML = `<td colspan="4" class="no-results">No papers match your search.</td>`;
     tbody.appendChild(tr);
+    renderPagination(0);
     return;
   }
 
-  papers.forEach(p => {
+  const totalPages = Math.ceil(papers.length / PAGE_SIZE);
+  if (currentPage > totalPages) currentPage = totalPages;
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = papers.slice(start, start + PAGE_SIZE);
+
+  pageItems.forEach(p => {
     const status = p.status || 'needs_review';
-    const badgeClass = status === 'final' ? 'status-final'
-      : status === 'flagged' ? 'status-flagged'
-      : status === 'rejected' ? 'status-rejected'
+    const badgeClass = status === 'final'    ? 'status-final'
+      : status === 'flagged'   ? 'status-flagged'
+      : status === 'rejected'  ? 'status-rejected'
       : 'status-needs-review';
-    const badgeText = status === 'final' ? '&#10003; Final'
-      : status === 'flagged' ? '&#9873; Flagged'
-      : status === 'rejected' ? '&#10005; Rejected'
+    const badgeText = status === 'final'    ? '&#10003; Final'
+      : status === 'flagged'   ? '&#9873; Flagged'
+      : status === 'rejected'  ? '&#10005; Rejected'
       : '&#9679; Needs Review';
 
     const tr = document.createElement('tr');
@@ -84,9 +71,24 @@ function renderTable(papers) {
     });
     tbody.appendChild(tr);
   });
+
+  renderPagination(papers.length);
 }
 
-function applyFilters() {
+function renderPagination(total) {
+  const el = document.getElementById('pagination');
+  if (total <= PAGE_SIZE) { el.classList.add('hidden'); return; }
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  el.classList.remove('hidden');
+  document.getElementById('page-indicator').textContent =
+    `Page ${currentPage} of ${totalPages}`;
+  document.getElementById('page-prev').disabled = currentPage <= 1;
+  document.getElementById('page-next').disabled = currentPage >= totalPages;
+}
+
+function applyFilters(resetPage = true) {
+  if (resetPage) currentPage = 1;
   const q = document.getElementById('search-input').value.toLowerCase();
   const filtered = allPapers.filter(p => {
     const matchesSearch = !q
@@ -131,28 +133,35 @@ async function init() {
     });
   });
 
+  document.getElementById('page-prev').addEventListener('click', () => {
+    currentPage--;
+    applyFilters(false);
+    window.scrollTo(0, 0);
+  });
+  document.getElementById('page-next').addEventListener('click', () => {
+    currentPage++;
+    applyFilters(false);
+    window.scrollTo(0, 0);
+  });
+
+  document.getElementById('account-email').textContent = getEmail() || getUserId() || 'Unknown user';
+  document.getElementById('account-btn').addEventListener('click', e => {
+    e.stopPropagation();
+    document.getElementById('account-dropdown').classList.toggle('hidden');
+  });
+  document.getElementById('logout-btn').addEventListener('click', () => {
+    logout();
+    window.location.href = 'login.html';
+  });
+  document.addEventListener('click', () => {
+    document.getElementById('account-dropdown').classList.add('hidden');
+  });
+
   document.getElementById('review-next-btn').addEventListener('click', () => {
     const unreviewed = allPapers.filter(p => (p.status || 'needs_review') === 'needs_review');
     if (unreviewed.length === 0) return;
     const pick = unreviewed[Math.floor(Math.random() * unreviewed.length)];
     window.location.href = `paper.html?id=${pick.id}`;
-  });
-
-  document.getElementById('reset-btn').addEventListener('click', () => {
-    allPapers.forEach(p => {
-      localStorage.removeItem('paper:' + p.id);
-      p.status = 'needs_review';
-      delete p.rejection_reason;
-      delete p.flag_reason;
-    });
-    renderStats(allPapers);
-    updateReviewNextBtn();
-    activeFilter = 'all';
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    document.querySelector('.filter-btn[data-status="all"]').classList.add('active');
-    document.getElementById('search-input').value = '';
-    document.getElementById('results-count').classList.add('hidden');
-    applyFilters();
   });
 }
 

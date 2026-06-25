@@ -1,0 +1,53 @@
+const PB_URL = (() => {
+  const param = new URLSearchParams(window.location.search).get('backend');
+  // Persist an explicit override so it survives redirects and page navigation
+  if (param === 'local' || param === 'remote') localStorage.setItem('pb_backend', param);
+  const stored = localStorage.getItem('pb_backend');
+  if (stored === 'local')  return 'http://localhost:8090';
+  if (stored === 'remote') return 'https://repro-sign-survey.fly.dev';
+  return window.location.hostname === 'localhost'
+    ? 'http://localhost:8090'
+    : 'https://repro-sign-survey.fly.dev';
+})();
+
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+function getToken() {
+  const token  = localStorage.getItem('pb_token');
+  const expiry = localStorage.getItem('pb_token_expiry');
+  if (!token || !expiry || Date.now() > Number(expiry)) {
+    logout();
+    return null;
+  }
+  return token;
+}
+function getUserId()       { return localStorage.getItem('pb_user_id'); }
+function getEmail()        { return localStorage.getItem('pb_email'); }
+function isAuthenticated() { return !!getToken(); }
+function logout() {
+  ['pb_token', 'pb_user_id', 'pb_token_expiry', 'pb_email'].forEach(k => localStorage.removeItem(k));
+}
+
+function requireAuth() {
+  if (!isAuthenticated())
+    window.location.href = `login.html?next=${encodeURIComponent(window.location.href)}`;
+}
+
+async function pbGet(path) {
+  const res = await fetch(PB_URL + path,
+    { headers: { Authorization: `Bearer ${getToken()}` } });
+  if (!res.ok) throw new Error(`GET ${path} → ${res.status}`);
+  return res.json();
+}
+
+async function pbPatch(path, body) {
+  const res = await fetch(PB_URL + path, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  return { ok: res.ok, status: res.status, data: res.ok ? await res.json() : null };
+}

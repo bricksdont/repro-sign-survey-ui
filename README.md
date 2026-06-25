@@ -4,7 +4,7 @@
 
 A lightweight web interface for annotating and reviewing reproducibility metadata of NLP research papers. Built for a survey of sign language papers.
 
-An overview page lists all papers with their review status. Each paper opens a detail view showing the PDF on the left and editable metadata fields on the right. Annotations are saved locally in the browser.
+An overview page lists all papers with their review status. Each paper opens a detail view showing the PDF on the left and editable metadata fields on the right. Annotations are saved to a shared PocketBase backend, enabling multiple reviewers to work concurrently.
 
 ![Overview page listing papers with status badges](overview-page.png)
 
@@ -22,7 +22,9 @@ An overview page lists all papers with their review status. Each paper opens a d
 - Status workflow: Save or Save & Next marks a paper as Final; Flag prompts for a reason (for team discussion); Reject prompts for a reason
 - Flagged and Rejected statuses are preserved on Save; can be cleared via an inline link
 - Paper navigation (◀ ▶); each paper has a stable URL (`paper.html?id=<id>`) with a one-click Copy link button
-- Saves to `localStorage` — survives page refresh, no backend needed
+- Saves to a shared PocketBase backend — changes are immediately visible to all reviewers
+- Edit locking: only one reviewer can edit a paper at a time; others see a read-only notice
+- Session-based auth: login with a PocketBase user account; token stored in `localStorage` with a 24-hour expiry
 
 ## Metadata fields
 
@@ -38,19 +40,29 @@ An overview page lists all papers with their review status. Each paper opens a d
 
 ## Running
 
-Requires a local HTTP server (the page fetches `data.json`):
-
 ```bash
 python3 server.py
 ```
 
-Then open [http://localhost:8765](http://localhost:8765).
+Then open [http://localhost:8765](http://localhost:8765). You will be redirected to a login page — enter your PocketBase email and password. The token is stored in `localStorage` and expires after 24 hours.
 
 `server.py` is a small wrapper around Python's built-in HTTP server that adds a `/pdf/<id>.pdf?url=<encoded>` proxy endpoint. This lets the browser's native PDF viewer embed PDFs from any host (including OpenReview, which sets `X-Frame-Options: SAMEORIGIN`) by fetching them server-side and stripping restrictive headers.
 
-## Seed data
+## Backend
 
-Paper metadata lives in `data.json`. Leave unknown fields as `""` or `[]` — the form renders empty inputs for those. Edits are saved per-paper to `localStorage` (key: `paper:<id>`).
+The frontend picks a backend by checking `window.location.hostname` — the hostname of the page URL in your browser's address bar:
+
+- **`localhost`** → `http://localhost:8090` (local dev instance, see [backend repo](https://github.com/bricksdont/repro-sign-survey-backend))
+- **Any other host** → `https://repro-sign-survey.fly.dev` (live Fly.io deployment)
+
+So opening `http://localhost:8765` automatically talks to the local backend, and opening the same frontend from any deployed URL automatically talks to Fly.io — no config needed.
+
+You can override the auto-detection with a `?backend=` URL parameter on any page:
+
+```
+http://localhost:8765?backend=remote   # point local frontend at the live backend
+http://localhost:8765?backend=local    # force local backend from any host
+```
 
 ## Development
 
@@ -61,15 +73,27 @@ CI runs on every push and pull request. To run the checks locally:
 python3 -m py_compile server.py
 python3 scripts/validate_data.py
 
-# HTML validation and Playwright smoke tests (requires Node)
+# HTML validation (requires Node)
 npm install
 npx playwright install chromium   # first time only
 npm run validate:html
-npx playwright test
+
+# Playwright smoke tests — require a running PocketBase backend and user credentials
+PB_TEST_EMAIL=you@example.com PB_TEST_PASSWORD=yourpassword npx playwright test
 ```
 
-The Playwright tests auto-start `server.py` on port 8765, or reuse an already-running instance.
+The Playwright tests auto-start `server.py` on port 8765 (or reuse an already-running instance) and authenticate against PocketBase before each test. Without the `PB_TEST_EMAIL` / `PB_TEST_PASSWORD` environment variables the tests are skipped rather than failed, so CI passes without a backend.
+
+## Running without a backend
+
+If you want to try the tool without setting up a PocketBase instance, check out the [`standalone`](https://github.com/bricksdont/repro-sign-survey-ui/tree/standalone) tag. That version stores everything in `localStorage` — no login, no backend, no shared state:
+
+```bash
+git checkout standalone
+python3 server.py
+# open http://localhost:8765
+```
 
 ## Tech
 
-Plain HTML/CSS/JS — no framework, no build step. Node is a dev-only dependency (HTML validation + Playwright tests).
+Plain HTML/CSS/JS — no framework, no build step. Node is a dev-only dependency (HTML validation + Playwright tests). PocketBase is the backend (separate repo).
