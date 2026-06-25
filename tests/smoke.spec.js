@@ -65,29 +65,32 @@ test.describe('Paper detail page', () => {
   });
 
   test('Save marks paper as Final', async ({ page }) => {
-    // Reset status to needs_review first so the test is repeatable
     await page.goto('/login.html');
     const token = await page.evaluate(() => sessionStorage.getItem('pb_token'));
-    // Find the record by paper_id
     const listRes = await page.request.get(
       'http://localhost:8090/api/collections/papers/records?filter=(paper_id="emnlp-2024-518")',
       { headers: { Authorization: `Bearer ${token}` } }
     );
     const { items } = await listRes.json();
-    if (items.length) {
+    const pbId = items[0]?.id;
+
+    async function setStatus(status) {
+      if (!pbId) return;
       await page.request.patch(
-        `http://localhost:8090/api/collections/papers/records/${items[0].id}`,
+        `http://localhost:8090/api/collections/papers/records/${pbId}`,
         {
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          data: { status: 'needs_review' },
+          data: { status },
         }
       );
     }
 
+    await setStatus('needs_review');
     await page.goto('/paper.html?id=emnlp-2024-518');
     await expect(page.locator('#status-badge')).toContainText('Needs Review');
     await page.click('#save-btn');
     await expect(page.locator('#status-badge')).toContainText('Final');
+    await setStatus('needs_review'); // restore — leave no permanent side effects
   });
 
   test('paper navigation updates URL', async ({ page }) => {
