@@ -1,7 +1,10 @@
 const PB_URL = (() => {
   const param = new URLSearchParams(window.location.search).get('backend');
-  if (param === 'local')  return 'http://localhost:8090';
-  if (param === 'remote') return 'https://repro-sign-survey.fly.dev';
+  // Persist an explicit override so it survives redirects and page navigation
+  if (param === 'local' || param === 'remote') localStorage.setItem('pb_backend', param);
+  const stored = localStorage.getItem('pb_backend');
+  if (stored === 'local')  return 'http://localhost:8090';
+  if (stored === 'remote') return 'https://repro-sign-survey.fly.dev';
   return window.location.hostname === 'localhost'
     ? 'http://localhost:8090'
     : 'https://repro-sign-survey.fly.dev';
@@ -22,7 +25,7 @@ function getUserId()       { return localStorage.getItem('pb_user_id'); }
 function getEmail()        { return localStorage.getItem('pb_email'); }
 function isAuthenticated() { return !!getToken(); }
 function logout() {
-  ['pb_token', 'pb_user_id', 'pb_token_expiry', 'pb_email'].forEach(k => localStorage.removeItem(k));
+  ['pb_token', 'pb_user_id', 'pb_token_expiry', 'pb_email', 'pb_backend'].forEach(k => localStorage.removeItem(k));
 }
 
 function requireAuth() {
