@@ -40,7 +40,28 @@ An overview page lists all papers with their review status. Each paper opens a d
 | Datasets | Multi-value tag list with autocomplete |
 | Metrics | Multi-value tag list with autocomplete |
 
-## Running
+## Deployment
+
+The frontend is deployed to Fly.io as a Docker container running `server.py`. The live URL is **https://repro-sign-survey-frontend.fly.dev** — anyone with a PocketBase account can log in there directly without running anything locally.
+
+To redeploy after changes:
+
+```bash
+fly deploy
+```
+
+When accessed from the deployed URL, `api.js` automatically points at the Fly.io PocketBase backend (`https://repro-sign-survey.fly.dev`) — no configuration needed.
+
+To deploy from scratch:
+
+```bash
+fly apps create repro-sign-survey-frontend
+fly deploy
+```
+
+## Running the frontend server locally
+
+Run the local server only if you need to develop or test the frontend:
 
 ```bash
 python3 server.py
@@ -96,23 +117,6 @@ If you want to try the tool without setting up a PocketBase instance, check out 
 git checkout standalone
 python3 server.py
 # open http://localhost:8765
-```
-
-## Deployment
-
-The frontend is deployed to Fly.io as a Docker container running `server.py`.
-
-```bash
-fly deploy   # redeploy after changes
-```
-
-The live URL is **https://repro-sign-survey-frontend.fly.dev**. When accessed from there, `api.js` automatically points at the Fly.io PocketBase backend (`https://repro-sign-survey.fly.dev`) — no configuration needed.
-
-To deploy from scratch:
-
-```bash
-fly apps create repro-sign-survey-frontend
-fly deploy
 ```
 
 ## Tech
