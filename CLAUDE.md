@@ -34,7 +34,7 @@ http://localhost:8765?backend=remote   # force Fly.io
 http://localhost:8765?backend=local    # force local
 ```
 
-The parameter is read once on page load from `window.location.search` in `api.js` (line 1).
+The override is stored in `localStorage` as `pb_backend` the first time it is seen, so it persists across page navigations and logout. It is NOT cleared on logout — it is a routing preference, not a credential.
 
 ## File layout
 
@@ -45,9 +45,11 @@ The parameter is read once on page load from `window.location.search` in `api.js
 | `paper.html` | Detail page: two-panel shell (PDF left, metadata form right) |
 | `app.js` | Detail page logic: form, PocketBase persistence, edit locking, autocomplete, divider drag |
 | `api.js` | Shared PocketBase client: auto-detected `PB_URL`, `pbGet`, `pbPatch`, `requireAuth`, token helpers |
-| `login.html` | Login form: authenticates against PocketBase, stores token in sessionStorage |
+| `login.html` | Login form: authenticates against PocketBase, stores token in localStorage with 24h expiry |
 | `style.css` | Layout, form styles, tag chip styles, overview styles |
 | `data.json` | Reference seed data; validated by CI (no longer read by the frontend) |
+| `Dockerfile` | Container image: Python 3.12 Alpine running server.py on port 8765 |
+| `fly.toml` | Fly.io app config: app `repro-sign-survey-frontend`, region `fra` |
 | `scripts/validate_data.py` | CI: validates data.json schema |
 | `tests/smoke.spec.js` | Playwright smoke tests (overview + detail page) |
 | `playwright.config.js` | Playwright config; auto-starts server.py for tests |
@@ -70,7 +72,7 @@ The parameter is read once on page load from `window.location.search` in `api.js
   - Rejection/flag reason shown as tooltip on the status badge.
 - **Pre-filled fields** (title, year, venue): shown read-only with a pencil button. Click pencil → editable input; blur or Enter → back to display.
 - **Tag fields** (code repos, datasets, metrics): chip list with × removal; inline input + Add button (also triggered by Enter). Datasets and metrics have autocomplete dropdowns with predefined lists. Code repo chips are clickable links.
-- **Persistence**: Save sends a PATCH to `POST /api/collections/papers/records/<id>` on PocketBase. Two IDs per record: `paper_id` (kebab slug used in URLs and display) and `id` (opaque PocketBase record ID used only for API calls).
+- **Persistence**: Save sends a PATCH to `/api/collections/papers/records/<pb_id>` on PocketBase. Two IDs per record: `paper_id` (kebab slug used in URLs and display) and `id` (opaque PocketBase record ID used only for API calls).
 - **Edit locking**: opening a paper acquires a lock by setting `locked_by` + `locked_at` on the record. A heartbeat PATCH fires every 60 s to keep the lock alive. On save, navigation, or tab close the lock is released (`locked_by: ""`). If PATCH returns 404, the paper is locked by another user — the form goes read-only with a notice banner. Lock expiry (30 min of inactivity) is enforced client-side only.
 
 ## Testing

@@ -24,7 +24,9 @@ An overview page lists all papers with their review status. Each paper opens a d
 - Paper navigation (◀ ▶); each paper has a stable URL (`paper.html?id=<id>`) with a one-click Copy link button
 - Saves to a shared PocketBase backend — changes are immediately visible to all reviewers
 - Edit locking: only one reviewer can edit a paper at a time; others see a read-only notice
-- Session-based auth: login with a PocketBase user account; token stored in `localStorage` with a 24-hour expiry
+- Auth: login with a PocketBase user account; token stored in `localStorage` with a 24-hour expiry, shared across tabs so copied paper links open without re-login
+- Account menu: shows logged-in email and a logout button
+- Pagination: overview page shows 50 papers per page
 
 ## Metadata fields
 
@@ -64,6 +66,8 @@ http://localhost:8765?backend=remote   # point local frontend at the live backen
 http://localhost:8765?backend=local    # force local backend from any host
 ```
 
+The override is persisted in `localStorage` as `pb_backend`, so it survives page navigation and logout — you only need to set it once per browser.
+
 ## Development
 
 CI runs on every push and pull request. To run the checks locally:
@@ -92,6 +96,23 @@ If you want to try the tool without setting up a PocketBase instance, check out 
 git checkout standalone
 python3 server.py
 # open http://localhost:8765
+```
+
+## Deployment
+
+The frontend is deployed to Fly.io as a Docker container running `server.py`.
+
+```bash
+fly deploy   # redeploy after changes
+```
+
+The live URL is **https://repro-sign-survey-frontend.fly.dev**. When accessed from there, `api.js` automatically points at the Fly.io PocketBase backend (`https://repro-sign-survey.fly.dev`) — no configuration needed.
+
+To deploy from scratch:
+
+```bash
+fly apps create repro-sign-survey-frontend
+fly deploy
 ```
 
 ## Tech
