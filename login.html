@@ -113,19 +113,29 @@
       btn.disabled = true;
       btn.textContent = 'Signing in…';
       errEl.classList.remove('visible');
+      errEl.textContent = '';
 
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
 
       try {
-        const res = await fetch(
-          `${PB_URL}/api/collections/users/auth-with-password`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ identity: email, password }),
-          }
-        );
+        let res;
+        try {
+          res = await fetch(
+            `${PB_URL}/api/collections/users/auth-with-password`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ identity: email, password }),
+            }
+          );
+        } catch {
+          errEl.textContent = `Cannot reach backend (${PB_URL}). Is it running?`;
+          errEl.classList.add('visible');
+          btn.disabled = false;
+          btn.textContent = 'Sign in';
+          return;
+        }
         if (!res.ok) throw new Error('auth failed');
         const { token, record } = await res.json();
         localStorage.setItem('pb_token', token);
@@ -133,6 +143,7 @@
         localStorage.setItem('pb_token_expiry', String(Date.now() + SESSION_TTL_MS));
         window.location.href = next;
       } catch {
+        errEl.textContent = 'Incorrect email or password.';
         errEl.classList.add('visible');
         btn.disabled = false;
         btn.textContent = 'Sign in';
