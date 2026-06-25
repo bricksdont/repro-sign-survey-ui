@@ -86,7 +86,7 @@ The Playwright tests auto-start `server.py` on port 8765 (or reuse an already-ru
 
 ## Running without a backend
 
-If you want to try the tool without setting up a PocketBase instance, check out the `standalone` tag. That version stores everything in `localStorage` — no login, no backend, no shared state:
+If you want to try the tool without setting up a PocketBase instance, check out the [`standalone`](https://github.com/bricksdont/repro-sign-survey-ui/tree/standalone) tag. That version stores everything in `localStorage` — no login, no backend, no shared state:
 
 ```bash
 git checkout standalone
