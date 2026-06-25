@@ -10,8 +10,6 @@ Plain HTML/CSS/JS — no framework, no build step. Node/npm is used only for dev
 
 ## Running
 
-Requires a running PocketBase backend (separate repo) at `http://localhost:8090`.
-
 ```bash
 python3 server.py        # port 8765
 python3 server.py 9000   # custom port
@@ -19,6 +17,24 @@ python3 server.py 9000   # custom port
 ```
 
 Use `server.py`, not bare `python3 -m http.server`. The custom server adds a `/pdf/<id>.pdf?url=<encoded>` endpoint that fetches PDFs server-side, bypassing both CORS restrictions and `X-Frame-Options: SAMEORIGIN` headers (e.g. OpenReview). Must be served (not `file://`) for the API fetch and proxy to work.
+
+## Backend URL
+
+`api.js` picks the PocketBase backend automatically based on where the frontend is served:
+
+| Context | Backend used |
+|---------|-------------|
+| `localhost` | `http://localhost:8090` |
+| Any other host | `https://repro-sign-survey.fly.dev` |
+
+Override with a URL parameter on any page:
+
+```
+http://localhost:8765?backend=remote   # force Fly.io
+http://localhost:8765?backend=local    # force local
+```
+
+The parameter is read once on page load from `window.location.search` in `api.js` (line 1).
 
 ## File layout
 
@@ -28,7 +44,7 @@ Use `server.py`, not bare `python3 -m http.server`. The custom server adds a `/p
 | `overview.js` | Overview page logic: loads papers from PocketBase, search/filter/render |
 | `paper.html` | Detail page: two-panel shell (PDF left, metadata form right) |
 | `app.js` | Detail page logic: form, PocketBase persistence, edit locking, autocomplete, divider drag |
-| `api.js` | Shared PocketBase client: `pbGet`, `pbPatch`, `requireAuth`, token helpers |
+| `api.js` | Shared PocketBase client: auto-detected `PB_URL`, `pbGet`, `pbPatch`, `requireAuth`, token helpers |
 | `login.html` | Login form: authenticates against PocketBase, stores token in sessionStorage |
 | `style.css` | Layout, form styles, tag chip styles, overview styles |
 | `data.json` | Reference seed data; validated by CI (no longer read by the frontend) |

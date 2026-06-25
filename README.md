@@ -40,8 +40,6 @@ An overview page lists all papers with their review status. Each paper opens a d
 
 ## Running
 
-Requires a running PocketBase backend (see [backend repo](https://github.com/bricksdont/repro-sign-survey-backend)) and a user account.
-
 ```bash
 python3 server.py
 ```
@@ -49,6 +47,20 @@ python3 server.py
 Then open [http://localhost:8765](http://localhost:8765). You will be redirected to a login page — enter your PocketBase email and password. The session token is stored in `sessionStorage` and cleared when the browser tab is closed.
 
 `server.py` is a small wrapper around Python's built-in HTTP server that adds a `/pdf/<id>.pdf?url=<encoded>` proxy endpoint. This lets the browser's native PDF viewer embed PDFs from any host (including OpenReview, which sets `X-Frame-Options: SAMEORIGIN`) by fetching them server-side and stripping restrictive headers.
+
+## Backend
+
+The frontend connects to PocketBase automatically based on where it is served:
+
+- **`localhost`** → `http://localhost:8090` (local dev instance, see [backend repo](https://github.com/bricksdont/repro-sign-survey-backend))
+- **Any other host** → `https://repro-sign-survey.fly.dev` (live Fly.io deployment)
+
+You can override the auto-detection with a `?backend=` URL parameter on any page:
+
+```
+http://localhost:8765?backend=remote   # point local frontend at the live backend
+http://localhost:8765?backend=local    # force local backend from any host
+```
 
 ## Development
 
