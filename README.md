@@ -70,6 +70,16 @@ PB_TEST_EMAIL=you@example.com PB_TEST_PASSWORD=yourpassword npx playwright test
 
 The Playwright tests auto-start `server.py` on port 8765 (or reuse an already-running instance) and authenticate against PocketBase before each test. Without the `PB_TEST_EMAIL` / `PB_TEST_PASSWORD` environment variables the tests are skipped rather than failed, so CI passes without a backend.
 
+## Running without a backend
+
+If you want to try the tool without setting up a PocketBase instance, check out the `standalone` tag. That version stores everything in `localStorage` — no login, no backend, no shared state:
+
+```bash
+git checkout standalone
+python3 server.py
+# open http://localhost:8765
+```
+
 ## Tech
 
 Plain HTML/CSS/JS — no framework, no build step. Node is a dev-only dependency (HTML validation + Playwright tests). PocketBase is the backend (separate repo).
