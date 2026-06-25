@@ -40,7 +40,7 @@ An overview page lists all papers with their review status. Each paper opens a d
 
 ## Running
 
-Requires a running PocketBase backend (see backend repo) and a user account.
+Requires a running PocketBase backend (see [backend repo](https://github.com/bricksdont/repro-sign-survey-backend)) and a user account.
 
 ```bash
 python3 server.py
