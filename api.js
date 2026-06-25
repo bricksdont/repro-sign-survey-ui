@@ -7,8 +7,20 @@ const PB_URL = (() => {
     : 'https://repro-sign-survey.fly.dev';
 })();
 
-function getToken()        { return sessionStorage.getItem('pb_token'); }
-function getUserId()       { return sessionStorage.getItem('pb_user_id'); }
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+function getToken() {
+  const token  = localStorage.getItem('pb_token');
+  const expiry = localStorage.getItem('pb_token_expiry');
+  if (!token || !expiry || Date.now() > Number(expiry)) {
+    localStorage.removeItem('pb_token');
+    localStorage.removeItem('pb_user_id');
+    localStorage.removeItem('pb_token_expiry');
+    return null;
+  }
+  return token;
+}
+function getUserId()       { return localStorage.getItem('pb_user_id'); }
 function isAuthenticated() { return !!getToken(); }
 
 function requireAuth() {

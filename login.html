@@ -95,11 +95,14 @@
   </div>
   <script>
     const PB_URL = 'http://localhost:8090';
+    const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
     const params = new URLSearchParams(window.location.search);
     const next = params.get('next') || 'index.html';
 
-    // Already logged in? Skip the form.
-    if (sessionStorage.getItem('pb_token')) {
+    // Already logged in with a valid token? Skip the form.
+    const _t = localStorage.getItem('pb_token');
+    const _e = localStorage.getItem('pb_token_expiry');
+    if (_t && _e && Date.now() < Number(_e)) {
       window.location.href = next;
     }
 
@@ -125,8 +128,9 @@
         );
         if (!res.ok) throw new Error('auth failed');
         const { token, record } = await res.json();
-        sessionStorage.setItem('pb_token', token);
-        sessionStorage.setItem('pb_user_id', record.id);
+        localStorage.setItem('pb_token', token);
+        localStorage.setItem('pb_user_id', record.id);
+        localStorage.setItem('pb_token_expiry', String(Date.now() + SESSION_TTL_MS));
         window.location.href = next;
       } catch {
         errEl.classList.add('visible');

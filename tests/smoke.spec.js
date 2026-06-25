@@ -16,8 +16,10 @@ test.beforeEach(async ({ page }) => {
   );
   const { token, record } = await res.json();
   await page.evaluate(({ token, userId }) => {
-    sessionStorage.setItem('pb_token', token);
-    sessionStorage.setItem('pb_user_id', userId);
+    const expiry = Date.now() + 24 * 60 * 60 * 1000;
+    localStorage.setItem('pb_token', token);
+    localStorage.setItem('pb_user_id', userId);
+    localStorage.setItem('pb_token_expiry', String(expiry));
   }, { token, userId: record.id });
 });
 
@@ -66,7 +68,7 @@ test.describe('Paper detail page', () => {
 
   test('Save marks paper as Final', async ({ page }) => {
     await page.goto('/login.html');
-    const token = await page.evaluate(() => sessionStorage.getItem('pb_token'));
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
     const listRes = await page.request.get(
       'http://localhost:8090/api/collections/papers/records?filter=(paper_id="emnlp-2024-518")',
       { headers: { Authorization: `Bearer ${token}` } }
