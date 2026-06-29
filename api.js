@@ -40,6 +40,21 @@ async function pbGet(path) {
   return res.json();
 }
 
+async function pbGetAll(collection) {
+  const perPage = 500;
+  let page = 1;
+  let all = [];
+  while (true) {
+    const result = await pbGet(
+      `/api/collections/${collection}/records?perPage=${perPage}&page=${page}`
+    );
+    all = all.concat(result.items);
+    if (all.length >= result.totalItems) break;
+    page++;
+  }
+  return all;
+}
+
 async function pbPatch(path, body) {
   const res = await fetch(PB_URL + path, {
     method: 'PATCH',

@@ -5,8 +5,8 @@ const PAGE_SIZE = 50;
 
 async function loadPapers() {
   requireAuth();
-  const result = await pbGet('/api/collections/papers/records?perPage=500');
-  return result.items.map(item => ({
+  const items = await pbGetAll('papers');
+  return items.map(item => ({
     ...item,
     id: item.paper_id,   // kebab key used everywhere existing code says p.id
     _pb_id: item.id,     // PocketBase opaque ID used only for API calls
