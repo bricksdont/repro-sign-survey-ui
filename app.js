@@ -84,48 +84,37 @@ function updatePaperNav() {
 }
 
 function updateStatusBadge(status, reason) {
-  const badge      = document.getElementById('status-badge');
-  const reasonSpan = document.getElementById('status-reason');
-  const clearBtn   = document.getElementById('clear-status-btn');
-  const flagBtn    = document.getElementById('flag-btn');
-  const rejectBtn  = document.getElementById('reject-btn');
+  const badge     = document.getElementById('status-badge');
+  const clearBtn  = document.getElementById('clear-status-btn');
+  const flagBtn   = document.getElementById('flag-btn');
+  const rejectBtn = document.getElementById('reject-btn');
 
   flagBtn.disabled   = false; flagBtn.title   = '';
   rejectBtn.disabled = false; rejectBtn.title = '';
   clearBtn.classList.add('hidden');
-  reasonSpan.textContent = '';
-  reasonSpan.classList.add('hidden');
 
   if (status === 'final') {
     badge.textContent = '✓ Final';
     badge.className   = 'status-badge status-final';
     badge.title       = '';
   } else if (status === 'flagged') {
-    badge.textContent = '⚑ Flagged';
+    badge.textContent = reason ? `⚑ Flagged · ${reason}` : '⚑ Flagged';
     badge.className   = 'status-badge status-flagged';
     badge.title       = reason || '';
     flagBtn.disabled  = true;
     flagBtn.title     = 'Paper already flagged';
     rejectBtn.disabled = true;
     rejectBtn.title   = 'Paper is flagged — clear the flag before rejecting';
-    if (reason) {
-      reasonSpan.textContent = reason;
-      reasonSpan.classList.remove('hidden');
-    }
     clearBtn.textContent = 'Clear flag';
     clearBtn.classList.remove('hidden');
   } else if (status === 'rejected') {
-    badge.textContent  = '✕ Rejected';
+    badge.textContent  = reason ? `✕ Rejected · ${reason}` : '✕ Rejected';
     badge.className    = 'status-badge status-rejected';
     badge.title        = reason || '';
     rejectBtn.disabled = true;
     rejectBtn.title    = 'Paper already rejected, cannot reject twice';
     flagBtn.disabled   = true;
     flagBtn.title      = 'Paper is rejected — revert the rejection before flagging';
-    if (reason) {
-      reasonSpan.textContent = reason;
-      reasonSpan.classList.remove('hidden');
-    }
     clearBtn.textContent = 'Revert rejection';
     clearBtn.classList.remove('hidden');
   } else {
