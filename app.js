@@ -97,6 +97,8 @@ function updateStatusBadge(status, reason) {
     badge.textContent = '✓ Final';
     badge.className   = 'status-badge status-final';
     badge.title       = '';
+    clearBtn.textContent = 'Revert to needs review';
+    clearBtn.classList.remove('hidden');
   } else if (status === 'flagged') {
     badge.textContent = reason ? `⚑ Flagged · ${reason}` : '⚑ Flagged';
     badge.className   = 'status-badge status-flagged';
