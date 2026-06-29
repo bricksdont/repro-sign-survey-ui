@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SLP Paper Survey — Checking</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- Left panel: PDF viewer -->
+    <div class="panel pdf-panel">
+      <iframe id="pdf-iframe" title="PDF viewer"></iframe>
+    </div>
+
+    <!-- Draggable divider -->
+    <div id="divider"></div>
+
+    <!-- Right panel: Checking form -->
+    <div class="panel meta-panel">
+
+      <div class="meta-header">
+        <div class="meta-header-left">
+          <a href="index.html" class="back-link">&#8592; Overview</a>
+          <button class="copy-link-btn" title="Copy link to this paper">&#128279; Copy link</button>
+        </div>
+        <div class="paper-nav">
+          <button title="Previous paper" disabled>&#9664;</button>
+          <span id="paper-counter">1 / 1</span>
+          <button title="Next paper" disabled>&#9654;</button>
+        </div>
+      </div>
+
+      <div class="locked-notice hidden">This paper is being checked by another user.</div>
+
+      <div class="status-row">
+        <span class="status-badge status-needs-review">&#9679; Needs Check</span>
+      </div>
+
+      <!-- Read-only header fields -->
+      <div class="field-group">
+        <label>Title</label>
+        <div class="field-row">
+          <span class="field-display">Continuous Sign Language Recognition with CNN and LSTM</span>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label>Year</label>
+        <div class="field-row">
+          <span class="field-display">2023</span>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label>Venue</label>
+        <div class="field-row">
+          <span class="field-display">EMNLP</span>
+        </div>
+      </div>
+
+      <hr class="field-divider">
+
+      <!-- Checking fields -->
+      <div class="field-group">
+        <label class="field-label-primary">Paper has empirical results</label>
+        <div class="radio-row">
+          <label class="radio-option">
+            <input type="radio" name="has-empirical-results" value="yes"> Yes
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="has-empirical-results" value="no"> No
+          </label>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label-primary">Paper is on Sign Language Processing</label>
+        <div class="radio-row">
+          <label class="radio-option">
+            <input type="radio" name="is-sign-language" value="yes"> Yes
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="is-sign-language" value="no"> No
+          </label>
+        </div>
+      </div>
+
+      <div class="form-footer">
+        <button class="btn-secondary">Save</button>
+        <button class="btn-primary">Save &amp; Next &#8594;</button>
+        <span class="save-confirm hidden">Saved &#10003;</span>
+      </div>
+
+    </div>
+
+  </div>
+</body>
+</html>

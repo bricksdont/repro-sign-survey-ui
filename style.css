@@ -596,6 +596,20 @@ body {
 
 /* ── Footer ── */
 
+hr.field-divider {
+  border: none;
+  border-top: 1px solid #e8e8e8;
+  margin: 24px 0;
+}
+
+.field-label-primary {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  color: #222 !important;
+}
+
 .form-footer {
   margin-top: 28px;
   padding-top: 18px;
