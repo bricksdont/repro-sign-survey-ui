@@ -333,6 +333,12 @@ body {
   margin-bottom: 18px;
 }
 
+.status-reason {
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+}
+
 .clear-status-btn {
   background: none;
   border: none;

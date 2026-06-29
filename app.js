@@ -84,14 +84,17 @@ function updatePaperNav() {
 }
 
 function updateStatusBadge(status, reason) {
-  const badge     = document.getElementById('status-badge');
-  const clearBtn  = document.getElementById('clear-status-btn');
-  const flagBtn   = document.getElementById('flag-btn');
-  const rejectBtn = document.getElementById('reject-btn');
+  const badge      = document.getElementById('status-badge');
+  const reasonSpan = document.getElementById('status-reason');
+  const clearBtn   = document.getElementById('clear-status-btn');
+  const flagBtn    = document.getElementById('flag-btn');
+  const rejectBtn  = document.getElementById('reject-btn');
 
   flagBtn.disabled   = false; flagBtn.title   = '';
   rejectBtn.disabled = false; rejectBtn.title = '';
   clearBtn.classList.add('hidden');
+  reasonSpan.textContent = '';
+  reasonSpan.classList.add('hidden');
 
   if (status === 'final') {
     badge.textContent = '✓ Final';
@@ -105,6 +108,10 @@ function updateStatusBadge(status, reason) {
     flagBtn.title     = 'Paper already flagged';
     rejectBtn.disabled = true;
     rejectBtn.title   = 'Paper is flagged — clear the flag before rejecting';
+    if (reason) {
+      reasonSpan.textContent = reason;
+      reasonSpan.classList.remove('hidden');
+    }
     clearBtn.textContent = 'Clear flag';
     clearBtn.classList.remove('hidden');
   } else if (status === 'rejected') {
@@ -115,6 +122,10 @@ function updateStatusBadge(status, reason) {
     rejectBtn.title    = 'Paper already rejected, cannot reject twice';
     flagBtn.disabled   = true;
     flagBtn.title      = 'Paper is rejected — revert the rejection before flagging';
+    if (reason) {
+      reasonSpan.textContent = reason;
+      reasonSpan.classList.remove('hidden');
+    }
     clearBtn.textContent = 'Revert rejection';
     clearBtn.classList.remove('hidden');
   } else {

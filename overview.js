@@ -55,13 +55,18 @@ function renderTable(papers) {
       : status === 'flagged'   ? '&#9873; Flagged'
       : status === 'rejected'  ? '&#10005; Rejected'
       : '&#9679; Needs Review';
+    const badgeTitle = (status === 'flagged' && p.flag_reason)
+      ? p.flag_reason
+      : (status === 'rejected' && p.rejection_reason)
+        ? p.rejection_reason
+        : '';
 
     const tr = document.createElement('tr');
     tr.className = 'paper-row';
     tr.innerHTML = `
       <td><span class="paper-id">${p.id}</span></td>
       <td class="paper-title">${p.title || '—'}</td>
-      <td><span class="status-badge ${badgeClass}">${badgeText}</span></td>
+      <td><span class="status-badge ${badgeClass}" title="${badgeTitle}">${badgeText}</span></td>
       <td><a class="review-link" href="paper.html?id=${p.id}">Review &#8594;</a></td>
     `;
     tr.addEventListener('click', e => {
