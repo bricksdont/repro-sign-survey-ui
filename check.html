@@ -35,7 +35,8 @@
       <div class="locked-notice hidden">This paper is being checked by another user.</div>
 
       <div class="status-row">
-        <span class="status-badge status-needs-review">&#9679; Needs Check</span>
+        <span id="status-badge" class="status-badge status-needs-review">&#9679; Needs Check</span>
+        <button id="clear-flag-btn" class="clear-status-btn hidden">Clear flag</button>
       </div>
 
       <!-- Read-only header fields -->
@@ -90,11 +91,108 @@
       <div class="form-footer">
         <button class="btn-secondary">Save</button>
         <button class="btn-primary">Save &amp; Next &#8594;</button>
+        <button id="flag-btn" class="btn-flag">Flag</button>
         <span class="save-confirm hidden">Saved &#10003;</span>
       </div>
 
     </div>
 
   </div>
+
+  <!-- Flag dialog -->
+  <div id="flag-overlay" class="modal-overlay hidden">
+    <div class="modal-dialog">
+      <h3 class="modal-title">Flag Paper</h3>
+      <p class="modal-subtitle">Select a reason for flagging:</p>
+      <div class="reject-options">
+        <label class="reject-option">
+          <input type="radio" name="flag-reason" value="Unclear which experiment is the main one">
+          Unclear which experiment is the main one
+        </label>
+        <label class="reject-option">
+          <input type="radio" name="flag-reason" value="Unclear if method is computational">
+          Unclear if method is computational
+        </label>
+        <label class="reject-option">
+          <input type="radio" name="flag-reason" value="Conflict of interest">
+          Conflict of interest
+        </label>
+        <label class="reject-option">
+          <input type="radio" name="flag-reason" value="other">
+          Other (explain):
+        </label>
+        <textarea id="flag-other-text" class="reject-other-text hidden" placeholder="Describe the reason&#8230;" rows="3"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button id="flag-cancel-btn" class="btn-secondary">Cancel</button>
+        <button id="flag-confirm-btn" class="btn-flag" disabled>Flag</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const badge      = document.getElementById('status-badge');
+    const flagBtn    = document.getElementById('flag-btn');
+    const clearBtn   = document.getElementById('clear-flag-btn');
+    const overlay    = document.getElementById('flag-overlay');
+    const cancelBtn  = document.getElementById('flag-cancel-btn');
+    const confirmBtn = document.getElementById('flag-confirm-btn');
+    const otherText  = document.getElementById('flag-other-text');
+    const radios     = document.querySelectorAll('input[name="flag-reason"]');
+
+    function openFlagDialog() {
+      radios.forEach(r => r.checked = false);
+      otherText.value = '';
+      otherText.classList.add('hidden');
+      confirmBtn.disabled = true;
+      overlay.classList.remove('hidden');
+    }
+
+    function closeFlagDialog() {
+      overlay.classList.add('hidden');
+    }
+
+    function applyFlag(reason) {
+      badge.textContent = reason ? `⚑ Flagged · ${reason}` : '⚑ Flagged';
+      badge.className   = 'status-badge status-flagged';
+      badge.title       = reason;
+      flagBtn.disabled  = true;
+      clearBtn.classList.remove('hidden');
+    }
+
+    function clearFlag() {
+      badge.textContent = '● Needs Check';
+      badge.className   = 'status-badge status-needs-review';
+      badge.title       = '';
+      flagBtn.disabled  = false;
+      clearBtn.classList.add('hidden');
+    }
+
+    flagBtn.addEventListener('click', openFlagDialog);
+    cancelBtn.addEventListener('click', closeFlagDialog);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeFlagDialog(); });
+
+    radios.forEach(radio => {
+      radio.addEventListener('change', () => {
+        const isOther = radio.value === 'other';
+        otherText.classList.toggle('hidden', !isOther);
+        confirmBtn.disabled = isOther ? otherText.value.trim() === '' : false;
+      });
+    });
+
+    otherText.addEventListener('input', () => {
+      confirmBtn.disabled = otherText.value.trim() === '';
+    });
+
+    confirmBtn.addEventListener('click', () => {
+      const selected = document.querySelector('input[name="flag-reason"]:checked');
+      if (!selected) return;
+      const reason = selected.value === 'other' ? otherText.value.trim() : selected.value;
+      closeFlagDialog();
+      applyFlag(reason);
+    });
+
+    clearBtn.addEventListener('click', clearFlag);
+  </script>
 </body>
 </html>
