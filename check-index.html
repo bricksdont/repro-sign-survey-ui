@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SLP Paper Survey — Checking</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="overview">
+    <div class="overview-header">
+      <div class="overview-header-left">
+        <a href="index.html" class="back-link overview-back">&#8592; Home</a>
+        <h1>Checking</h1>
+      </div>
+      <div class="header-actions">
+        <div class="account-menu">
+          <button id="account-btn" class="btn-account">Account</button>
+          <div id="account-dropdown" class="account-dropdown hidden">
+            <div id="account-email" class="account-email"></div>
+            <hr class="account-divider">
+            <button id="logout-btn" class="btn-logout">Log out</button>
+          </div>
+        </div>
+        <button id="check-next-btn" class="btn-primary">Check Next &#8594;</button>
+      </div>
+    </div>
+    <div id="stats-row" class="stats-row"></div>
+
+    <div class="filter-bar">
+      <input type="text" id="search-input" class="search-input" placeholder="Search by ID or title…">
+      <div class="status-filters">
+        <button class="filter-btn active" data-status="all">All</button>
+        <button class="filter-btn" data-status="needs_check">Needs Check</button>
+        <button class="filter-btn" data-status="flagged">Flagged</button>
+        <button class="filter-btn" data-status="checked">Checked</button>
+      </div>
+    </div>
+
+    <div id="results-count" class="results-count hidden"></div>
+
+    <table class="papers-table">
+      <thead>
+        <tr>
+          <th>Paper ID</th>
+          <th>Title</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="papers-tbody"></tbody>
+    </table>
+
+    <div id="pagination" class="pagination hidden">
+      <button id="page-prev" class="page-btn">&#8592; Prev</button>
+      <span id="page-indicator"></span>
+      <button id="page-next" class="page-btn">Next &#8594;</button>
+    </div>
+  </div>
+  <script src="api.js"></script>
+  <script src="check-overview.js"></script>
+</body>
+</html>

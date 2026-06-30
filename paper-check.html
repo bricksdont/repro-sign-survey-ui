@@ -22,35 +22,35 @@
 
       <div class="meta-header">
         <div class="meta-header-left">
-          <a href="index.html" class="back-link">&#8592; Overview</a>
-          <button class="copy-link-btn" title="Copy link to this paper">&#128279; Copy link</button>
+          <a href="check-index.html" class="back-link">&#8592; Overview</a>
+          <button id="copy-link-btn" class="copy-link-btn" title="Copy link to this paper">&#128279; Copy link</button>
         </div>
         <div class="paper-nav">
-          <button title="Previous paper" disabled>&#9664;</button>
+          <button id="prev-paper" title="Previous paper" disabled>&#9664;</button>
           <span id="paper-counter">1 / 1</span>
-          <button title="Next paper" disabled>&#9654;</button>
+          <button id="next-paper" title="Next paper" disabled>&#9654;</button>
         </div>
       </div>
 
-      <div class="locked-notice hidden">This paper is being checked by another user.</div>
+      <div id="locked-notice" class="locked-notice hidden">This paper is being checked by another user.</div>
 
       <div class="status-row">
         <span id="status-badge" class="status-badge status-needs-review">&#9679; Needs Check</span>
-        <button id="clear-flag-btn" class="clear-status-btn hidden">Clear flag</button>
+        <button id="clear-status-btn" class="clear-status-btn hidden">Clear flag</button>
       </div>
 
       <!-- Read-only header fields -->
       <div class="field-group">
         <label>Title</label>
         <div class="field-row">
-          <span class="field-display">Continuous Sign Language Recognition with CNN and LSTM</span>
+          <span id="display-title" class="field-display"></span>
         </div>
       </div>
 
       <div class="field-group">
         <label>Year</label>
         <div class="field-row">
-          <span class="field-display">2023</span>
+          <span id="display-year" class="field-display"></span>
         </div>
       </div>
 
@@ -73,19 +73,19 @@
         <label class="field-label-primary">Paper is on Sign Language Processing</label>
         <div class="radio-row">
           <label class="radio-option">
-            <input type="radio" name="is-sign-language" value="yes"> Yes
+            <input type="radio" name="is-sign-language-processing" value="yes"> Yes
           </label>
           <label class="radio-option">
-            <input type="radio" name="is-sign-language" value="no"> No
+            <input type="radio" name="is-sign-language-processing" value="no"> No
           </label>
         </div>
       </div>
 
       <div class="form-footer">
-        <button class="btn-secondary">Save</button>
-        <button class="btn-primary">Save &amp; Next &#8594;</button>
+        <button id="save-btn" class="btn-secondary">Save</button>
+        <button id="save-next-btn" class="btn-primary">Save &amp; Next &#8594;</button>
         <button id="flag-btn" class="btn-flag">Flag</button>
-        <span class="save-confirm hidden">Saved &#10003;</span>
+        <span id="save-confirm" class="save-confirm hidden">Saved &#10003;</span>
       </div>
 
     </div>
@@ -123,69 +123,7 @@
     </div>
   </div>
 
-  <script>
-    const badge      = document.getElementById('status-badge');
-    const flagBtn    = document.getElementById('flag-btn');
-    const clearBtn   = document.getElementById('clear-flag-btn');
-    const overlay    = document.getElementById('flag-overlay');
-    const cancelBtn  = document.getElementById('flag-cancel-btn');
-    const confirmBtn = document.getElementById('flag-confirm-btn');
-    const otherText  = document.getElementById('flag-other-text');
-    const radios     = document.querySelectorAll('input[name="flag-reason"]');
-
-    function openFlagDialog() {
-      radios.forEach(r => r.checked = false);
-      otherText.value = '';
-      otherText.classList.add('hidden');
-      confirmBtn.disabled = true;
-      overlay.classList.remove('hidden');
-    }
-
-    function closeFlagDialog() {
-      overlay.classList.add('hidden');
-    }
-
-    function applyFlag(reason) {
-      badge.textContent = reason ? `⚑ Flagged · ${reason}` : '⚑ Flagged';
-      badge.className   = 'status-badge status-flagged';
-      badge.title       = reason;
-      flagBtn.disabled  = true;
-      clearBtn.classList.remove('hidden');
-    }
-
-    function clearFlag() {
-      badge.textContent = '● Needs Check';
-      badge.className   = 'status-badge status-needs-review';
-      badge.title       = '';
-      flagBtn.disabled  = false;
-      clearBtn.classList.add('hidden');
-    }
-
-    flagBtn.addEventListener('click', openFlagDialog);
-    cancelBtn.addEventListener('click', closeFlagDialog);
-    overlay.addEventListener('click', e => { if (e.target === overlay) closeFlagDialog(); });
-
-    radios.forEach(radio => {
-      radio.addEventListener('change', () => {
-        const isOther = radio.value === 'other';
-        otherText.classList.toggle('hidden', !isOther);
-        confirmBtn.disabled = isOther ? otherText.value.trim() === '' : false;
-      });
-    });
-
-    otherText.addEventListener('input', () => {
-      confirmBtn.disabled = otherText.value.trim() === '';
-    });
-
-    confirmBtn.addEventListener('click', () => {
-      const selected = document.querySelector('input[name="flag-reason"]:checked');
-      if (!selected) return;
-      const reason = selected.value === 'other' ? otherText.value.trim() : selected.value;
-      closeFlagDialog();
-      applyFlag(reason);
-    });
-
-    clearBtn.addEventListener('click', clearFlag);
-  </script>
+  <script src="api.js"></script>
+  <script src="check-app.js"></script>
 </body>
 </html>
