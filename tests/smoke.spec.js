@@ -8,7 +8,7 @@ test.skip(!TEST_EMAIL || !TEST_PASSWORD,
   'Skipped: set PB_TEST_EMAIL and PB_TEST_PASSWORD env vars to run with PocketBase backend');
 
 test.beforeEach(async ({ page }) => {
-  // Navigate first so the page's origin is set, then inject auth token into sessionStorage
+  // Navigate first so the page's origin is set, then inject auth token into localStorage
   await page.goto('/login.html');
   const res = await page.request.post(
     'http://localhost:8090/api/collections/users/auth-with-password',
@@ -23,9 +23,18 @@ test.beforeEach(async ({ page }) => {
   }, { token, userId: record.id });
 });
 
-test.describe('Overview page', () => {
-  test('renders paper list and controls', async ({ page }) => {
+test.describe('Landing page', () => {
+  test('shows task cards', async ({ page }) => {
     await page.goto('/');
+    await expect(page.locator('.task-card')).toHaveCount(2);
+    await expect(page.locator('a[href="review-index.html"]')).toBeVisible();
+    await expect(page.locator('a[href="check-index.html"]')).toBeVisible();
+  });
+});
+
+test.describe('Review overview page', () => {
+  test('renders paper list and controls', async ({ page }) => {
+    await page.goto('/review-index.html');
     await expect(page.locator('.paper-row').first()).toBeVisible();
     await expect(page.locator('#stats-row')).toBeVisible();
     await expect(page.locator('#search-input')).toBeVisible();
@@ -34,28 +43,27 @@ test.describe('Overview page', () => {
   });
 
   test('search filters rows live', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/review-index.html');
     await page.fill('#search-input', 'SignCLIP');
     await expect(page.locator('.paper-row')).toHaveCount(1);
     await expect(page.locator('#results-count')).toContainText('Showing 1 of');
   });
 
   test('status filter shows empty state when no papers match', async ({ page }) => {
-    await page.goto('/');
-    // Search for something that won't match any paper, to guarantee no-results
+    await page.goto('/review-index.html');
     await page.fill('#search-input', 'zzz-no-match-zzz');
     await expect(page.locator('.no-results')).toBeVisible();
     await expect(page.locator('#results-count')).toContainText('Showing 0 of');
   });
 
   test('clicking a row navigates to the detail page', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/review-index.html');
     await page.locator('.paper-row').first().click();
     await expect(page).toHaveURL(/paper\.html\?id=/);
   });
 });
 
-test.describe('Paper detail page', () => {
+test.describe('Review detail page', () => {
   test('loads core UI elements', async ({ page }) => {
     await page.goto('/paper.html?id=emnlp-2024-518');
     await expect(page.locator('#pdf-iframe')).toBeVisible();
@@ -99,14 +107,49 @@ test.describe('Paper detail page', () => {
     await page.goto('/paper.html?id=emnlp-2024-518');
     const initialUrl = page.url();
     await page.click('#next-paper');
-    // URL should change to a different paper
     await expect(page).not.toHaveURL(initialUrl);
     await expect(page).toHaveURL(/paper\.html\?id=/);
   });
 
-  test('back link returns to overview', async ({ page }) => {
+  test('back link returns to review overview', async ({ page }) => {
     await page.goto('/paper.html?id=emnlp-2024-518');
     await page.click('.back-link');
-    await expect(page).toHaveURL(/index\.html/);
+    await expect(page).toHaveURL(/review-index\.html/);
+  });
+});
+
+test.describe('Check overview page', () => {
+  test('renders paper list and controls', async ({ page }) => {
+    await page.goto('/check-index.html');
+    await expect(page.locator('.paper-row').first()).toBeVisible();
+    await expect(page.locator('#stats-row')).toBeVisible();
+    await expect(page.locator('#search-input')).toBeVisible();
+    await expect(page.locator('.filter-btn')).toHaveCount(4);
+    await expect(page.locator('#check-next-btn')).toBeVisible();
+  });
+
+  test('clicking a row navigates to the check detail page', async ({ page }) => {
+    await page.goto('/check-index.html');
+    await page.locator('.paper-row').first().click();
+    await expect(page).toHaveURL(/paper-check\.html\?id=/);
+  });
+});
+
+test.describe('Check detail page', () => {
+  test('loads core UI elements', async ({ page }) => {
+    await page.goto('/paper-check.html?id=arxiv-2303-10782');
+    await expect(page.locator('#pdf-iframe')).toBeVisible();
+    await expect(page.locator('#status-badge')).toBeVisible();
+    await expect(page.locator('#save-btn')).toBeVisible();
+    await expect(page.locator('#save-next-btn')).toBeVisible();
+    await expect(page.locator('#flag-btn')).toBeVisible();
+    await expect(page.locator('input[name="has-empirical-results"]')).toHaveCount(2);
+    await expect(page.locator('input[name="is-sign-language-processing"]')).toHaveCount(2);
+  });
+
+  test('back link returns to check overview', async ({ page }) => {
+    await page.goto('/paper-check.html?id=arxiv-2303-10782');
+    await page.click('.back-link');
+    await expect(page).toHaveURL(/check-index\.html/);
   });
 });
