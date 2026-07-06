@@ -7,7 +7,7 @@ const DATASET_SUGGESTIONS = [
 const METRIC_SUGGESTIONS = [
   'BLEU', 'BLEU-1', 'BLEU-2', 'BLEU-3', 'BLEU-4',
   'WER', 'ROUGE', 'Accuracy', 'BLEURT', 'F1',
-  'DTW-MJE', 'chrF', 'IoU', 'Precision', 'Recall',
+  'DTW-MJE', 'chrF', 'IoU', 'Precision', 'Recall', 'TER'
 ];
 
 // ── State ──────────────────────────────────────────────────────────────────
