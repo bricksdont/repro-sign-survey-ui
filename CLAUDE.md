@@ -25,7 +25,7 @@ Use `server.py`, not bare `python3 -m http.server`. The custom server adds a `/p
 | `window.location.hostname` | Backend used |
 |---------|-------------|
 | `localhost` | `http://localhost:8090` |
-| Anything else | `https://repro-sign-survey.fly.dev` |
+| Anything else | `https://repro-sign-survey-backend.fly.dev` |
 
 Override with a URL parameter on any page:
 

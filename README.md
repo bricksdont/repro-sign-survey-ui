@@ -70,7 +70,7 @@ To redeploy after changes:
 fly deploy
 ```
 
-When accessed from the deployed URL, `api.js` automatically points at the Fly.io PocketBase backend (`https://repro-sign-survey.fly.dev`) — no configuration needed.
+When accessed from the deployed URL, `api.js` automatically points at the Fly.io PocketBase backend (`https://repro-sign-survey-backend.fly.dev`) — no configuration needed.
 
 To deploy from scratch:
 
@@ -96,7 +96,7 @@ Then open [http://localhost:8765](http://localhost:8765). You will be redirected
 The frontend picks a backend by checking `window.location.hostname` — the hostname of the page URL in your browser's address bar:
 
 - **`localhost`** → `http://localhost:8090` (local dev instance, see [backend repo](https://github.com/bricksdont/repro-sign-survey-backend))
-- **Any other host** → `https://repro-sign-survey.fly.dev` (live Fly.io deployment)
+- **Any other host** → `https://repro-sign-survey-backend.fly.dev` (live Fly.io deployment)
 
 So opening `http://localhost:8765` automatically talks to the local backend, and opening the same frontend from any deployed URL automatically talks to Fly.io — no config needed.
 

@@ -4,10 +4,10 @@ const PB_URL = (() => {
   if (param === 'local' || param === 'remote') localStorage.setItem('pb_backend', param);
   const stored = localStorage.getItem('pb_backend');
   if (stored === 'local')  return 'http://localhost:8090';
-  if (stored === 'remote') return 'https://repro-sign-survey.fly.dev';
+  if (stored === 'remote') return 'https://repro-sign-survey-backend.fly.dev';
   return window.location.hostname === 'localhost'
     ? 'http://localhost:8090'
-    : 'https://repro-sign-survey.fly.dev';
+    : 'https://repro-sign-survey-backend.fly.dev';
 })();
 
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours

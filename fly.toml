@@ -1,4 +1,5 @@
 app = 'repro-sign-survey-frontend'
+org = 'repro-sign'
 primary_region = 'fra'
 
 [build]
