@@ -36,6 +36,7 @@ function requireAuth() {
 async function pbGet(path) {
   const res = await fetch(PB_URL + path,
     { headers: { Authorization: `Bearer ${getToken()}` } });
+  if (res.status === 401) { logout(); requireAuth(); return null; }
   if (!res.ok) throw new Error(`GET ${path} → ${res.status}`);
   return res.json();
 }
