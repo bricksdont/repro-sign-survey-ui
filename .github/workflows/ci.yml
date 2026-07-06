@@ -28,11 +28,11 @@ jobs:
       - name: JSON schema — data.json
         run: python3 scripts/validate_data.py
 
-      - name: JS syntax — app.js
-        run: node --check app.js && echo "✓ app.js OK"
-
-      - name: JS syntax — overview.js
-        run: node --check overview.js && echo "✓ overview.js OK"
+      - name: JS syntax
+        run: |
+          for f in app.js overview.js check-app.js check-overview.js; do
+            node --check "$f" && echo "✓ $f OK"
+          done
 
       - name: HTML validation
         run: npm run validate:html

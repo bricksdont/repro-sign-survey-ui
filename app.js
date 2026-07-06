@@ -321,7 +321,7 @@ async function saveAndNext() {
   }
 
   // No more papers needing review — return to overview
-  window.location.href = 'index.html';
+  window.location.href = 'review-index.html';
 }
 
 function copyLink() {

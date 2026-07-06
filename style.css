@@ -64,6 +64,63 @@ body {
 
 /* ── Overview page ── */
 
+/* ── Landing page ─────────────────────────────────────────────────────── */
+
+.landing {
+  max-width: 640px;
+  margin: 72px auto;
+  padding: 0 24px;
+}
+
+.landing-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 48px;
+}
+
+.landing-header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111;
+}
+
+.task-cards {
+  display: flex;
+  gap: 20px;
+}
+
+.task-card {
+  flex: 1;
+  display: block;
+  padding: 28px 24px;
+  border: 1px solid #d0d0d0;
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.task-card:hover {
+  border-color: #4a90d9;
+  box-shadow: 0 2px 8px rgba(74,144,217,0.15);
+}
+
+.task-card-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 8px;
+}
+
+.task-card-desc {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.5;
+}
+
+/* ── Overview pages ──────────────────────────────────────────────────── */
+
 .overview {
   max-width: 860px;
   margin: 48px auto;
@@ -75,6 +132,32 @@ body {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 24px;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.breadcrumb-link {
+  color: #999;
+  text-decoration: none;
+}
+
+.breadcrumb-link:hover {
+  color: #4a90d9;
+}
+
+.breadcrumb-sep {
+  color: #ccc;
+  font-weight: 400;
+}
+
+.breadcrumb-current {
+  color: #111;
 }
 
 .header-actions {
@@ -595,6 +678,20 @@ body {
 }
 
 /* ── Footer ── */
+
+hr.field-divider {
+  border: none;
+  border-top: 1px solid #e8e8e8;
+  margin: 24px 0;
+}
+
+.field-label-primary {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  color: #222 !important;
+}
 
 .form-footer {
   margin-top: 28px;

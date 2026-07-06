@@ -2,9 +2,9 @@
 
 [![CI](https://github.com/bricksdont/repro-sign-survey-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/bricksdont/repro-sign-survey-ui/actions/workflows/ci.yml)
 
-A lightweight web interface for annotating and reviewing reproducibility metadata of NLP research papers. Built for a survey of sign language papers.
+A lightweight web interface for annotating research papers across two independent tasks: **Reviewing** (reproducibility metadata) and **Checking** (empirical scope). Built for a survey of sign language NLP papers.
 
-An overview page lists all papers with their review status. Each paper opens a detail view showing the PDF on the left and editable metadata fields on the right. Annotations are saved to a shared PocketBase backend, enabling multiple reviewers to work concurrently.
+A landing page routes annotators to either task. Each task has its own overview listing papers with status badges and a detail page showing the PDF on the left and editable fields on the right. Annotations are saved to a shared PocketBase backend, enabling multiple annotators to work concurrently.
 
 ![Overview page listing papers with status badges](overview-page.png)
 
@@ -12,23 +12,34 @@ An overview page lists all papers with their review status. Each paper opens a d
 
 ## Features
 
-- Overview page with paper list, status badges (Needs Review / Final / Flagged / Rejected), and stats
-- Search by paper ID or title; filter by status; live result count
-- "Review Next →" button picks a random unreviewed paper
-- Native browser PDF viewer via local proxy (text selection, zoom, full controls)
-- Pre-filled fields shown read-only with one-click editing
-- Tag chip inputs for datasets, metrics, and code repositories (with autocomplete for datasets and metrics)
-- Code repository chips are clickable links opening in a new tab
-- Status workflow: Save or Save & Next marks a paper as Final; Flag prompts for a reason (for team discussion); Reject prompts for a reason
-- Flagged and Rejected statuses are preserved on Save; can be cleared via an inline link
-- Paper navigation (◀ ▶); each paper has a stable URL (`paper.html?id=<id>`) with a one-click Copy link button
-- Saves to a shared PocketBase backend — changes are immediately visible to all reviewers
-- Edit locking: only one reviewer can edit a paper at a time; others see a read-only notice
+- Landing page with task cards routing to Reviewing or Checking
+- Breadcrumb navigation (`Home → Reviewing` / `Home → Checking`) on all task pages
+
+**Reviewing task** — add reproducibility metadata to papers:
+- Overview with paper list, status badges (Needs Review / Final / Flagged / Rejected), stats
+- Search by paper ID or title; filter by status; live result count; "Review Next →" for a random unreviewed paper
+- Detail page: native browser PDF viewer (text selection, zoom, full controls) + metadata form
+- Pre-filled fields (title, year, venue) shown read-only with one-click pencil editing
+- Tag chip inputs for datasets, metrics, and code repositories (with autocomplete); code repo chips are clickable links
+- Status workflow: Save / Save & Next → Final; Flag → reason dialog (`flagged`); Reject → reason dialog (`rejected`); inline clear/revert links
+- Flag and reject reasons shown in the status badge text and as a tooltip
+
+**Checking task** — verify paper scope in an independent paper set:
+- Overview with paper list, status badges (Needs Check / Flagged / Checked), stats; "Check Next →"
+- Detail page: two yes/no questions — "Paper has empirical results" and "Paper is on Sign Language Processing"
+- Both questions must be answered before Save / Save & Next become active
+- Status workflow: Save / Save & Next → Checked; Flag → reason dialog; inline clear link
+
+**Shared features:**
+- Paper navigation (◀ ▶); each paper has a stable URL with a one-click Copy link button
+- Saves to a shared PocketBase backend — changes are immediately visible to all annotators
+- Edit locking: only one annotator can edit a paper at a time; others see a read-only notice
 - Auth: login with a PocketBase user account; token stored in `localStorage` with a 24-hour expiry, shared across tabs so copied paper links open without re-login
 - Account menu: shows logged-in email and a logout button
-- Pagination: overview page shows 50 papers per page
 
 ## Metadata fields
+
+### Reviewing
 
 | Field | Notes |
 |-------|-------|
@@ -39,6 +50,15 @@ An overview page lists all papers with their review status. Each paper opens a d
 | Code Repositories | Multi-value URL list; entries are clickable links |
 | Datasets | Multi-value tag list with autocomplete |
 | Metrics | Multi-value tag list with autocomplete |
+
+### Checking
+
+| Field | Notes |
+|-------|-------|
+| Title | Read-only display |
+| Year | Read-only display |
+| Paper has empirical results | Yes / No radio (required before Save) |
+| Paper is on Sign Language Processing | Yes / No radio (required before Save) |
 
 ## Deployment
 

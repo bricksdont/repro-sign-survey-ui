@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SLP Paper Survey — Checking</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- Left panel: PDF viewer -->
+    <div class="panel pdf-panel">
+      <iframe id="pdf-iframe" title="PDF viewer"></iframe>
+    </div>
+
+    <!-- Draggable divider -->
+    <div id="divider"></div>
+
+    <!-- Right panel: Checking form -->
+    <div class="panel meta-panel">
+
+      <div class="meta-header">
+        <div class="meta-header-left">
+          <a href="check-index.html" class="back-link">&#8592; Overview</a>
+          <button id="copy-link-btn" class="copy-link-btn" title="Copy link to this paper">&#128279; Copy link</button>
+        </div>
+        <div class="paper-nav">
+          <button id="prev-paper" title="Previous paper" disabled>&#9664;</button>
+          <span id="paper-counter">1 / 1</span>
+          <button id="next-paper" title="Next paper" disabled>&#9654;</button>
+        </div>
+      </div>
+
+      <div id="locked-notice" class="locked-notice hidden">This paper is being checked by another user.</div>
+
+      <div class="status-row">
+        <span id="status-badge" class="status-badge status-needs-review">&#9679; Needs Check</span>
+        <button id="clear-status-btn" class="clear-status-btn hidden">Clear flag</button>
+      </div>
+
+      <!-- Read-only header fields -->
+      <div class="field-group">
+        <label>Title</label>
+        <div class="field-row">
+          <span id="display-title" class="field-display"></span>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label>Year</label>
+        <div class="field-row">
+          <span id="display-year" class="field-display"></span>
+        </div>
+      </div>
+
+      <hr class="field-divider">
+
+      <!-- Checking fields -->
+      <div class="field-group">
+        <label class="field-label-primary">Paper has empirical results</label>
+        <div class="radio-row">
+          <label class="radio-option">
+            <input type="radio" name="has-empirical-results" value="yes"> Yes
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="has-empirical-results" value="no"> No
+          </label>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label-primary">Paper is on Sign Language Processing</label>
+        <div class="radio-row">
+          <label class="radio-option">
+            <input type="radio" name="is-sign-language-processing" value="yes"> Yes
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="is-sign-language-processing" value="no"> No
+          </label>
+        </div>
+      </div>
+
+      <div class="form-footer">
+        <button id="save-btn" class="btn-secondary">Save</button>
+        <button id="save-next-btn" class="btn-primary">Save &amp; Next &#8594;</button>
+        <button id="flag-btn" class="btn-flag">Flag</button>
+        <span id="save-confirm" class="save-confirm hidden">Saved &#10003;</span>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Flag dialog -->
+  <div id="flag-overlay" class="modal-overlay hidden">
+    <div class="modal-dialog">
+      <h3 class="modal-title">Flag Paper</h3>
+      <p class="modal-subtitle">Select a reason for flagging:</p>
+      <div class="reject-options">
+        <label class="reject-option">
+          <input type="radio" name="flag-reason" value="Unclear which experiment is the main one">
+          Unclear which experiment is the main one
+        </label>
+        <label class="reject-option">
+          <input type="radio" name="flag-reason" value="Unclear if method is computational">
+          Unclear if method is computational
+        </label>
+        <label class="reject-option">
+          <input type="radio" name="flag-reason" value="Conflict of interest">
+          Conflict of interest
+        </label>
+        <label class="reject-option">
+          <input type="radio" name="flag-reason" value="other">
+          Other (explain):
+        </label>
+        <textarea id="flag-other-text" class="reject-other-text hidden" placeholder="Describe the reason&#8230;" rows="3"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button id="flag-cancel-btn" class="btn-secondary">Cancel</button>
+        <button id="flag-confirm-btn" class="btn-flag" disabled>Flag</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="check-app.js"></script>
+</body>
+</html>

@@ -7,55 +7,46 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="overview">
-    <div class="overview-header">
-      <h1>Paper Survey</h1>
-      <div class="header-actions">
-        <div class="account-menu">
-          <button id="account-btn" class="btn-account">Account</button>
-          <div id="account-dropdown" class="account-dropdown hidden">
-            <div id="account-email" class="account-email"></div>
-            <hr class="account-divider">
-            <button id="logout-btn" class="btn-logout">Log out</button>
-          </div>
+  <div class="landing">
+    <div class="landing-header">
+      <h1>SLP Paper Survey</h1>
+      <div class="account-menu">
+        <button id="account-btn" class="btn-account">Account</button>
+        <div id="account-dropdown" class="account-dropdown hidden">
+          <div id="account-email" class="account-email"></div>
+          <hr class="account-divider">
+          <button id="logout-btn" class="btn-logout">Log out</button>
         </div>
-        <button id="review-next-btn" class="btn-primary">Review Next &#8594;</button>
-      </div>
-    </div>
-    <div id="stats-row" class="stats-row"></div>
-
-    <div class="filter-bar">
-      <input type="text" id="search-input" class="search-input" placeholder="Search by ID or title…">
-      <div class="status-filters">
-        <button class="filter-btn active" data-status="all">All</button>
-        <button class="filter-btn" data-status="needs_review">Needs Review</button>
-        <button class="filter-btn" data-status="flagged">Flagged</button>
-        <button class="filter-btn" data-status="rejected">Rejected</button>
-        <button class="filter-btn" data-status="final">Final</button>
       </div>
     </div>
 
-    <div id="results-count" class="results-count hidden"></div>
-
-    <table class="papers-table">
-      <thead>
-        <tr>
-          <th>Paper ID</th>
-          <th>Title</th>
-          <th>Status</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="papers-tbody"></tbody>
-    </table>
-
-    <div id="pagination" class="pagination hidden">
-      <button id="page-prev" class="page-btn">&#8592; Prev</button>
-      <span id="page-indicator"></span>
-      <button id="page-next" class="page-btn">Next &#8594;</button>
+    <div class="task-cards">
+      <a href="review-index.html" class="task-card">
+        <div class="task-card-title">Reviewing</div>
+        <div class="task-card-desc">Add metadata: code repositories, datasets, metrics</div>
+      </a>
+      <a href="check-index.html" class="task-card">
+        <div class="task-card-title">Checking</div>
+        <div class="task-card-desc">Verify empirical results and Sign Language Processing scope</div>
+      </a>
     </div>
   </div>
+
   <script src="api.js"></script>
-  <script src="overview.js"></script>
+  <script>
+    requireAuth();
+    document.getElementById('account-email').textContent = getEmail() || getUserId() || 'Unknown user';
+    document.getElementById('account-btn').addEventListener('click', e => {
+      e.stopPropagation();
+      document.getElementById('account-dropdown').classList.toggle('hidden');
+    });
+    document.getElementById('logout-btn').addEventListener('click', () => {
+      logout();
+      window.location.href = 'login.html';
+    });
+    document.addEventListener('click', () => {
+      document.getElementById('account-dropdown').classList.add('hidden');
+    });
+  </script>
 </body>
 </html>

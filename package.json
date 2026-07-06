@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "validate:html": "html-validate index.html paper.html",
+    "validate:html": "html-validate index.html review-index.html check-index.html paper.html paper-check.html login.html",
     "test": "playwright test"
   },
   "devDependencies": {
