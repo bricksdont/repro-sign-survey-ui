@@ -4,7 +4,7 @@
 
 A lightweight web interface for annotating research papers across two independent tasks: **Reviewing** (reproducibility metadata) and **Checking** (empirical scope). Built for a survey of sign language NLP papers.
 
-A landing page routes annotators to either task. Each task has its own overview listing papers with status badges and a detail page showing the PDF on the left and editable fields on the right. Annotations are saved to a shared PocketBase backend, enabling multiple annotators to work concurrently.
+A landing page routes annotators to either task. Each task has its own overview listing papers with status badges and a detail page showing the PDF on the left and editable fields on the right. A shared **Datasets catalogue** lets annotators browse, add, and edit the dataset records used across reviews. Annotations are saved to a shared PocketBase backend, enabling multiple annotators to work concurrently.
 
 ![Overview page listing papers with status badges](overview-page.png)
 
@@ -12,8 +12,8 @@ A landing page routes annotators to either task. Each task has its own overview 
 
 ## Features
 
-- Landing page with task cards routing to Reviewing or Checking
-- Breadcrumb navigation (`Home → Reviewing` / `Home → Checking`) on all task pages
+- Landing page with task cards routing to Reviewing, Checking, and the Datasets catalogue
+- Breadcrumb navigation (`Home → Reviewing` / `Home → Checking` / `Home → Datasets`) on all task pages
 
 **Reviewing task** — add reproducibility metadata to papers:
 - Overview with paper list, status badges (Needs Review / Final / Flagged / Rejected), stats
@@ -29,6 +29,12 @@ A landing page routes annotators to either task. Each task has its own overview 
 - Detail page: two yes/no questions — "Paper has empirical results" and "Paper is on Sign Language Processing"
 - Both questions must be answered before Save / Save & Next become active
 - Status workflow: Save / Save & Next → Checked; Flag → reason dialog; inline clear link
+
+**Datasets catalogue** — manage the shared pool of datasets referenced in reviews:
+- Overview table with name, license, availability badge, and URL
+- Add new datasets or edit existing ones via a modal dialog; URL fields stored as chips
+- Edit locking: opening a record locks it for other users (same 30-minute heartbeat mechanism as review/check detail pages)
+- Dataset chips on the review detail page show a hoverable tooltip with URL, license, and availability — the URL is clickable
 
 **Shared features:**
 - Paper navigation (◀ ▶); each paper has a stable URL with a one-click Copy link button
@@ -48,7 +54,7 @@ A landing page routes annotators to either task. Each task has its own overview 
 | Venue | Conference/workshop abbreviation (e.g. EMNLP, ACL) |
 | Peer-Reviewed | Yes / No radio |
 | Code Repositories | Multi-value URL list; entries are clickable links |
-| Datasets | Multi-value tag list with autocomplete |
+| Datasets | Multi-value tag list with autocomplete; chips show a tooltip with dataset details |
 | Metrics | Multi-value tag list with autocomplete |
 
 ### Checking

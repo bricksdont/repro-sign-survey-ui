@@ -26,9 +26,10 @@ test.beforeEach(async ({ page }) => {
 test.describe('Landing page', () => {
   test('shows task cards', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('.task-card')).toHaveCount(2);
+    await expect(page.locator('.task-card')).toHaveCount(3);
     await expect(page.locator('a[href="review-index.html"]')).toBeVisible();
     await expect(page.locator('a[href="check-index.html"]')).toBeVisible();
+    await expect(page.locator('a[href="datasets-index.html"]')).toBeVisible();
   });
 });
 
@@ -151,5 +152,29 @@ test.describe('Check detail page', () => {
     await page.goto('/paper-check.html?id=arxiv-2303-10782');
     await page.click('.back-link');
     await expect(page).toHaveURL(/check-index\.html/);
+  });
+});
+
+test.describe('Datasets overview page', () => {
+  test('renders table and controls', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    await expect(page.locator('#stats-row')).toBeVisible();
+    await expect(page.locator('#add-dataset-btn')).toBeVisible();
+    await expect(page.locator('table.papers-table')).toBeVisible();
+  });
+
+  test('Add Dataset button opens modal', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    await expect(page.locator('#modal-overlay')).toHaveClass(/hidden/);
+    await page.click('#add-dataset-btn');
+    await expect(page.locator('#modal-overlay')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#modal-title')).toContainText('Add Dataset');
+  });
+
+  test('Cancel closes modal', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    await page.click('#add-dataset-btn');
+    await page.click('#modal-cancel-btn');
+    await expect(page.locator('#modal-overlay')).toHaveClass(/hidden/);
   });
 });
