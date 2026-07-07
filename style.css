@@ -636,6 +636,17 @@ body {
   color: #3060c0;
 }
 
+.suggestion-add-new {
+  color: #2a7a2a;
+  border-top: 1px solid #e8e8e8;
+  font-style: italic;
+}
+
+.suggestion-add-new:hover {
+  background: #f0fff0;
+  color: #1a5a1a;
+}
+
 .tag-input-row {
   display: flex;
   gap: 6px;

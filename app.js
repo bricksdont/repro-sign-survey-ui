@@ -1,9 +1,3 @@
-const DATASET_SUGGESTIONS = [
-  'RWTH-PHOENIX-Weather-2014T', 'CSL-Daily', 'How2Sign', 'WLASL', 'MS-ASL',
-  'YouTube-ASL', 'OpenASL', 'BSL-1K', 'BOBSL', 'SignBank', 'SignSuisse',
-  'Spread-The-Sign',
-];
-
 const METRIC_SUGGESTIONS = [
   'BLEU', 'BLEU-1', 'BLEU-2', 'BLEU-3', 'BLEU-4',
   'WER', 'ROUGE', 'Accuracy', 'BLEURT', 'F1',
@@ -13,8 +7,9 @@ const METRIC_SUGGESTIONS = [
 // ── State ──────────────────────────────────────────────────────────────────
 
 let papers = [];
+let allDatasets = []; // [{id, name}] loaded from backend
 let currentIndex = 0;
-let datasets = [];
+let datasets = [];   // [{id, name}] for the current paper
 let metrics = [];
 let code_repos = [];
 let isReadOnly = false;
@@ -23,7 +18,7 @@ let heartbeatInterval = null;
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 
 async function init() {
-  papers = await loadAllPapers();
+  [papers, allDatasets] = await Promise.all([loadAllPapers(), loadAllDatasets()]);
 
   // Honour ?id= param so direct links work (e.g. from overview page)
   const requestedId = new URLSearchParams(window.location.search).get('id');
@@ -46,6 +41,11 @@ async function loadAllPapers() {
     _pb_id: item.id,     // PocketBase opaque ID — used only for API calls
     status: item.status || 'needs_review',
   }));
+}
+
+async function loadAllDatasets() {
+  const items = await pbGetAll('datasets');
+  return items.map(item => ({ id: item.id, name: item.name }));
 }
 
 // ── Paper loading ──────────────────────────────────────────────────────────
@@ -150,8 +150,10 @@ function populateForm(p) {
     : (p.code_repo ? [p.code_repo] : []);
   renderTags('code_repos', code_repos);
 
-  datasets = Array.isArray(p.datasets) ? [...p.datasets] : [];
-  metrics  = Array.isArray(p.metrics)  ? [...p.metrics]  : [];
+  datasets = (Array.isArray(p.datasets) ? p.datasets : [])
+    .map(id => allDatasets.find(d => d.id === id))
+    .filter(Boolean);
+  metrics = Array.isArray(p.metrics) ? [...p.metrics] : [];
   renderTags('datasets', datasets);
   renderTags('metrics',  metrics);
 }
@@ -209,7 +211,7 @@ function renderTags(type, items) {
       link.className   = 'chip-link';
       chip.appendChild(link);
     } else {
-      chip.textContent = item;
+      chip.textContent = typeof item === 'object' ? item.name : item;
     }
 
     const removeBtn = document.createElement('button');
@@ -266,7 +268,7 @@ function collectFormState() {
       || document.getElementById('display-venue').textContent.trim(),
     peer_reviewed: prChecked ? prChecked.value === 'yes' : null,
     code_repos: [...code_repos],
-    datasets:   [...datasets],
+    datasets:   datasets.map(d => d.id),
     metrics:    [...metrics],
   };
 }
@@ -514,8 +516,92 @@ function initMetricAutocomplete() {
   initAutocomplete('metric-input', 'metric-suggestions', METRIC_SUGGESTIONS, metrics, 'metrics');
 }
 
+async function createDataset(name) {
+  const res = await fetch(`${PB_URL}/api/collections/datasets/records`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) return null;
+  const record = await res.json();
+  return { id: record.id, name: record.name };
+}
+
+async function addDatasetChip(name) {
+  if (!name) return;
+  const input    = document.getElementById('dataset-input');
+  const dropdown = document.getElementById('dataset-suggestions');
+
+  if (datasets.some(d => d.name.toLowerCase() === name.toLowerCase())) {
+    input.value = '';
+    return;
+  }
+
+  let dataset = allDatasets.find(d => d.name.toLowerCase() === name.toLowerCase());
+  if (!dataset) {
+    dataset = await createDataset(name);
+    if (!dataset) return;
+    allDatasets.push(dataset);
+  }
+
+  datasets.push(dataset);
+  renderTags('datasets', datasets);
+  input.value = '';
+  dropdown.classList.add('hidden');
+  input.focus();
+}
+
 function initDatasetAutocomplete() {
-  initAutocomplete('dataset-input', 'dataset-suggestions', DATASET_SUGGESTIONS, datasets, 'datasets');
+  const input    = document.getElementById('dataset-input');
+  const dropdown = document.getElementById('dataset-suggestions');
+
+  function refresh() {
+    const q = input.value.trim();
+    const ql = q.toLowerCase();
+    const addedIds = new Set(datasets.map(d => d.id));
+    const matches = allDatasets.filter(d =>
+      !addedIds.has(d.id) && (q === '' || d.name.toLowerCase().startsWith(ql))
+    );
+    const hasExactMatch = allDatasets.some(d => d.name.toLowerCase() === ql);
+
+    dropdown.innerHTML = '';
+    matches.forEach(d => {
+      const item = document.createElement('div');
+      item.className = 'suggestion-item';
+      item.textContent = d.name;
+      item.addEventListener('mousedown', e => {
+        e.preventDefault();
+        if (!datasets.some(x => x.id === d.id)) {
+          datasets.push(d);
+          renderTags('datasets', datasets);
+        }
+        input.value = '';
+        dropdown.classList.add('hidden');
+        input.focus();
+      });
+      dropdown.appendChild(item);
+    });
+
+    if (q && !hasExactMatch) {
+      const addNew = document.createElement('div');
+      addNew.className = 'suggestion-item suggestion-add-new';
+      addNew.textContent = `➕ Add "${q}" as new dataset`;
+      addNew.addEventListener('mousedown', e => {
+        e.preventDefault();
+        addDatasetChip(q);
+      });
+      dropdown.appendChild(addNew);
+    }
+
+    dropdown.classList.toggle('hidden', dropdown.children.length === 0);
+  }
+
+  input.addEventListener('focus', refresh);
+  input.addEventListener('input', refresh);
+  input.addEventListener('blur', () => setTimeout(() => dropdown.classList.add('hidden'), 150));
 }
 
 // ── Divider drag ──────────────────────────────────────────────────────────
@@ -577,10 +663,11 @@ function wireEvents() {
   document.getElementById('code-repo-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') addTag('code_repos');
   });
-  document.getElementById('add-dataset-btn').addEventListener('click', () => addTag('datasets'));
+  document.getElementById('add-dataset-btn').addEventListener('click', () =>
+    addDatasetChip(document.getElementById('dataset-input').value.trim()));
   document.getElementById('add-metric-btn').addEventListener('click', () => addTag('metrics'));
   document.getElementById('dataset-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') addTag('datasets');
+    if (e.key === 'Enter') addDatasetChip(document.getElementById('dataset-input').value.trim());
   });
   document.getElementById('metric-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') addTag('metrics');
