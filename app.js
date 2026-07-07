@@ -590,7 +590,7 @@ function initDatasetAutocomplete() {
     if (q && !hasExactMatch) {
       const addNew = document.createElement('div');
       addNew.className = 'suggestion-item suggestion-add-new';
-      addNew.textContent = `➕ Add "${q}" as new dataset`;
+      addNew.textContent = `➕ Add "${q}" as new dataset to the database`;
       addNew.addEventListener('mousedown', e => {
         e.preventDefault();
         addDatasetChip(q);
