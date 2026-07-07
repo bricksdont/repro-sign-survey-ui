@@ -502,7 +502,7 @@ function initAutocomplete(inputId, dropdownId, suggestions, tagList, tagType) {
         e.preventDefault();
         input.value = s;
         addTag(tagType);
-        dropdown.classList.add('hidden');
+        refresh();
       });
       dropdown.appendChild(item);
     });
