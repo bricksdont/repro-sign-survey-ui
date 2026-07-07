@@ -552,8 +552,7 @@ async function addDatasetChip(name) {
   datasets.push(dataset);
   renderTags('datasets', datasets);
   input.value = '';
-  dropdown.classList.add('hidden');
-  input.focus();
+  input.dispatchEvent(new Event('input')); // re-run refresh to update dropdown in place
 }
 
 function initDatasetAutocomplete() {
@@ -581,8 +580,7 @@ function initDatasetAutocomplete() {
           renderTags('datasets', datasets);
         }
         input.value = '';
-        dropdown.classList.add('hidden');
-        input.focus();
+        refresh();
       });
       dropdown.appendChild(item);
     });
