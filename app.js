@@ -34,7 +34,7 @@ async function init() {
 
 async function loadAllPapers() {
   requireAuth();
-  const items = await pbGetAll('papers');
+  const items = await pbGetAll('papers', '&expand=datasets');
   return items.map(item => ({
     ...item,
     id: item.paper_id,   // kebab key — used everywhere existing code says p.id
@@ -150,9 +150,12 @@ function populateForm(p) {
     : (p.code_repo ? [p.code_repo] : []);
   renderTags('code_repos', code_repos);
 
-  datasets = (Array.isArray(p.datasets) ? p.datasets : [])
-    .map(id => allDatasets.find(d => d.id === id))
-    .filter(Boolean);
+  const expanded = p.expand?.datasets;
+  datasets = expanded && Array.isArray(expanded)
+    ? expanded.map(d => ({ id: d.id, name: d.name }))
+    : (Array.isArray(p.datasets) ? p.datasets : [])
+        .map(id => allDatasets.find(d => d.id === id))
+        .filter(Boolean);
   metrics = Array.isArray(p.metrics) ? [...p.metrics] : [];
   renderTags('datasets', datasets);
   renderTags('metrics',  metrics);
@@ -279,7 +282,7 @@ async function persistPaper(index, extra = {}) {
   if (p.rejection_reason) base.rejection_reason = p.rejection_reason;
   if (p.flag_reason)      base.flag_reason      = p.flag_reason;
   const data = { ...base, ...extra };
-  papers[index] = { ...p, ...data };
+  papers[index] = { ...p, ...data, expand: { datasets: datasets.map(d => ({ id: d.id, name: d.name })) } };
 
   const { ok, status } = await pbPatch(
     `/api/collections/papers/records/${p._pb_id}`,
