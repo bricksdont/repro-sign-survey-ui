@@ -151,9 +151,9 @@ function populateForm(p) {
   renderTags('code_repos', code_repos);
 
   const expanded = p.expand?.datasets;
-  console.debug('[datasets] p.datasets:', JSON.stringify(p.datasets));
-  console.debug('[datasets] p.expand:', JSON.stringify(p.expand));
-  console.debug('[datasets] allDatasets:', JSON.stringify(allDatasets));
+  console.log('[datasets] p.datasets:', JSON.stringify(p.datasets));
+  console.log('[datasets] p.expand:', JSON.stringify(p.expand));
+  console.log('[datasets] allDatasets:', JSON.stringify(allDatasets));
   datasets = expanded && Array.isArray(expanded)
     ? expanded.map(d => ({ id: d.id, name: d.name }))
     : (Array.isArray(p.datasets) ? p.datasets : [])
