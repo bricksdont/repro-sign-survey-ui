@@ -45,7 +45,10 @@ async function loadAllPapers() {
 
 async function loadAllDatasets() {
   const items = await pbGetAll('datasets');
-  return items.map(item => ({ id: item.id, name: item.name }));
+  return items.map(item => ({
+    id: item.id, name: item.name,
+    url: item.url, license: item.license, available: item.available,
+  }));
 }
 
 // ── Paper loading ──────────────────────────────────────────────────────────
@@ -197,6 +200,60 @@ function finishEditing(field) {
 
 // ── Tag chips ──────────────────────────────────────────────────────────────
 
+let _tooltip = null;
+let _tooltipHideTimer = null;
+
+function getTooltip() {
+  if (!_tooltip) {
+    _tooltip = document.createElement('div');
+    _tooltip.className = 'dataset-tooltip hidden';
+    _tooltip.addEventListener('mouseenter', () => clearTimeout(_tooltipHideTimer));
+    _tooltip.addEventListener('mouseleave', () => hideDatasetTooltip());
+    document.body.appendChild(_tooltip);
+  }
+  return _tooltip;
+}
+
+function showDatasetTooltip(chip, dataset) {
+  const tt = getTooltip();
+  const urls = Array.isArray(dataset.url) ? dataset.url : (dataset.url ? [dataset.url] : []);
+  const urlHtml = urls.length > 0
+    ? `<a href="${urls[0]}" target="_blank" rel="noopener noreferrer" class="tt-link">${urls[0]}</a>`
+    : '<span class="tt-muted">No URL</span>';
+  const avail = dataset.available === 'yes'
+    ? '<span class="avail-badge avail-yes">Yes</span>'
+    : dataset.available === 'no'
+    ? '<span class="avail-badge avail-no">No</span>'
+    : '<span class="tt-muted">—</span>';
+
+  tt.innerHTML = `
+    <div class="tt-name">${dataset.name}</div>
+    <div class="tt-row"><span class="tt-label">URL</span>${urlHtml}</div>
+    <div class="tt-row"><span class="tt-label">License</span>${dataset.license ? dataset.license : '<span class="tt-muted">—</span>'}</div>
+    <div class="tt-row"><span class="tt-label">Available</span>${avail}</div>
+  `;
+
+  const rect = chip.getBoundingClientRect();
+  tt.classList.remove('hidden');
+  // Position below the chip, aligned to its left edge
+  tt.style.top  = `${rect.bottom + window.scrollY + 6}px`;
+  tt.style.left = `${rect.left  + window.scrollX}px`;
+  // Clamp so it doesn't overflow the right edge of the viewport
+  const ttRect = tt.getBoundingClientRect();
+  if (ttRect.right > window.innerWidth - 8) {
+    tt.style.left = `${window.innerWidth - ttRect.width - 8 + window.scrollX}px`;
+  }
+}
+
+function scheduleHideDatasetTooltip() {
+  _tooltipHideTimer = setTimeout(() => getTooltip().classList.add('hidden'), 150);
+}
+
+function hideDatasetTooltip() {
+  clearTimeout(_tooltipHideTimer);
+  getTooltip().classList.add('hidden');
+}
+
 function renderTags(type, items) {
   const containerId = type === 'code_repos' ? 'code-repos-container' : type + '-container';
   const container = document.getElementById(containerId);
@@ -214,6 +271,14 @@ function renderTags(type, items) {
       chip.appendChild(link);
     } else {
       chip.textContent = typeof item === 'object' ? item.name : item;
+    }
+
+    if (type === 'datasets') {
+      const full = allDatasets.find(d => d.id === item.id);
+      if (full) {
+        chip.addEventListener('mouseenter', () => { clearTimeout(_tooltipHideTimer); showDatasetTooltip(chip, full); });
+        chip.addEventListener('mouseleave', scheduleHideDatasetTooltip);
+      }
     }
 
     const removeBtn = document.createElement('button');
