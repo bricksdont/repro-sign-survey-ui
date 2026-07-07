@@ -42,18 +42,19 @@ The override is stored in `localStorage` as `pb_backend` the first time it is se
 |------|---------|
 | `index.html` | Landing page: task selection cards (Reviewing / Checking / Datasets) |
 | `review-index.html` | Reviewing overview: paper list with status badges, stats, search/filter |
-| `overview.js` | Reviewing overview logic: loads `papers` collection, search/filter/render |
 | `paper.html` | Review detail page: two-panel shell (PDF left, metadata form right) |
-| `app.js` | Review detail logic: form, PocketBase persistence, edit locking, autocomplete, divider drag |
 | `check-index.html` | Checking overview: check_papers list with Needs Check / Flagged / Checked statuses |
-| `check-overview.js` | Checking overview logic: loads `check_papers` collection, search/filter/render |
 | `paper-check.html` | Check detail page: two yes/no questions (empirical results, SLP scope), flag workflow |
-| `check-app.js` | Check detail logic: form validation, PocketBase persistence, edit locking, divider drag |
 | `datasets-index.html` | Datasets overview: table of all datasets with add/edit modal |
-| `datasets-overview.js` | Datasets overview logic: loads `datasets` collection, renders table, modal, edit locking |
-| `api.js` | Shared PocketBase client: auto-detected `PB_URL`, `pbGet`, `pbPatch`, `pbGetAll`, `requireAuth`, token helpers |
 | `login.html` | Login form: authenticates against PocketBase, stores token in localStorage with 24h expiry |
-| `style.css` | Layout, form styles, tag chip styles, overview styles, landing page styles, breadcrumb styles |
+| `js/api.js` | Shared PocketBase client: auto-detected `PB_URL`, `pbGet`, `pbPatch`, `pbGetAll`, `requireAuth`, token helpers |
+| `js/review/overview.js` | Reviewing overview logic: loads `papers` collection, search/filter/render |
+| `js/review/app.js` | Review detail logic: form, PocketBase persistence, edit locking, autocomplete, divider drag |
+| `js/check/check-overview.js` | Checking overview logic: loads `check_papers` collection, search/filter/render |
+| `js/check/check-app.js` | Check detail logic: form validation, PocketBase persistence, edit locking, divider drag |
+| `js/datasets/datasets-overview.js` | Datasets overview logic: loads `datasets` collection, renders table, modal, edit locking |
+| `css/style.css` | Layout, form styles, tag chip styles, overview styles, landing page styles, breadcrumb styles |
+| `screenshots/` | README screenshots only |
 | `data.json` | Reference seed data; validated by CI (no longer read by the frontend) |
 | `Dockerfile` | Container image: Python 3.12 Alpine running server.py on port 8765 |
 | `fly.toml` | Fly.io app config: app `repro-sign-survey-frontend`, region `fra` |

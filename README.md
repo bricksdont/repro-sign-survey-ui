@@ -6,9 +6,9 @@ A lightweight web interface for annotating research papers across two independen
 
 A landing page routes annotators to either task. Each task has its own overview listing papers with status badges and a detail page showing the PDF on the left and editable fields on the right. A shared **Datasets catalogue** lets annotators browse, add, and edit the dataset records used across reviews. Annotations are saved to a shared PocketBase backend, enabling multiple annotators to work concurrently.
 
-![Overview page listing papers with status badges](overview-page.png)
+![Overview page listing papers with status badges](screenshots/overview-page.png)
 
-![Paper detail page with PDF viewer and metadata form](paper-page.png)
+![Paper detail page with PDF viewer and metadata form](screenshots/paper-page.png)
 
 ## Features
 
