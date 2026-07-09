@@ -55,7 +55,7 @@ A landing page routes annotators to either task. Each task has its own overview 
 | Peer-Reviewed | Yes / No radio |
 | Code Repositories | Multi-value URL list; entries are clickable links |
 | Datasets | Multi-value tag list with autocomplete; chips show a tooltip with dataset details |
-| Metrics | Multi-value tag list with autocomplete |
+| Metrics | Multi-value tag list with autocomplete backed by the `metrics` collection; chips show a tooltip with name and notes |
 
 ### Checking
 
