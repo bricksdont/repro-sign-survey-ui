@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SLP Paper Survey</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <div class="landing">
@@ -30,9 +30,15 @@
         <div class="task-card-desc">Verify empirical results and Sign Language Processing scope</div>
       </a>
     </div>
+    <div class="task-cards task-cards-secondary">
+      <a href="datasets-index.html" class="task-card task-card-secondary">
+        <div class="task-card-title">Datasets</div>
+        <div class="task-card-desc">Browse, add, and edit the shared dataset catalogue</div>
+      </a>
+    </div>
   </div>
 
-  <script src="api.js"></script>
+  <script src="js/api.js"></script>
   <script>
     requireAuth();
     document.getElementById('account-email').textContent = getEmail() || getUserId() || 'Unknown user';

@@ -41,14 +41,15 @@ async function pbGet(path) {
   return res.json();
 }
 
-async function pbGetAll(collection) {
+async function pbGetAll(collection, extraParams = '') {
   const perPage = 500;
   let page = 1;
   let all = [];
   while (true) {
     const result = await pbGet(
-      `/api/collections/${collection}/records?perPage=${perPage}&page=${page}`
+      `/api/collections/${collection}/records?perPage=${perPage}&page=${page}${extraParams}`
     );
+    if (!result) return all;
     all = all.concat(result.items);
     if (all.length >= result.totalItems) break;
     page++;

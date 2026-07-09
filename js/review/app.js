@@ -1,9 +1,3 @@
-const DATASET_SUGGESTIONS = [
-  'RWTH-PHOENIX-Weather-2014T', 'CSL-Daily', 'How2Sign', 'WLASL', 'MS-ASL',
-  'YouTube-ASL', 'OpenASL', 'BSL-1K', 'BOBSL', 'SignBank', 'SignSuisse',
-  'Spread-The-Sign',
-];
-
 const METRIC_SUGGESTIONS = [
   'BLEU', 'BLEU-1', 'BLEU-2', 'BLEU-3', 'BLEU-4',
   'WER', 'ROUGE', 'Accuracy', 'BLEURT', 'F1',
@@ -13,8 +7,9 @@ const METRIC_SUGGESTIONS = [
 // ── State ──────────────────────────────────────────────────────────────────
 
 let papers = [];
+let allDatasets = []; // [{id, name}] loaded from backend
 let currentIndex = 0;
-let datasets = [];
+let datasets = [];   // [{id, name}] for the current paper
 let metrics = [];
 let code_repos = [];
 let isReadOnly = false;
@@ -23,7 +18,7 @@ let heartbeatInterval = null;
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 
 async function init() {
-  papers = await loadAllPapers();
+  [papers, allDatasets] = await Promise.all([loadAllPapers(), loadAllDatasets()]);
 
   // Honour ?id= param so direct links work (e.g. from overview page)
   const requestedId = new URLSearchParams(window.location.search).get('id');
@@ -39,12 +34,20 @@ async function init() {
 
 async function loadAllPapers() {
   requireAuth();
-  const items = await pbGetAll('papers');
+  const items = await pbGetAll('papers', '&expand=datasets');
   return items.map(item => ({
     ...item,
     id: item.paper_id,   // kebab key — used everywhere existing code says p.id
     _pb_id: item.id,     // PocketBase opaque ID — used only for API calls
     status: item.status || 'needs_review',
+  }));
+}
+
+async function loadAllDatasets() {
+  const items = await pbGetAll('datasets');
+  return items.map(item => ({
+    id: item.id, name: item.name,
+    url: item.url, license: item.license, available: item.available,
   }));
 }
 
@@ -150,8 +153,12 @@ function populateForm(p) {
     : (p.code_repo ? [p.code_repo] : []);
   renderTags('code_repos', code_repos);
 
-  datasets = Array.isArray(p.datasets) ? [...p.datasets] : [];
-  metrics  = Array.isArray(p.metrics)  ? [...p.metrics]  : [];
+  const toArr = v => !v ? [] : Array.isArray(v) ? v : [v];
+  const expanded = toArr(p.expand?.datasets);
+  datasets = expanded.length > 0
+    ? expanded.map(d => ({ id: d.id, name: d.name }))
+    : toArr(p.datasets).map(id => allDatasets.find(d => d.id === id)).filter(Boolean);
+  metrics = Array.isArray(p.metrics) ? [...p.metrics] : [];
   renderTags('datasets', datasets);
   renderTags('metrics',  metrics);
 }
@@ -193,6 +200,60 @@ function finishEditing(field) {
 
 // ── Tag chips ──────────────────────────────────────────────────────────────
 
+let _tooltip = null;
+let _tooltipHideTimer = null;
+
+function getTooltip() {
+  if (!_tooltip) {
+    _tooltip = document.createElement('div');
+    _tooltip.className = 'dataset-tooltip hidden';
+    _tooltip.addEventListener('mouseenter', () => clearTimeout(_tooltipHideTimer));
+    _tooltip.addEventListener('mouseleave', () => hideDatasetTooltip());
+    document.body.appendChild(_tooltip);
+  }
+  return _tooltip;
+}
+
+function showDatasetTooltip(chip, dataset) {
+  const tt = getTooltip();
+  const urls = Array.isArray(dataset.url) ? dataset.url : (dataset.url ? [dataset.url] : []);
+  const urlHtml = urls.length > 0
+    ? `<a href="${urls[0]}" target="_blank" rel="noopener noreferrer" class="tt-link">${urls[0]}</a>`
+    : '<span class="tt-muted">No URL</span>';
+  const avail = dataset.available === 'yes'
+    ? '<span class="avail-badge avail-yes">Yes</span>'
+    : dataset.available === 'no'
+    ? '<span class="avail-badge avail-no">No</span>'
+    : '<span class="tt-muted">—</span>';
+
+  tt.innerHTML = `
+    <div class="tt-name">${dataset.name}</div>
+    <div class="tt-row"><span class="tt-label">URL</span>${urlHtml}</div>
+    <div class="tt-row"><span class="tt-label">License</span>${dataset.license ? dataset.license : '<span class="tt-muted">—</span>'}</div>
+    <div class="tt-row"><span class="tt-label">Available</span>${avail}</div>
+  `;
+
+  const rect = chip.getBoundingClientRect();
+  tt.classList.remove('hidden');
+  // Position below the chip, aligned to its left edge
+  tt.style.top  = `${rect.bottom + window.scrollY + 6}px`;
+  tt.style.left = `${rect.left  + window.scrollX}px`;
+  // Clamp so it doesn't overflow the right edge of the viewport
+  const ttRect = tt.getBoundingClientRect();
+  if (ttRect.right > window.innerWidth - 8) {
+    tt.style.left = `${window.innerWidth - ttRect.width - 8 + window.scrollX}px`;
+  }
+}
+
+function scheduleHideDatasetTooltip() {
+  _tooltipHideTimer = setTimeout(() => getTooltip().classList.add('hidden'), 150);
+}
+
+function hideDatasetTooltip() {
+  clearTimeout(_tooltipHideTimer);
+  getTooltip().classList.add('hidden');
+}
+
 function renderTags(type, items) {
   const containerId = type === 'code_repos' ? 'code-repos-container' : type + '-container';
   const container = document.getElementById(containerId);
@@ -209,7 +270,15 @@ function renderTags(type, items) {
       link.className   = 'chip-link';
       chip.appendChild(link);
     } else {
-      chip.textContent = item;
+      chip.textContent = typeof item === 'object' ? item.name : item;
+    }
+
+    if (type === 'datasets') {
+      const full = allDatasets.find(d => d.id === item.id);
+      if (full) {
+        chip.addEventListener('mouseenter', () => { clearTimeout(_tooltipHideTimer); showDatasetTooltip(chip, full); });
+        chip.addEventListener('mouseleave', scheduleHideDatasetTooltip);
+      }
     }
 
     const removeBtn = document.createElement('button');
@@ -266,7 +335,7 @@ function collectFormState() {
       || document.getElementById('display-venue').textContent.trim(),
     peer_reviewed: prChecked ? prChecked.value === 'yes' : null,
     code_repos: [...code_repos],
-    datasets:   [...datasets],
+    datasets:   datasets.map(d => d.id),
     metrics:    [...metrics],
   };
 }
@@ -277,7 +346,7 @@ async function persistPaper(index, extra = {}) {
   if (p.rejection_reason) base.rejection_reason = p.rejection_reason;
   if (p.flag_reason)      base.flag_reason      = p.flag_reason;
   const data = { ...base, ...extra };
-  papers[index] = { ...p, ...data };
+  papers[index] = { ...p, ...data, expand: { datasets: datasets.map(d => ({ id: d.id, name: d.name })) } };
 
   const { ok, status } = await pbPatch(
     `/api/collections/papers/records/${p._pb_id}`,
@@ -498,7 +567,7 @@ function initAutocomplete(inputId, dropdownId, suggestions, tagList, tagType) {
         e.preventDefault();
         input.value = s;
         addTag(tagType);
-        dropdown.classList.add('hidden');
+        refresh();
       });
       dropdown.appendChild(item);
     });
@@ -514,8 +583,90 @@ function initMetricAutocomplete() {
   initAutocomplete('metric-input', 'metric-suggestions', METRIC_SUGGESTIONS, metrics, 'metrics');
 }
 
+async function createDataset(name) {
+  const res = await fetch(`${PB_URL}/api/collections/datasets/records`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) return null;
+  const record = await res.json();
+  return { id: record.id, name: record.name };
+}
+
+async function addDatasetChip(name) {
+  if (!name) return;
+  const input    = document.getElementById('dataset-input');
+  const dropdown = document.getElementById('dataset-suggestions');
+
+  if (datasets.some(d => d.name.toLowerCase() === name.toLowerCase())) {
+    input.value = '';
+    return;
+  }
+
+  let dataset = allDatasets.find(d => d.name.toLowerCase() === name.toLowerCase());
+  if (!dataset) {
+    dataset = await createDataset(name);
+    if (!dataset) return;
+    allDatasets.push(dataset);
+  }
+
+  datasets.push(dataset);
+  renderTags('datasets', datasets);
+  input.value = '';
+  input.dispatchEvent(new Event('input')); // re-run refresh to update dropdown in place
+}
+
 function initDatasetAutocomplete() {
-  initAutocomplete('dataset-input', 'dataset-suggestions', DATASET_SUGGESTIONS, datasets, 'datasets');
+  const input    = document.getElementById('dataset-input');
+  const dropdown = document.getElementById('dataset-suggestions');
+
+  function refresh() {
+    const q = input.value.trim();
+    const ql = q.toLowerCase();
+    const addedIds = new Set(datasets.map(d => d.id));
+    const matches = allDatasets.filter(d =>
+      !addedIds.has(d.id) && (q === '' || d.name.toLowerCase().startsWith(ql))
+    );
+    const hasExactMatch = allDatasets.some(d => d.name.toLowerCase() === ql);
+
+    dropdown.innerHTML = '';
+    matches.forEach(d => {
+      const item = document.createElement('div');
+      item.className = 'suggestion-item';
+      item.textContent = d.name;
+      item.addEventListener('mousedown', e => {
+        e.preventDefault();
+        if (!datasets.some(x => x.id === d.id)) {
+          datasets.push(d);
+          renderTags('datasets', datasets);
+        }
+        input.value = '';
+        refresh();
+      });
+      dropdown.appendChild(item);
+    });
+
+    if (q && !hasExactMatch) {
+      const addNew = document.createElement('div');
+      addNew.className = 'suggestion-item suggestion-add-new';
+      addNew.textContent = `➕ Add "${q}" as new dataset to the database`;
+      addNew.addEventListener('mousedown', e => {
+        e.preventDefault();
+        addDatasetChip(q);
+      });
+      dropdown.appendChild(addNew);
+    }
+
+    dropdown.classList.toggle('hidden', dropdown.children.length === 0);
+  }
+
+  input.addEventListener('focus', refresh);
+  input.addEventListener('input', refresh);
+  input.addEventListener('blur', () => setTimeout(() => dropdown.classList.add('hidden'), 150));
 }
 
 // ── Divider drag ──────────────────────────────────────────────────────────
@@ -577,10 +728,11 @@ function wireEvents() {
   document.getElementById('code-repo-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') addTag('code_repos');
   });
-  document.getElementById('add-dataset-btn').addEventListener('click', () => addTag('datasets'));
+  document.getElementById('add-dataset-btn').addEventListener('click', () =>
+    addDatasetChip(document.getElementById('dataset-input').value.trim()));
   document.getElementById('add-metric-btn').addEventListener('click', () => addTag('metrics'));
   document.getElementById('dataset-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') addTag('datasets');
+    if (e.key === 'Enter') addDatasetChip(document.getElementById('dataset-input').value.trim());
   });
   document.getElementById('metric-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') addTag('metrics');
