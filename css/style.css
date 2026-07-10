@@ -375,6 +375,11 @@ body {
   text-decoration: underline;
 }
 
+.col-action {
+  width: 1%;
+  white-space: nowrap;
+}
+
 /* ── Metadata panel header ── */
 
 .meta-header {
