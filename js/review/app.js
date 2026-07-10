@@ -277,29 +277,20 @@ function renderTags(type, items) {
       link.className   = 'chip-link';
       chip.appendChild(link);
     } else {
-      const label = document.createTextNode(typeof item === 'object' ? item.name : item);
-      chip.appendChild(label);
-
-      if (type === 'datasets' && item.id) {
-        const extLink = document.createElement('a');
-        extLink.href = `dataset.html?id=${item.id}`;
-        extLink.target = '_blank';
-        extLink.rel = 'noopener noreferrer';
-        extLink.className = 'chip-ext-link';
-        extLink.title = 'Open dataset page';
-        extLink.textContent = '↗';
-        chip.appendChild(extLink);
-      }
-
-      if (type === 'metrics' && item.id) {
-        const extLink = document.createElement('a');
-        extLink.href = `metric.html?id=${item.id}`;
-        extLink.target = '_blank';
-        extLink.rel = 'noopener noreferrer';
-        extLink.className = 'chip-ext-link';
-        extLink.title = 'Open metric page';
-        extLink.textContent = '↗';
-        chip.appendChild(extLink);
+      const name = typeof item === 'object' ? item.name : item;
+      const detailUrl = type === 'datasets' && item.id ? `dataset.html?id=${item.id}`
+                      : type === 'metrics'  && item.id ? `metric.html?id=${item.id}`
+                      : null;
+      if (detailUrl) {
+        const link = document.createElement('a');
+        link.href = detailUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.className = 'chip-detail-link';
+        link.textContent = name;
+        chip.appendChild(link);
+      } else {
+        chip.appendChild(document.createTextNode(name));
       }
     }
 

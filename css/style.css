@@ -1344,15 +1344,13 @@ hr.field-divider {
   background: #225a9a;
 }
 
-.chip-ext-link {
-  color: #999;
+.chip-detail-link {
+  color: inherit;
   text-decoration: none;
-  font-size: 11px;
-  margin-left: 4px;
-  vertical-align: middle;
 }
 
-.chip-ext-link:hover {
-  color: #2a6db5;
+.chip-detail-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
