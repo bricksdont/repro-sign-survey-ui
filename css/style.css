@@ -1169,6 +1169,11 @@ hr.field-divider {
   color: #666;
 }
 
+.col-action {
+  width: 1%;
+  white-space: nowrap;
+}
+
 .btn-edit-dataset {
   padding: 4px 10px;
   border: 1px solid #ccc;

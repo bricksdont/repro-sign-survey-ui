@@ -43,7 +43,7 @@ function renderTable() {
       <td><strong>${escapeHtml(m.name)}</strong></td>
       <td class="dataset-url-cell">${urlCell}</td>
       <td class="dataset-comments-cell">${escapeHtml(m.comments || '—')}</td>
-      <td><button class="btn-edit-dataset" data-id="${m.id}">Edit</button></td>
+      <td class="col-action"><button class="btn-edit-dataset" data-id="${m.id}">Edit</button></td>
     `;
     tbody.appendChild(tr);
   });
