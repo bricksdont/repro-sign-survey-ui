@@ -162,23 +162,26 @@ test.describe('Metrics overview page', () => {
   test('renders table and controls', async ({ page }) => {
     await page.goto('/metrics-index.html');
     await expect(page.locator('#stats-row')).toBeVisible();
-    await expect(page.locator('#add-metric-btn')).toBeVisible();
+    await expect(page.locator('a[href="metric.html"]')).toBeVisible();
     await expect(page.locator('table.papers-table')).toBeVisible();
   });
 
-  test('Add Metric button opens modal', async ({ page }) => {
+  test('clicking a row navigates to metric detail page', async ({ page }) => {
     await page.goto('/metrics-index.html');
-    await expect(page.locator('#modal-overlay')).toHaveClass(/hidden/);
-    await page.click('#add-metric-btn');
-    await expect(page.locator('#modal-overlay')).not.toHaveClass(/hidden/);
-    await expect(page.locator('#modal-title')).toContainText('Add Metric');
+    const rows = page.locator('.paper-row');
+    const count = await rows.count();
+    test.skip(count === 0, 'No metrics in backend — skipping row-click test');
+    await rows.first().click();
+    await expect(page).toHaveURL(/metric\.html\?id=/);
   });
+});
 
-  test('Cancel closes modal', async ({ page }) => {
-    await page.goto('/metrics-index.html');
-    await page.click('#add-metric-btn');
-    await page.click('#modal-cancel-btn');
-    await expect(page.locator('#modal-overlay')).toHaveClass(/hidden/);
+test.describe('Metric detail page', () => {
+  test('new metric page loads form', async ({ page }) => {
+    await page.goto('/metric.html');
+    await expect(page.locator('#field-name')).toBeVisible();
+    await expect(page.locator('#save-btn')).toBeVisible();
+    await expect(page.locator('.back-link')).toBeVisible();
   });
 });
 
@@ -186,22 +189,27 @@ test.describe('Datasets overview page', () => {
   test('renders table and controls', async ({ page }) => {
     await page.goto('/datasets-index.html');
     await expect(page.locator('#stats-row')).toBeVisible();
-    await expect(page.locator('#add-dataset-btn')).toBeVisible();
+    await expect(page.locator('a[href="dataset.html"]')).toBeVisible();
     await expect(page.locator('table.papers-table')).toBeVisible();
   });
 
-  test('Add Dataset button opens modal', async ({ page }) => {
+  test('clicking a row navigates to dataset detail page', async ({ page }) => {
     await page.goto('/datasets-index.html');
-    await expect(page.locator('#modal-overlay')).toHaveClass(/hidden/);
-    await page.click('#add-dataset-btn');
-    await expect(page.locator('#modal-overlay')).not.toHaveClass(/hidden/);
-    await expect(page.locator('#modal-title')).toContainText('Add Dataset');
+    const rows = page.locator('.paper-row');
+    const count = await rows.count();
+    test.skip(count === 0, 'No datasets in backend — skipping row-click test');
+    await rows.first().click();
+    await expect(page).toHaveURL(/dataset\.html\?id=/);
   });
+});
 
-  test('Cancel closes modal', async ({ page }) => {
-    await page.goto('/datasets-index.html');
-    await page.click('#add-dataset-btn');
-    await page.click('#modal-cancel-btn');
-    await expect(page.locator('#modal-overlay')).toHaveClass(/hidden/);
+test.describe('Dataset detail page', () => {
+  test('new dataset page loads form', async ({ page }) => {
+    await page.goto('/dataset.html');
+    await expect(page.locator('#field-name')).toBeVisible();
+    await expect(page.locator('#field-license')).toBeVisible();
+    await expect(page.locator('input[name="available"]')).toHaveCount(3);
+    await expect(page.locator('#save-btn')).toBeVisible();
+    await expect(page.locator('.back-link')).toBeVisible();
   });
 });

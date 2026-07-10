@@ -23,7 +23,7 @@
             <button id="logout-btn" class="btn-logout">Log out</button>
           </div>
         </div>
-        <button id="add-metric-btn" class="btn-primary">+ Add Metric</button>
+        <a href="metric.html" class="btn-primary btn-primary-link">+ Add Metric</a>
       </div>
     </div>
 
@@ -35,43 +35,10 @@
           <th>Name</th>
           <th>URL</th>
           <th>Comments</th>
-          <th class="col-action"></th>
         </tr>
       </thead>
       <tbody id="metrics-tbody"></tbody>
     </table>
-  </div>
-
-  <!-- Add / Edit modal -->
-  <div id="modal-overlay" class="modal-overlay hidden">
-    <div class="modal-dialog modal-dialog-wide">
-      <div class="modal-title" id="modal-title">Add Metric</div>
-      <div id="modal-locked-notice" class="locked-notice hidden">This metric is being edited by another user.</div>
-
-      <div class="dataset-form">
-        <div class="dataset-form-group">
-          <label class="dataset-form-label" for="modal-name">Name <span class="required-star">*</span></label>
-          <input type="text" id="modal-name" class="field-input" placeholder="e.g. BLEU">
-        </div>
-        <div class="dataset-form-group">
-          <label class="dataset-form-label">URLs</label>
-          <div id="modal-url-chips" class="chip-container"></div>
-          <div class="tag-input-row">
-            <input type="text" id="modal-url-input" class="field-input" placeholder="https://…">
-            <button id="modal-add-url-btn" class="btn-secondary">Add</button>
-          </div>
-        </div>
-        <div class="dataset-form-group">
-          <label class="dataset-form-label" for="modal-comments">Comments</label>
-          <textarea id="modal-comments" class="field-input dataset-textarea" rows="3" placeholder="Any notes about this metric…"></textarea>
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button id="modal-cancel-btn" class="btn-secondary">Cancel</button>
-        <button id="modal-save-btn" class="btn-primary">Save</button>
-      </div>
-    </div>
   </div>
 
   <script src="js/api.js"></script>

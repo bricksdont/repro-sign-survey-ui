@@ -31,16 +31,16 @@ A landing page routes annotators to either task. Each task has its own overview 
 - Status workflow: Save / Save & Next → Checked; Flag → reason dialog; inline clear link
 
 **Datasets catalogue** — manage the shared pool of datasets referenced in reviews:
-- Overview table with name, license, availability badge, and URL
-- Add new datasets or edit existing ones via a modal dialog; URL fields stored as chips
-- Edit locking: opening a record locks it for other users (same 30-minute heartbeat mechanism as review/check detail pages)
-- Dataset chips on the review detail page show a hoverable tooltip with URL, license, and availability — the URL is clickable
+- Overview table with name, license, availability badge, and URL; clicking a row opens the dataset detail page
+- "+ Add Dataset" navigates to a blank detail page; saving POSTs a new record and updates the URL to `?id=<id>`
+- Detail page has fields for name, license, URLs (chip list), availability, and comments; edit locking with 30-minute heartbeat
+- Dataset chips on the review detail page show a ↗ icon that opens the dataset detail page in a new tab
 
 **Metrics catalogue** — manage the shared pool of metrics referenced in reviews:
-- Overview table with name, URL, and comments
-- Add new metrics or edit existing ones via a modal dialog; URL fields stored as chips
-- Edit locking: same heartbeat mechanism as datasets and paper detail pages
-- Metric chips on the review detail page show a hoverable tooltip with name, URL, and notes
+- Overview table with name, URL, and comments; clicking a row opens the metric detail page
+- "+ Add Metric" navigates to a blank detail page; saving POSTs a new record and updates the URL to `?id=<id>`
+- Detail page has fields for name, URLs (chip list), and comments; same edit locking pattern as datasets
+- Metric chips on the review detail page show a ↗ icon that opens the metric detail page in a new tab
 
 **Shared features:**
 - Paper navigation (◀ ▶); each paper has a stable URL with a one-click Copy link button
@@ -60,8 +60,8 @@ A landing page routes annotators to either task. Each task has its own overview 
 | Venue | Conference/workshop abbreviation (e.g. EMNLP, ACL) |
 | Peer-Reviewed | Yes / No radio |
 | Code Repositories | Multi-value URL list; entries are clickable links |
-| Datasets | Multi-value tag list with autocomplete; chips show a tooltip with dataset details |
-| Metrics | Multi-value tag list with autocomplete backed by the `metrics` collection; chips show a tooltip with name and notes |
+| Datasets | Multi-value tag list with autocomplete; chips show a ↗ link to the dataset detail page |
+| Metrics | Multi-value tag list with autocomplete backed by the `metrics` collection; chips show a ↗ link to the metric detail page |
 
 ### Checking
 

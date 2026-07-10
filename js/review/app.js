@@ -259,84 +259,6 @@ function finishEditing(field) {
 
 // ── Tag chips ──────────────────────────────────────────────────────────────
 
-let _tooltip = null;
-let _tooltipHideTimer = null;
-
-function getTooltip() {
-  if (!_tooltip) {
-    _tooltip = document.createElement('div');
-    _tooltip.className = 'dataset-tooltip hidden';
-    _tooltip.addEventListener('mouseenter', () => clearTimeout(_tooltipHideTimer));
-    _tooltip.addEventListener('mouseleave', () => hideDatasetTooltip());
-    document.body.appendChild(_tooltip);
-  }
-  return _tooltip;
-}
-
-function showDatasetTooltip(chip, dataset) {
-  const tt = getTooltip();
-  const urls = Array.isArray(dataset.url) ? dataset.url : (dataset.url ? [dataset.url] : []);
-  const urlHtml = urls.length > 0
-    ? `<a href="${urls[0]}" target="_blank" rel="noopener noreferrer" class="tt-link">${urls[0]}</a>`
-    : '<span class="tt-muted">No URL</span>';
-  const avail = dataset.available === 'yes'
-    ? '<span class="avail-badge avail-yes">Yes</span>'
-    : dataset.available === 'no'
-    ? '<span class="avail-badge avail-no">No</span>'
-    : '<span class="tt-muted">—</span>';
-
-  tt.innerHTML = `
-    <div class="tt-name">${dataset.name}</div>
-    <div class="tt-row"><span class="tt-label">URL</span>${urlHtml}</div>
-    <div class="tt-row"><span class="tt-label">License</span>${dataset.license ? dataset.license : '<span class="tt-muted">—</span>'}</div>
-    <div class="tt-row"><span class="tt-label">Available</span>${avail}</div>
-  `;
-
-  const rect = chip.getBoundingClientRect();
-  tt.classList.remove('hidden');
-  // Position below the chip, aligned to its left edge
-  tt.style.top  = `${rect.bottom + window.scrollY + 6}px`;
-  tt.style.left = `${rect.left  + window.scrollX}px`;
-  // Clamp so it doesn't overflow the right edge of the viewport
-  const ttRect = tt.getBoundingClientRect();
-  if (ttRect.right > window.innerWidth - 8) {
-    tt.style.left = `${window.innerWidth - ttRect.width - 8 + window.scrollX}px`;
-  }
-}
-
-function showMetricTooltip(chip, metric) {
-  const tt = getTooltip();
-  const urls = Array.isArray(metric.url) ? metric.url : (metric.url ? [metric.url] : []);
-  const urlHtml = urls.length > 0
-    ? `<div class="tt-row"><span class="tt-label">URL</span><a href="${urls[0]}" target="_blank" rel="noopener noreferrer" class="tt-link">${urls[0]}</a></div>`
-    : '';
-  const commentsHtml = metric.comments
-    ? `<div class="tt-row"><span class="tt-label">Notes</span>${metric.comments}</div>`
-    : '';
-  tt.innerHTML = `
-    <div class="tt-name">${metric.name}</div>
-    ${urlHtml}
-    ${commentsHtml}
-  `;
-  const rect = chip.getBoundingClientRect();
-  tt.classList.remove('hidden');
-  tt.style.top  = `${rect.bottom + window.scrollY + 6}px`;
-  tt.style.left = `${rect.left  + window.scrollX}px`;
-  const ttRect = tt.getBoundingClientRect();
-  if (ttRect.right > window.innerWidth - 8) {
-    tt.style.left = `${window.innerWidth - ttRect.width - 8 + window.scrollX}px`;
-  }
-}
-
-function scheduleHideDatasetTooltip() {
-  _tooltipHideTimer = setTimeout(() => getTooltip().classList.add('hidden'), 150);
-}
-
-function hideDatasetTooltip() {
-  clearTimeout(_tooltipHideTimer);
-  getTooltip().classList.add('hidden');
-}
-
 function renderTags(type, items) {
   const containerId = type === 'code_repos'  ? 'code-repos-container'
     : type === 'area_of_slp' ? 'area-of-slp-container'
@@ -355,22 +277,29 @@ function renderTags(type, items) {
       link.className   = 'chip-link';
       chip.appendChild(link);
     } else {
-      chip.textContent = typeof item === 'object' ? item.name : item;
-    }
+      const label = document.createTextNode(typeof item === 'object' ? item.name : item);
+      chip.appendChild(label);
 
-    if (type === 'datasets') {
-      const full = allDatasets.find(d => d.id === item.id);
-      if (full) {
-        chip.addEventListener('mouseenter', () => { clearTimeout(_tooltipHideTimer); showDatasetTooltip(chip, full); });
-        chip.addEventListener('mouseleave', scheduleHideDatasetTooltip);
+      if (type === 'datasets' && item.id) {
+        const extLink = document.createElement('a');
+        extLink.href = `dataset.html?id=${item.id}`;
+        extLink.target = '_blank';
+        extLink.rel = 'noopener noreferrer';
+        extLink.className = 'chip-ext-link';
+        extLink.title = 'Open dataset page';
+        extLink.textContent = '↗';
+        chip.appendChild(extLink);
       }
-    }
 
-    if (type === 'metrics') {
-      const full = allMetrics.find(m => m.id === item.id);
-      if (full) {
-        chip.addEventListener('mouseenter', () => { clearTimeout(_tooltipHideTimer); showMetricTooltip(chip, full); });
-        chip.addEventListener('mouseleave', scheduleHideDatasetTooltip);
+      if (type === 'metrics' && item.id) {
+        const extLink = document.createElement('a');
+        extLink.href = `metric.html?id=${item.id}`;
+        extLink.target = '_blank';
+        extLink.rel = 'noopener noreferrer';
+        extLink.className = 'chip-ext-link';
+        extLink.title = 'Open metric page';
+        extLink.textContent = '↗';
+        chip.appendChild(extLink);
       }
     }
 

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SLP Paper Survey — Metric</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="overview">
+    <div class="overview-header">
+      <nav class="breadcrumb">
+        <a href="index.html" class="breadcrumb-link">Home</a>
+        <span class="breadcrumb-sep">&#8594;</span>
+        <a href="metrics-index.html" class="breadcrumb-link">Metrics</a>
+        <span class="breadcrumb-sep">&#8594;</span>
+        <span class="breadcrumb-current" id="breadcrumb-name">&#8230;</span>
+      </nav>
+      <div class="account-menu">
+        <button id="account-btn" class="btn-account">Account</button>
+        <div id="account-dropdown" class="account-dropdown hidden">
+          <div id="account-email" class="account-email"></div>
+          <hr class="account-divider">
+          <button id="logout-btn" class="btn-logout">Log out</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="locked-notice" class="locked-notice hidden">This metric is being edited by another user.</div>
+
+    <div class="dataset-form detail-form">
+      <div class="dataset-form-group">
+        <label class="dataset-form-label" for="field-name">Name <span class="required-star">*</span></label>
+        <input type="text" id="field-name" class="field-input" placeholder="e.g. BLEU">
+      </div>
+      <div class="dataset-form-group">
+        <label class="dataset-form-label">URLs</label>
+        <div id="url-chips" class="chip-container"></div>
+        <div class="tag-input-row">
+          <input type="text" id="url-input" class="field-input" placeholder="https://…">
+          <button id="add-url-btn" class="btn-secondary">Add</button>
+        </div>
+      </div>
+      <div class="dataset-form-group">
+        <label class="dataset-form-label" for="field-comments">Comments</label>
+        <textarea id="field-comments" class="field-input dataset-textarea" rows="4" placeholder="Any notes about this metric…"></textarea>
+      </div>
+    </div>
+
+    <div class="detail-footer">
+      <a href="metrics-index.html" class="back-link">&#8592; Back</a>
+      <div class="detail-footer-right">
+        <span id="save-confirm" class="save-confirm hidden">Saved ✓</span>
+        <button id="save-btn" class="btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/metrics/metric-detail.js"></script>
+</body>
+</html>
