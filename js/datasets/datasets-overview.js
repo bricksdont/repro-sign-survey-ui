@@ -20,7 +20,7 @@ function renderTable() {
 
   if (allDatasets.length === 0) {
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td colspan="4" class="no-results">No datasets yet. <a href="dataset.html">Add the first one.</a></td>';
+    tr.innerHTML = '<td colspan="5" class="no-results">No datasets yet. <a href="dataset.html">Add the first one.</a></td>';
     tbody.appendChild(tr);
     return;
   }
@@ -46,6 +46,7 @@ function renderTable() {
       <td>${escapeHtml(d.license || '—')}</td>
       <td>${available}</td>
       <td class="dataset-url-cell">${urlCell}</td>
+      <td class="col-action"><a href="dataset.html?id=${d.id}" class="review-link" onclick="event.stopPropagation()">Details &#8594;</a></td>
     `;
     tr.addEventListener('click', () => {
       window.location.href = `dataset.html?id=${d.id}`;

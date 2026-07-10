@@ -20,7 +20,7 @@ function renderTable() {
 
   if (allMetrics.length === 0) {
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td colspan="3" class="no-results">No metrics yet. <a href="metric.html">Add the first one.</a></td>';
+    tr.innerHTML = '<td colspan="4" class="no-results">No metrics yet. <a href="metric.html">Add the first one.</a></td>';
     tbody.appendChild(tr);
     return;
   }
@@ -39,6 +39,7 @@ function renderTable() {
       <td><strong>${escapeHtml(m.name)}</strong></td>
       <td class="dataset-url-cell">${urlCell}</td>
       <td class="dataset-comments-cell">${escapeHtml(m.comments || '—')}</td>
+      <td class="col-action"><a href="metric.html?id=${m.id}" class="review-link" onclick="event.stopPropagation()">Details &#8594;</a></td>
     `;
     tr.addEventListener('click', () => {
       window.location.href = `metric.html?id=${m.id}`;
