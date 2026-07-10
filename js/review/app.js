@@ -48,7 +48,7 @@ async function loadAllDatasets() {
 
 async function loadAllMetrics() {
   const items = await pbGetAll('metrics');
-  return items.map(item => ({ id: item.id, name: item.name, comments: item.comments }));
+  return items.map(item => ({ id: item.id, name: item.name, url: item.url, comments: item.comments }));
 }
 
 // ── Paper loading ──────────────────────────────────────────────────────────
@@ -253,11 +253,16 @@ function showDatasetTooltip(chip, dataset) {
 
 function showMetricTooltip(chip, metric) {
   const tt = getTooltip();
+  const urls = Array.isArray(metric.url) ? metric.url : (metric.url ? [metric.url] : []);
+  const urlHtml = urls.length > 0
+    ? `<div class="tt-row"><span class="tt-label">URL</span><a href="${urls[0]}" target="_blank" rel="noopener noreferrer" class="tt-link">${urls[0]}</a></div>`
+    : '';
   const commentsHtml = metric.comments
     ? `<div class="tt-row"><span class="tt-label">Notes</span>${metric.comments}</div>`
     : '';
   tt.innerHTML = `
     <div class="tt-name">${metric.name}</div>
+    ${urlHtml}
     ${commentsHtml}
   `;
   const rect = chip.getBoundingClientRect();
