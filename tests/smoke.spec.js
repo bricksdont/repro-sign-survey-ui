@@ -26,10 +26,11 @@ test.beforeEach(async ({ page }) => {
 test.describe('Landing page', () => {
   test('shows task cards', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('.task-card')).toHaveCount(3);
+    await expect(page.locator('.task-card')).toHaveCount(4);
     await expect(page.locator('a[href="review-index.html"]')).toBeVisible();
     await expect(page.locator('a[href="check-index.html"]')).toBeVisible();
     await expect(page.locator('a[href="datasets-index.html"]')).toBeVisible();
+    await expect(page.locator('a[href="metrics-index.html"]')).toBeVisible();
   });
 });
 
@@ -152,6 +153,30 @@ test.describe('Check detail page', () => {
     await page.goto('/paper-check.html?id=arxiv-2303-10782');
     await page.click('.back-link');
     await expect(page).toHaveURL(/check-index\.html/);
+  });
+});
+
+test.describe('Metrics overview page', () => {
+  test('renders table and controls', async ({ page }) => {
+    await page.goto('/metrics-index.html');
+    await expect(page.locator('#stats-row')).toBeVisible();
+    await expect(page.locator('#add-metric-btn')).toBeVisible();
+    await expect(page.locator('table.papers-table')).toBeVisible();
+  });
+
+  test('Add Metric button opens modal', async ({ page }) => {
+    await page.goto('/metrics-index.html');
+    await expect(page.locator('#modal-overlay')).toHaveClass(/hidden/);
+    await page.click('#add-metric-btn');
+    await expect(page.locator('#modal-overlay')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#modal-title')).toContainText('Add Metric');
+  });
+
+  test('Cancel closes modal', async ({ page }) => {
+    await page.goto('/metrics-index.html');
+    await page.click('#add-metric-btn');
+    await page.click('#modal-cancel-btn');
+    await expect(page.locator('#modal-overlay')).toHaveClass(/hidden/);
   });
 });
 
