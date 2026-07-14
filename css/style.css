@@ -713,6 +713,31 @@ hr.field-divider {
   color: #222 !important;
 }
 
+.radio-option.disabled {
+  color: #999;
+  cursor: not-allowed;
+}
+
+.radio-option input[type="radio"]:disabled {
+  cursor: not-allowed;
+}
+
+.field-note {
+  font-size: 12px;
+  color: #777;
+  margin-top: -6px;
+  margin-bottom: 18px;
+}
+
+.field-note-list {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.field-note-list li {
+  margin-bottom: 2px;
+}
+
 .form-footer {
   margin-top: 28px;
   padding-top: 18px;

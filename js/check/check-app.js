@@ -111,13 +111,25 @@ function populateForm(p) {
     r.checked = r.value === p.is_sign_language_processing;
   });
 
+  updateEmpiricalAvailability();
   updateSaveBtns();
 }
 
+function updateEmpiricalAvailability() {
+  const slp     = document.querySelector('input[name="is-sign-language-processing"]:checked');
+  const disable = slp?.value === 'no';
+  document.querySelectorAll('input[name="has-empirical-results"]').forEach(r => {
+    r.disabled = disable;
+    if (disable) r.checked = false;
+    r.closest('.radio-option').classList.toggle('disabled', disable);
+  });
+}
+
 function updateSaveBtns() {
-  const bothAnswered =
-    !!document.querySelector('input[name="has-empirical-results"]:checked') &&
-    !!document.querySelector('input[name="is-sign-language-processing"]:checked');
+  const slpChecked        = document.querySelector('input[name="is-sign-language-processing"]:checked');
+  const empiricalDisabled = slpChecked?.value === 'no';
+  const empiricalChecked  = document.querySelector('input[name="has-empirical-results"]:checked');
+  const bothAnswered = !!slpChecked && (empiricalDisabled || !!empiricalChecked);
   const disabled = isReadOnly || !bothAnswered;
   document.getElementById('save-btn').disabled      = disabled;
   document.getElementById('save-next-btn').disabled = disabled;
@@ -341,8 +353,10 @@ function wireEvents() {
     if (currentIndex < papers.length - 1) loadPaper(currentIndex + 1);
   });
 
-  document.querySelectorAll('input[name="has-empirical-results"], input[name="is-sign-language-processing"]')
+  document.querySelectorAll('input[name="has-empirical-results"]')
     .forEach(r => r.addEventListener('change', updateSaveBtns));
+  document.querySelectorAll('input[name="is-sign-language-processing"]')
+    .forEach(r => r.addEventListener('change', () => { updateEmpiricalAvailability(); updateSaveBtns(); }));
 
   document.getElementById('copy-link-btn').addEventListener('click', copyLink);
   document.getElementById('save-btn').addEventListener('click', saveCurrent);
