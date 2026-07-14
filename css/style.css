@@ -738,6 +738,58 @@ hr.field-divider {
   margin-bottom: 2px;
 }
 
+.info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 15px;
+  height: 15px;
+  margin-left: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #999;
+  font-size: 14px;
+  line-height: 1;
+  cursor: help;
+  vertical-align: middle;
+}
+
+.info-btn:hover,
+.info-btn:focus {
+  color: #555;
+}
+
+.info-btn::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 130%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 240px;
+  background: #fff;
+  border: 1px solid #d0d0d0;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.13);
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  color: #333;
+  white-space: normal;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 200;
+}
+
+.info-btn:hover::after,
+.info-btn:focus::after {
+  opacity: 1;
+}
+
 .form-footer {
   margin-top: 28px;
   padding-top: 18px;
