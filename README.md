@@ -12,7 +12,7 @@ A landing page routes annotators to either task. Each task has its own overview 
 
 ## Features
 
-- Landing page with task cards routing to Reviewing, Checking, and the Datasets catalogue
+- Landing page with task cards routing to Reviewing, Checking, the Datasets catalogue, and the Metrics catalogue
 - Breadcrumb navigation (`Home → Reviewing` / `Home → Checking` / `Home → Datasets`) on all task pages
 
 **Reviewing task** — add reproducibility metadata to papers:
@@ -36,6 +36,12 @@ A landing page routes annotators to either task. Each task has its own overview 
 - Edit locking: opening a record locks it for other users (same 30-minute heartbeat mechanism as review/check detail pages)
 - Dataset chips on the review detail page show a hoverable tooltip with URL, license, and availability — the URL is clickable
 
+**Metrics catalogue** — manage the shared pool of metrics referenced in reviews:
+- Overview table with name, URL, and comments
+- Add new metrics or edit existing ones via a modal dialog; URL fields stored as chips
+- Edit locking: same heartbeat mechanism as datasets and paper detail pages
+- Metric chips on the review detail page show a hoverable tooltip with name, URL, and notes
+
 **Shared features:**
 - Paper navigation (◀ ▶); each paper has a stable URL with a one-click Copy link button
 - Saves to a shared PocketBase backend — changes are immediately visible to all annotators
@@ -55,7 +61,7 @@ A landing page routes annotators to either task. Each task has its own overview 
 | Peer-Reviewed | Yes / No radio |
 | Code Repositories | Multi-value URL list; entries are clickable links |
 | Datasets | Multi-value tag list with autocomplete; chips show a tooltip with dataset details |
-| Metrics | Multi-value tag list with autocomplete |
+| Metrics | Multi-value tag list with autocomplete backed by the `metrics` collection; chips show a tooltip with name and notes |
 
 ### Checking
 

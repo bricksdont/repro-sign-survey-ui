@@ -1161,6 +1161,19 @@ hr.field-divider {
   text-decoration: underline;
 }
 
+.dataset-comments-cell {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #666;
+}
+
+.col-action {
+  width: 1%;
+  white-space: nowrap;
+}
+
 .btn-edit-dataset {
   padding: 4px 10px;
   border: 1px solid #ccc;

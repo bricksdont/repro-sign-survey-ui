@@ -1,16 +1,11 @@
-const METRIC_SUGGESTIONS = [
-  'BLEU', 'BLEU-1', 'BLEU-2', 'BLEU-3', 'BLEU-4',
-  'WER', 'ROUGE', 'Accuracy', 'BLEURT', 'F1',
-  'DTW-MJE', 'chrF', 'IoU', 'Precision', 'Recall', 'TER'
-];
-
 // ── State ──────────────────────────────────────────────────────────────────
 
 let papers = [];
-let allDatasets = []; // [{id, name}] loaded from backend
+let allDatasets = []; // [{id, name, ...}] loaded from backend
+let allMetrics  = []; // [{id, name, comments}] loaded from backend
 let currentIndex = 0;
 let datasets = [];   // [{id, name}] for the current paper
-let metrics = [];
+let metrics  = [];   // [{id, name}] for the current paper
 let code_repos = [];
 let isReadOnly = false;
 let heartbeatInterval = null;
@@ -18,7 +13,7 @@ let heartbeatInterval = null;
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 
 async function init() {
-  [papers, allDatasets] = await Promise.all([loadAllPapers(), loadAllDatasets()]);
+  [papers, allDatasets, allMetrics] = await Promise.all([loadAllPapers(), loadAllDatasets(), loadAllMetrics()]);
 
   // Honour ?id= param so direct links work (e.g. from overview page)
   const requestedId = new URLSearchParams(window.location.search).get('id');
@@ -34,7 +29,7 @@ async function init() {
 
 async function loadAllPapers() {
   requireAuth();
-  const items = await pbGetAll('papers', '&expand=datasets');
+  const items = await pbGetAll('papers', '&expand=datasets,metrics');
   return items.map(item => ({
     ...item,
     id: item.paper_id,   // kebab key — used everywhere existing code says p.id
@@ -49,6 +44,11 @@ async function loadAllDatasets() {
     id: item.id, name: item.name,
     url: item.url, license: item.license, available: item.available,
   }));
+}
+
+async function loadAllMetrics() {
+  const items = await pbGetAll('metrics');
+  return items.map(item => ({ id: item.id, name: item.name, url: item.url, comments: item.comments }));
 }
 
 // ── Paper loading ──────────────────────────────────────────────────────────
@@ -154,11 +154,17 @@ function populateForm(p) {
   renderTags('code_repos', code_repos);
 
   const toArr = v => !v ? [] : Array.isArray(v) ? v : [v];
-  const expanded = toArr(p.expand?.datasets);
-  datasets = expanded.length > 0
-    ? expanded.map(d => ({ id: d.id, name: d.name }))
+
+  const expandedDatasets = toArr(p.expand?.datasets);
+  datasets = expandedDatasets.length > 0
+    ? expandedDatasets.map(d => ({ id: d.id, name: d.name }))
     : toArr(p.datasets).map(id => allDatasets.find(d => d.id === id)).filter(Boolean);
-  metrics = Array.isArray(p.metrics) ? [...p.metrics] : [];
+
+  const expandedMetrics = toArr(p.expand?.metrics);
+  metrics = expandedMetrics.length > 0
+    ? expandedMetrics.map(m => ({ id: m.id, name: m.name }))
+    : toArr(p.metrics).map(id => allMetrics.find(m => m.id === id)).filter(Boolean);
+
   renderTags('datasets', datasets);
   renderTags('metrics',  metrics);
 }
@@ -245,6 +251,30 @@ function showDatasetTooltip(chip, dataset) {
   }
 }
 
+function showMetricTooltip(chip, metric) {
+  const tt = getTooltip();
+  const urls = Array.isArray(metric.url) ? metric.url : (metric.url ? [metric.url] : []);
+  const urlHtml = urls.length > 0
+    ? `<div class="tt-row"><span class="tt-label">URL</span><a href="${urls[0]}" target="_blank" rel="noopener noreferrer" class="tt-link">${urls[0]}</a></div>`
+    : '';
+  const commentsHtml = metric.comments
+    ? `<div class="tt-row"><span class="tt-label">Notes</span>${metric.comments}</div>`
+    : '';
+  tt.innerHTML = `
+    <div class="tt-name">${metric.name}</div>
+    ${urlHtml}
+    ${commentsHtml}
+  `;
+  const rect = chip.getBoundingClientRect();
+  tt.classList.remove('hidden');
+  tt.style.top  = `${rect.bottom + window.scrollY + 6}px`;
+  tt.style.left = `${rect.left  + window.scrollX}px`;
+  const ttRect = tt.getBoundingClientRect();
+  if (ttRect.right > window.innerWidth - 8) {
+    tt.style.left = `${window.innerWidth - ttRect.width - 8 + window.scrollX}px`;
+  }
+}
+
 function scheduleHideDatasetTooltip() {
   _tooltipHideTimer = setTimeout(() => getTooltip().classList.add('hidden'), 150);
 }
@@ -277,6 +307,14 @@ function renderTags(type, items) {
       const full = allDatasets.find(d => d.id === item.id);
       if (full) {
         chip.addEventListener('mouseenter', () => { clearTimeout(_tooltipHideTimer); showDatasetTooltip(chip, full); });
+        chip.addEventListener('mouseleave', scheduleHideDatasetTooltip);
+      }
+    }
+
+    if (type === 'metrics') {
+      const full = allMetrics.find(m => m.id === item.id);
+      if (full) {
+        chip.addEventListener('mouseenter', () => { clearTimeout(_tooltipHideTimer); showMetricTooltip(chip, full); });
         chip.addEventListener('mouseleave', scheduleHideDatasetTooltip);
       }
     }
@@ -336,7 +374,7 @@ function collectFormState() {
     peer_reviewed: prChecked ? prChecked.value === 'yes' : null,
     code_repos: [...code_repos],
     datasets:   datasets.map(d => d.id),
-    metrics:    [...metrics],
+    metrics:    metrics.map(m => m.id),
   };
 }
 
@@ -346,7 +384,10 @@ async function persistPaper(index, extra = {}) {
   if (p.rejection_reason) base.rejection_reason = p.rejection_reason;
   if (p.flag_reason)      base.flag_reason      = p.flag_reason;
   const data = { ...base, ...extra };
-  papers[index] = { ...p, ...data, expand: { datasets: datasets.map(d => ({ id: d.id, name: d.name })) } };
+  papers[index] = { ...p, ...data, expand: {
+    datasets: datasets.map(d => ({ id: d.id, name: d.name })),
+    metrics:  metrics.map(m => ({ id: m.id, name: m.name })),
+  } };
 
   const { ok, status } = await pbPatch(
     `/api/collections/papers/records/${p._pb_id}`,
@@ -545,42 +586,83 @@ window.addEventListener('beforeunload', () => {
 
 // ── Autocomplete ───────────────────────────────────────────────────────────
 
-function initAutocomplete(inputId, dropdownId, suggestions, tagList, tagType) {
-  const input    = document.getElementById(inputId);
-  const dropdown = document.getElementById(dropdownId);
+async function createMetric(name) {
+  const res = await fetch(`${PB_URL}/api/collections/metrics/records`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) return null;
+  const record = await res.json();
+  return { id: record.id, name: record.name, comments: record.comments };
+}
+
+async function addMetricChip(name) {
+  if (!name) return;
+  const input = document.getElementById('metric-input');
+  if (metrics.some(m => m.name.toLowerCase() === name.toLowerCase())) {
+    input.value = '';
+    return;
+  }
+  let metric = allMetrics.find(m => m.name.toLowerCase() === name.toLowerCase());
+  if (!metric) {
+    metric = await createMetric(name);
+    if (!metric) return;
+    allMetrics.push(metric);
+  }
+  metrics.push(metric);
+  renderTags('metrics', metrics);
+  input.value = '';
+  input.dispatchEvent(new Event('input'));
+}
+
+function initMetricAutocomplete() {
+  const input    = document.getElementById('metric-input');
+  const dropdown = document.getElementById('metric-suggestions');
 
   function refresh() {
-    const q = input.value.toLowerCase();
-    const matches = suggestions.filter(s =>
-      !tagList.includes(s) &&
-      (q === '' || s.toLowerCase().startsWith(q))
+    const q   = input.value.trim();
+    const ql  = q.toLowerCase();
+    const addedIds = new Set(metrics.map(m => m.id));
+    const matches  = allMetrics.filter(m =>
+      !addedIds.has(m.id) && (q === '' || m.name.toLowerCase().startsWith(ql))
     );
-
-    if (matches.length === 0) { dropdown.classList.add('hidden'); return; }
+    const hasExactMatch = allMetrics.some(m => m.name.toLowerCase() === ql);
 
     dropdown.innerHTML = '';
-    matches.forEach(s => {
+    matches.forEach(m => {
       const item = document.createElement('div');
       item.className = 'suggestion-item';
-      item.textContent = s;
+      item.textContent = m.name;
       item.addEventListener('mousedown', e => {
         e.preventDefault();
-        input.value = s;
-        addTag(tagType);
+        if (!metrics.some(x => x.id === m.id)) {
+          metrics.push(m);
+          renderTags('metrics', metrics);
+        }
+        input.value = '';
         refresh();
       });
       dropdown.appendChild(item);
     });
-    dropdown.classList.remove('hidden');
+
+    if (q && !hasExactMatch) {
+      const addNew = document.createElement('div');
+      addNew.className = 'suggestion-item suggestion-add-new';
+      addNew.textContent = `➕ Add "${q}" as new metric to the database`;
+      addNew.addEventListener('mousedown', e => {
+        e.preventDefault();
+        addMetricChip(q);
+      });
+      dropdown.appendChild(addNew);
+    }
+
+    dropdown.classList.toggle('hidden', dropdown.children.length === 0);
   }
 
   input.addEventListener('focus', refresh);
   input.addEventListener('input', refresh);
   input.addEventListener('blur', () => setTimeout(() => dropdown.classList.add('hidden'), 150));
-}
-
-function initMetricAutocomplete() {
-  initAutocomplete('metric-input', 'metric-suggestions', METRIC_SUGGESTIONS, metrics, 'metrics');
 }
 
 async function createDataset(name) {
@@ -730,12 +812,13 @@ function wireEvents() {
   });
   document.getElementById('add-dataset-btn').addEventListener('click', () =>
     addDatasetChip(document.getElementById('dataset-input').value.trim()));
-  document.getElementById('add-metric-btn').addEventListener('click', () => addTag('metrics'));
+  document.getElementById('add-metric-btn').addEventListener('click', () =>
+    addMetricChip(document.getElementById('metric-input').value.trim()));
   document.getElementById('dataset-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') addDatasetChip(document.getElementById('dataset-input').value.trim());
   });
   document.getElementById('metric-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') addTag('metrics');
+    if (e.key === 'Enter') addMetricChip(document.getElementById('metric-input').value.trim());
   });
 
   document.getElementById('copy-link-btn').addEventListener('click', copyLink);
