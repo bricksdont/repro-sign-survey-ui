@@ -148,6 +148,22 @@ function populateForm(p) {
              || (p.peer_reviewed === false && r.value === 'no');
   });
 
+  const selectedAreas = Array.isArray(p.area_of_slp) ? p.area_of_slp : [];
+  document.querySelectorAll('input[name="area-of-slp"]').forEach(c => {
+    c.checked = selectedAreas.includes(c.value);
+  });
+
+  document.querySelectorAll('input[name="has-ranking"]').forEach(r => {
+    r.checked = r.value === p.main_experiment_has_ranking;
+  });
+  document.querySelectorAll('input[name="human-evaluation"]').forEach(r => {
+    r.checked = r.value === p.includes_human_evaluation;
+  });
+
+  document.getElementById('input-what-to-reproduce').value    = p.what_to_reproduce    || '';
+  document.getElementById('input-compute-requirements').value = p.compute_requirements || '';
+  document.getElementById('input-textual-conclusion').value   = p.textual_conclusion   || '';
+
   // Support old single-string code_repo field from earlier localStorage entries
   code_repos = Array.isArray(p.code_repos) ? [...p.code_repos]
     : (p.code_repo ? [p.code_repo] : []);
@@ -360,7 +376,10 @@ function removeTag(type, index) {
 // ── Save logic ─────────────────────────────────────────────────────────────
 
 function collectFormState() {
-  const prChecked = document.querySelector('input[name="peer-reviewed"]:checked');
+  const prChecked      = document.querySelector('input[name="peer-reviewed"]:checked');
+  const rankingChecked = document.querySelector('input[name="has-ranking"]:checked');
+  const humanEvalChecked = document.querySelector('input[name="human-evaluation"]:checked');
+  const areaOfSlp = [...document.querySelectorAll('input[name="area-of-slp"]:checked')].map(c => c.value);
   return {
     title: document.getElementById('input-title').value.trim()
       || document.getElementById('display-title').textContent.trim(),
@@ -375,6 +394,12 @@ function collectFormState() {
     code_repos: [...code_repos],
     datasets:   datasets.map(d => d.id),
     metrics:    metrics.map(m => m.id),
+    area_of_slp: areaOfSlp,
+    main_experiment_has_ranking: rankingChecked   ? rankingChecked.value   : '',
+    includes_human_evaluation:   humanEvalChecked ? humanEvalChecked.value : '',
+    what_to_reproduce:    document.getElementById('input-what-to-reproduce').value.trim(),
+    compute_requirements: document.getElementById('input-compute-requirements').value.trim(),
+    textual_conclusion:   document.getElementById('input-textual-conclusion').value.trim(),
   };
 }
 
@@ -402,6 +427,12 @@ async function persistPaper(index, extra = {}) {
       status:           data.status,
       rejection_reason: data.rejection_reason || '',
       flag_reason:      data.flag_reason      || '',
+      area_of_slp:                 data.area_of_slp || [],
+      main_experiment_has_ranking: data.main_experiment_has_ranking || '',
+      includes_human_evaluation:   data.includes_human_evaluation   || '',
+      what_to_reproduce:           data.what_to_reproduce    || '',
+      compute_requirements:        data.compute_requirements || '',
+      textual_conclusion:          data.textual_conclusion   || '',
     }
   );
   if (!ok && status === 404) showLockedNotice();
