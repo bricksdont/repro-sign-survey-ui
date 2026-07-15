@@ -1,6 +1,7 @@
 {
   "extends": ["html-validate:recommended"],
   "rules": {
-    "no-implicit-button-type": "off"
+    "no-implicit-button-type": "off",
+    "form-dup-name": ["error", { "shared": ["radio", "checkbox", "button", "reset", "submit"] }]
   }
 }

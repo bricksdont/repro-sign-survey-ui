@@ -119,6 +119,101 @@
         </div>
       </div>
 
+      <hr class="field-divider">
+
+      <!-- Area of SLP -->
+      <div class="field-group">
+        <label>Area of SLP</label>
+        <div class="checkbox-grid" id="area-of-slp-container">
+          <label class="checkbox-option">
+            <input type="checkbox" name="area-of-slp" value="Translation"> Translation
+          </label>
+          <label class="checkbox-option">
+            <input type="checkbox" name="area-of-slp" value="Recognition"> Recognition
+          </label>
+          <label class="checkbox-option">
+            <input type="checkbox" name="area-of-slp" value="Segmentation / tokenization"> Segmentation / tokenization
+          </label>
+          <label class="checkbox-option">
+            <input type="checkbox" name="area-of-slp" value="Alignment"> Alignment
+          </label>
+          <label class="checkbox-option">
+            <input type="checkbox" name="area-of-slp" value="Signing detection"> Signing detection
+          </label>
+          <label class="checkbox-option">
+            <input type="checkbox" name="area-of-slp" value="Generation / production"> Generation / production
+          </label>
+          <label class="checkbox-option">
+            <input type="checkbox" name="area-of-slp" value="Unsupervised / representation learning"> Unsupervised / representation learning
+          </label>
+          <label class="checkbox-option">
+            <input type="checkbox" name="area-of-slp" value="Spotting / glossing"> Spotting / glossing
+          </label>
+          <label class="checkbox-option">
+            <input type="checkbox" name="area-of-slp" value="Transcription"> Transcription
+          </label>
+          <label class="checkbox-option">
+            <input type="checkbox" name="area-of-slp" value="Language identification"> Language identification
+          </label>
+          <label class="checkbox-option">
+            <input type="checkbox" name="area-of-slp" value="Retrieval"> Retrieval
+          </label>
+          <label class="checkbox-option">
+            <input type="checkbox" name="area-of-slp" value="Avatar systems"> Avatar systems
+          </label>
+        </div>
+      </div>
+
+      <!-- Main experiment has a ranking -->
+      <div class="field-group">
+        <label class="field-label-primary">Main Experiment Has a Ranking</label>
+        <div class="radio-row">
+          <label class="radio-option">
+            <input type="radio" name="has-ranking" value="yes"> Yes
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="has-ranking" value="no"> No
+          </label>
+        </div>
+      </div>
+
+      <!-- Includes human evaluation -->
+      <div class="field-group">
+        <label class="field-label-primary">Includes Human Evaluation</label>
+        <div class="radio-row">
+          <label class="radio-option">
+            <input type="radio" name="human-evaluation" value="yes"> Yes
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="human-evaluation" value="no"> No
+          </label>
+        </div>
+      </div>
+
+      <!-- What to reproduce -->
+      <div class="field-group">
+        <label class="field-label-primary">
+          What to Reproduce
+          <button type="button" class="info-btn" aria-label="Info" data-tooltip="Insert pointer to table(s) or figure(s) that team R has to reproduce.">&#9432;</button>
+        </label>
+        <textarea id="input-what-to-reproduce" class="field-textarea" rows="3" placeholder="e.g. Table 3, Figure 2"></textarea>
+      </div>
+
+      <!-- Compute requirements -->
+      <div class="field-group">
+        <label class="field-label-primary">
+          Compute Requirements
+          <button type="button" class="info-btn" aria-label="Info" data-tooltip="Leave empty if not specified in paper.">&#9432;</button>
+        </label>
+        <textarea id="input-compute-requirements" class="field-textarea" rows="2" placeholder="e.g. 4x V100 GPUs, 48 hours"></textarea>
+      </div>
+
+      <!-- Textual conclusion -->
+      <div class="field-group">
+        <label class="field-label-primary">Textual Conclusion</label>
+        <textarea id="input-textual-conclusion" class="field-textarea" rows="4" placeholder="Copy-paste the main conclusion from the paper"></textarea>
+      </div>
+
       <div class="form-footer">
         <button id="save-btn" class="btn-secondary">Save</button>
         <button id="save-next-btn" class="btn-primary">Save &amp; Next &#8594;</button>
