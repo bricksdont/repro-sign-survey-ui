@@ -722,22 +722,6 @@ hr.field-divider {
   cursor: not-allowed;
 }
 
-.field-note {
-  font-size: 12px;
-  color: #777;
-  margin-top: -6px;
-  margin-bottom: 18px;
-}
-
-.field-note-list {
-  margin: 6px 0 0;
-  padding-left: 18px;
-}
-
-.field-note-list li {
-  margin-bottom: 2px;
-}
-
 .info-btn {
   display: inline-flex;
   align-items: center;
