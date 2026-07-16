@@ -93,36 +93,6 @@ body {
   max-width: 640px;
 }
 
-/* ── Automated screening filter badges (Checking) ── */
-
-.filter-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 4px 0;
-}
-
-.filter-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: default;
-}
-
-.filter-badge.filter-pass {
-  background: #e6f4ea;
-  color: #1e7e34;
-}
-
-.filter-badge.filter-fail {
-  background: #fbe9e9;
-  color: #a61c1c;
-}
-
 /* ── Overview page ── */
 
 /* ── Landing page ─────────────────────────────────────────────────────── */

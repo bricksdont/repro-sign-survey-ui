@@ -119,7 +119,7 @@ function hideFooterMessages() {
 
 function populateForm(p) {
   document.getElementById('display-title').textContent = p.title || '—';
-  document.getElementById('display-year').textContent  = p.year  || '—';
+  setTextField('year', p.year != null ? String(p.year) : '');
 
   const languageGroup = document.getElementById('language-group');
   if (p.language) {
@@ -128,8 +128,6 @@ function populateForm(p) {
   } else {
     languageGroup.classList.add('hidden');
   }
-
-  renderFilters(p.filters, p.filter_explanations);
 
   document.querySelectorAll('input[name="has-empirical-results"]').forEach(r => {
     r.checked = r.value === p.has_empirical_results;
@@ -142,33 +140,6 @@ function populateForm(p) {
   updateSaveBtns();
 }
 
-// Renders the automated screening-pipeline results (year/language/abstract/area/approach
-// eligibility checks) as pass/fail badges, with the rationale (filter_explanations) as a
-// native hover tooltip where available. Read-only — these are source data, not reviewer input.
-function renderFilters(filters, explanations) {
-  const group     = document.getElementById('filters-group');
-  const container = document.getElementById('filters-container');
-  container.innerHTML = '';
-
-  const keys = filters && typeof filters === 'object' ? Object.keys(filters) : [];
-  if (keys.length === 0) {
-    group.classList.add('hidden');
-    return;
-  }
-  group.classList.remove('hidden');
-
-  keys.forEach(key => {
-    const passed = !!filters[key];
-    const badge = document.createElement('span');
-    badge.className = `filter-badge ${passed ? 'filter-pass' : 'filter-fail'}`;
-    const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    badge.textContent = `${passed ? '✓' : '✗'} ${label}`;
-    const explanation = explanations && explanations[key];
-    if (explanation) badge.title = explanation;
-    container.appendChild(badge);
-  });
-}
-
 function updateEmpiricalAvailability() {
   const slp     = document.querySelector('input[name="is-sign-language-processing"]:checked');
   const disable = slp?.value === 'no';
@@ -177,6 +148,41 @@ function updateEmpiricalAvailability() {
     if (disable) r.checked = false;
     r.closest('.radio-option').classList.toggle('disabled', disable);
   });
+}
+
+function setTextField(field, value) {
+  const display = document.getElementById('display-' + field);
+  const input   = document.getElementById('input-'   + field);
+  const editBtn = document.getElementById('edit-'    + field);
+
+  if (value) {
+    display.textContent = value;
+    display.classList.remove('hidden');
+    input.value = value;
+    input.classList.add('hidden');
+    editBtn.classList.remove('hidden');
+  } else {
+    display.classList.add('hidden');
+    input.classList.remove('hidden');
+    editBtn.classList.add('hidden');
+  }
+}
+
+function startEditing(field) {
+  const display = document.getElementById('display-' + field);
+  const input   = document.getElementById('input-'   + field);
+  const editBtn = document.getElementById('edit-'    + field);
+
+  input.value = display.textContent;
+  display.classList.add('hidden');
+  editBtn.classList.add('hidden');
+  input.classList.remove('hidden');
+  input.focus();
+}
+
+function finishEditing(field) {
+  const value = document.getElementById('input-' + field).value.trim();
+  setTextField(field, value);
 }
 
 function updateSaveBtns() {
@@ -195,6 +201,11 @@ function collectFormState() {
   const empirical = document.querySelector('input[name="has-empirical-results"]:checked');
   const slp       = document.querySelector('input[name="is-sign-language-processing"]:checked');
   return {
+    year: parseInt(
+      document.getElementById('input-year').value.trim()
+      || document.getElementById('display-year').textContent.trim(),
+      10
+    ) || null,
     has_empirical_results:       empirical ? empirical.value : '',
     is_sign_language_processing: slp       ? slp.value       : '',
   };
@@ -210,6 +221,7 @@ async function persistPaper(index, extra = {}) {
   const { ok, status } = await pbPatch(
     `/api/collections/check_papers/records/${p._pb_id}`,
     {
+      year:                         data.year,
       has_empirical_results:       data.has_empirical_results       || '',
       is_sign_language_processing: data.is_sign_language_processing || '',
       status:                      data.status,
@@ -411,6 +423,12 @@ function wireEvents() {
     .forEach(r => r.addEventListener('change', updateSaveBtns));
   document.querySelectorAll('input[name="is-sign-language-processing"]')
     .forEach(r => r.addEventListener('change', () => { updateEmpiricalAvailability(); updateSaveBtns(); }));
+
+  document.getElementById('edit-year').addEventListener('click', () => startEditing('year'));
+  document.getElementById('input-year').addEventListener('blur', () => finishEditing('year'));
+  document.getElementById('input-year').addEventListener('keydown', e => {
+    if (e.key === 'Enter') finishEditing('year');
+  });
 
   document.getElementById('copy-link-btn').addEventListener('click', copyLink);
   document.getElementById('save-btn').addEventListener('click', saveCurrent);

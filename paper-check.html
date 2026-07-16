@@ -56,6 +56,8 @@
         <label>Year</label>
         <div class="field-row">
           <span id="display-year" class="field-display"></span>
+          <input type="number" class="field-input hidden" id="input-year" placeholder="e.g. 2024" min="1900" max="2100">
+          <button class="edit-btn hidden" id="edit-year" title="Edit">&#9998;</button>
         </div>
       </div>
 
@@ -64,11 +66,6 @@
         <div class="field-row">
           <span id="display-language" class="field-display"></span>
         </div>
-      </div>
-
-      <div class="field-group hidden" id="filters-group">
-        <label>Automated Screening</label>
-        <div class="filter-badges" id="filters-container"></div>
       </div>
 
       <hr class="field-divider">
