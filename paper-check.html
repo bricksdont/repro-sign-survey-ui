@@ -9,9 +9,14 @@
 <body>
   <div class="app">
 
-    <!-- Left panel: PDF viewer -->
+    <!-- Left panel: abstract text (preferred) or PDF viewer (fallback for older records without an abstract) -->
     <div class="panel pdf-panel">
-      <iframe id="pdf-iframe" title="PDF viewer"></iframe>
+      <iframe id="pdf-iframe" title="PDF viewer" class="hidden"></iframe>
+      <div id="abstract-view" class="abstract-view hidden">
+        <div class="abstract-title" id="abstract-title"></div>
+        <div class="abstract-meta" id="abstract-meta"></div>
+        <div class="abstract-body" id="abstract-body"></div>
+      </div>
     </div>
 
     <!-- Draggable divider -->

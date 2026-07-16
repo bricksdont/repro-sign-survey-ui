@@ -44,16 +44,33 @@ async function loadPaper(index) {
   updatePaperNav();
   updateStatusBadge(p.status, p.flag_reason);
   populateForm(p);
-  loadPDF(p.pdf_url);
+  loadSource(p);
   hideFooterMessages();
 
   await acquireLock();
 }
 
-function loadPDF(url) {
+// Prefer the paper's abstract (text) over the PDF viewer when available —
+// the ~375-paper screening-pipeline batch ships abstracts but not always a usable pdf_url.
+function loadSource(p) {
   const iframe = document.getElementById('pdf-iframe');
-  const id = papers[currentIndex].id;
-  iframe.src = `/pdf/${id}.pdf?url=${encodeURIComponent(url)}`;
+  const abstractView = document.getElementById('abstract-view');
+
+  if (p.abstract) {
+    iframe.classList.add('hidden');
+    iframe.src = '';
+    abstractView.classList.remove('hidden');
+    document.getElementById('abstract-title').textContent = p.title || '';
+    const metaParts = [];
+    if (p.year) metaParts.push(p.year);
+    if (p.language) metaParts.push(p.language.toUpperCase());
+    document.getElementById('abstract-meta').textContent = metaParts.join(' · ');
+    document.getElementById('abstract-body').textContent = p.abstract;
+  } else {
+    abstractView.classList.add('hidden');
+    iframe.classList.remove('hidden');
+    iframe.src = `/pdf/${p.id}.pdf?url=${encodeURIComponent(p.pdf_url)}`;
+  }
 }
 
 function updatePaperNav() {
