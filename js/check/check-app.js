@@ -44,16 +44,33 @@ async function loadPaper(index) {
   updatePaperNav();
   updateStatusBadge(p.status, p.flag_reason);
   populateForm(p);
-  loadPDF(p.pdf_url);
+  loadSource(p);
   hideFooterMessages();
 
   await acquireLock();
 }
 
-function loadPDF(url) {
+// Prefer the paper's abstract (text) over the PDF viewer when available —
+// the ~375-paper screening-pipeline batch ships abstracts but not always a usable pdf_url.
+function loadSource(p) {
   const iframe = document.getElementById('pdf-iframe');
-  const id = papers[currentIndex].id;
-  iframe.src = `/pdf/${id}.pdf?url=${encodeURIComponent(url)}`;
+  const abstractView = document.getElementById('abstract-view');
+
+  if (p.abstract) {
+    iframe.classList.add('hidden');
+    iframe.src = '';
+    abstractView.classList.remove('hidden');
+    document.getElementById('abstract-title').textContent = p.title || '';
+    const metaParts = [];
+    if (p.year) metaParts.push(p.year);
+    if (p.language) metaParts.push(p.language.toUpperCase());
+    document.getElementById('abstract-meta').textContent = metaParts.join(' · ');
+    document.getElementById('abstract-body').textContent = p.abstract;
+  } else {
+    abstractView.classList.add('hidden');
+    iframe.classList.remove('hidden');
+    iframe.src = `/pdf/${p.id}.pdf?url=${encodeURIComponent(p.pdf_url)}`;
+  }
 }
 
 function updatePaperNav() {
@@ -102,7 +119,15 @@ function hideFooterMessages() {
 
 function populateForm(p) {
   document.getElementById('display-title').textContent = p.title || '—';
-  document.getElementById('display-year').textContent  = p.year  || '—';
+  setTextField('year', p.year != null ? String(p.year) : '');
+
+  const languageGroup = document.getElementById('language-group');
+  if (p.language) {
+    document.getElementById('display-language').textContent = p.language;
+    languageGroup.classList.remove('hidden');
+  } else {
+    languageGroup.classList.add('hidden');
+  }
 
   document.querySelectorAll('input[name="has-empirical-results"]').forEach(r => {
     r.checked = r.value === p.has_empirical_results;
@@ -125,6 +150,41 @@ function updateEmpiricalAvailability() {
   });
 }
 
+function setTextField(field, value) {
+  const display = document.getElementById('display-' + field);
+  const input   = document.getElementById('input-'   + field);
+  const editBtn = document.getElementById('edit-'    + field);
+
+  if (value) {
+    display.textContent = value;
+    display.classList.remove('hidden');
+    input.value = value;
+    input.classList.add('hidden');
+    editBtn.classList.remove('hidden');
+  } else {
+    display.classList.add('hidden');
+    input.classList.remove('hidden');
+    editBtn.classList.add('hidden');
+  }
+}
+
+function startEditing(field) {
+  const display = document.getElementById('display-' + field);
+  const input   = document.getElementById('input-'   + field);
+  const editBtn = document.getElementById('edit-'    + field);
+
+  input.value = display.textContent;
+  display.classList.add('hidden');
+  editBtn.classList.add('hidden');
+  input.classList.remove('hidden');
+  input.focus();
+}
+
+function finishEditing(field) {
+  const value = document.getElementById('input-' + field).value.trim();
+  setTextField(field, value);
+}
+
 function updateSaveBtns() {
   const slpChecked        = document.querySelector('input[name="is-sign-language-processing"]:checked');
   const empiricalDisabled = slpChecked?.value === 'no';
@@ -141,6 +201,11 @@ function collectFormState() {
   const empirical = document.querySelector('input[name="has-empirical-results"]:checked');
   const slp       = document.querySelector('input[name="is-sign-language-processing"]:checked');
   return {
+    year: parseInt(
+      document.getElementById('input-year').value.trim()
+      || document.getElementById('display-year').textContent.trim(),
+      10
+    ) || null,
     has_empirical_results:       empirical ? empirical.value : '',
     is_sign_language_processing: slp       ? slp.value       : '',
   };
@@ -156,6 +221,7 @@ async function persistPaper(index, extra = {}) {
   const { ok, status } = await pbPatch(
     `/api/collections/check_papers/records/${p._pb_id}`,
     {
+      year:                         data.year,
       has_empirical_results:       data.has_empirical_results       || '',
       is_sign_language_processing: data.is_sign_language_processing || '',
       status:                      data.status,
@@ -357,6 +423,12 @@ function wireEvents() {
     .forEach(r => r.addEventListener('change', updateSaveBtns));
   document.querySelectorAll('input[name="is-sign-language-processing"]')
     .forEach(r => r.addEventListener('change', () => { updateEmpiricalAvailability(); updateSaveBtns(); }));
+
+  document.getElementById('edit-year').addEventListener('click', () => startEditing('year'));
+  document.getElementById('input-year').addEventListener('blur', () => finishEditing('year'));
+  document.getElementById('input-year').addEventListener('keydown', e => {
+    if (e.key === 'Enter') finishEditing('year');
+  });
 
   document.getElementById('copy-link-btn').addEventListener('click', copyLink);
   document.getElementById('save-btn').addEventListener('click', saveCurrent);
