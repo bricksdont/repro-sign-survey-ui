@@ -121,6 +121,16 @@ function populateForm(p) {
   document.getElementById('display-title').textContent = p.title || '—';
   document.getElementById('display-year').textContent  = p.year  || '—';
 
+  const languageGroup = document.getElementById('language-group');
+  if (p.language) {
+    document.getElementById('display-language').textContent = p.language;
+    languageGroup.classList.remove('hidden');
+  } else {
+    languageGroup.classList.add('hidden');
+  }
+
+  renderFilters(p.filters, p.filter_explanations);
+
   document.querySelectorAll('input[name="has-empirical-results"]').forEach(r => {
     r.checked = r.value === p.has_empirical_results;
   });
@@ -130,6 +140,33 @@ function populateForm(p) {
 
   updateEmpiricalAvailability();
   updateSaveBtns();
+}
+
+// Renders the automated screening-pipeline results (year/language/abstract/area/approach
+// eligibility checks) as pass/fail badges, with the rationale (filter_explanations) as a
+// native hover tooltip where available. Read-only — these are source data, not reviewer input.
+function renderFilters(filters, explanations) {
+  const group     = document.getElementById('filters-group');
+  const container = document.getElementById('filters-container');
+  container.innerHTML = '';
+
+  const keys = filters && typeof filters === 'object' ? Object.keys(filters) : [];
+  if (keys.length === 0) {
+    group.classList.add('hidden');
+    return;
+  }
+  group.classList.remove('hidden');
+
+  keys.forEach(key => {
+    const passed = !!filters[key];
+    const badge = document.createElement('span');
+    badge.className = `filter-badge ${passed ? 'filter-pass' : 'filter-fail'}`;
+    const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    badge.textContent = `${passed ? '✓' : '✗'} ${label}`;
+    const explanation = explanations && explanations[key];
+    if (explanation) badge.title = explanation;
+    container.appendChild(badge);
+  });
 }
 
 function updateEmpiricalAvailability() {
