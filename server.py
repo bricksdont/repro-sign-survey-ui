@@ -48,6 +48,16 @@ class Handler(SimpleHTTPRequestHandler):
         except BrokenPipeError:
             pass  # client disconnected before transfer completed
 
+    def end_headers(self):
+        # Never let browsers cache HTML — always fetch the latest markup so
+        # deploys are picked up immediately (JS/CSS are versioned via ?v=).
+        path = urlparse(self.path).path
+        if path.endswith('/') or path.endswith('.html'):
+            self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            self.send_header('Pragma', 'no-cache')
+            self.send_header('Expires', '0')
+        super().end_headers()
+
     def log_message(self, fmt, *args):
         print(f'  {self.address_string()} {fmt % args}')
 
