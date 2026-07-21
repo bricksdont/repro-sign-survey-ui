@@ -146,6 +146,11 @@ body {
   box-shadow: 0 2px 8px rgba(74,144,217,0.15);
 }
 
+.task-card-disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
 .task-card-title {
   font-size: 18px;
   font-weight: 700;

@@ -24,13 +24,12 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe('Landing page', () => {
-  test('shows task cards', async ({ page }) => {
+  test('shows only the Checking task card', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator('.task-card')).toHaveCount(4);
-    await expect(page.locator('a[href="review-index.html"]')).toBeVisible();
+    await expect(page.locator('.task-card:visible')).toHaveCount(1);
     await expect(page.locator('a[href="check-index.html"]')).toBeVisible();
-    await expect(page.locator('a[href="datasets-index.html"]')).toBeVisible();
-    await expect(page.locator('a[href="metrics-index.html"]')).toBeVisible();
+    await expect(page.locator('.task-card-disabled')).toHaveCount(3);
   });
 });
 
