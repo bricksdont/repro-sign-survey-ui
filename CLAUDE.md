@@ -47,8 +47,9 @@ The override is stored in `localStorage` as `pb_backend` the first time it is se
 | `paper-check.html` | Check detail page: two yes/no questions (empirical results, SLP scope), flag workflow |
 | `datasets-index.html` | Datasets overview: table of all datasets with add/edit modal |
 | `metrics-index.html` | Metrics overview: table of all metrics with add/edit modal |
-| `login.html` | Login form: authenticates against PocketBase, stores token in localStorage with 24h expiry |
-| `js/api.js` | Shared PocketBase client: auto-detected `PB_URL`, `pbGet`, `pbPatch`, `pbGetAll`, `requireAuth`, token helpers |
+| `login.html` | Login form: authenticates against PocketBase, stores token in localStorage with 24h expiry; also a "Sign in with Slack" OAuth2 button |
+| `oauth-redirect.html` | OAuth2 callback page: completes the Slack sign-in code exchange and redirects to `next` |
+| `js/api.js` | Shared PocketBase client: auto-detected `PB_URL`, `pbGet`, `pbPatch`, `pbGetAll`, `requireAuth`, token helpers, `startOAuth2`/`completeOAuth2` |
 | `js/review/overview.js` | Reviewing overview logic: loads `papers` collection, search/filter/render |
 | `js/review/app.js` | Review detail logic: form, PocketBase persistence, edit locking, autocomplete, divider drag |
 | `js/check/check-overview.js` | Checking overview logic: loads `check_papers` collection, search/filter/render |
@@ -68,7 +69,7 @@ The override is stored in `localStorage` as `pb_backend` the first time it is se
 
 ## Key behaviours
 
-- **Auth**: all pages redirect to `login.html` if no valid PocketBase token is found in `localStorage`. The token is stored with a 24-hour expiry timestamp (`pb_token_expiry`); `getToken()` in `api.js` returns `null` and clears the keys if the token is missing or expired. Using `localStorage` (not `sessionStorage`) means the token is shared across tabs, so copied paper links open without re-login.
+- **Auth**: all pages redirect to `login.html` if no valid PocketBase token is found in `localStorage`. The token is stored with a 24-hour expiry timestamp (`pb_token_expiry`); `getToken()` in `api.js` returns `null` and clears the keys if the token is missing or expired. Using `localStorage` (not `sessionStorage`) means the token is shared across tabs, so copied paper links open without re-login. Two ways in: email/password (`auth-with-password`) and Slack OAuth2; both end by storing the same `pb_token`/`pb_user_id`/`pb_email`/`pb_token_expiry` keys.
 - **Landing page** (`index.html`): four task cards — Reviewing and Checking (first row), Datasets and Metrics (second row) — plus an account menu. Each card links to its own overview page. Currently only the Checking card is enabled; Reviewing, Datasets, and Metrics are hidden and disabled (`.task-card-disabled`, no `href`) pending re-enablement.
 - **Breadcrumb navigation**: overview pages show `Home → Reviewing` / `Home → Checking` / `Home → Datasets` / `Home → Metrics` at title-font size; "Home" is a muted grey link, current page is bold black. Detail pages have a `← Back` link returning to the appropriate overview.
 - **Reviewing overview** (`review-index.html`): lists all papers from the `papers` collection with ID, title, status badge, and a Review link. Shows counts per status. Search box filters by ID or title (live, substring). Status filter pills narrow to a specific status. "Review Next →" navigates to a random `needs_review` paper.
