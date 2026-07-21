@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SLP Paper Survey — Login</title>
+  <title>SLP Paper Survey — Register</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body {
@@ -54,6 +54,11 @@
       border-color: #4a6fa5;
       box-shadow: 0 0 0 2px rgba(74,111,165,0.2);
     }
+    .hint {
+      margin: -12px 0 16px;
+      font-size: 12px;
+      color: #888;
+    }
     button[type="submit"] {
       width: 100%;
       padding: 9px;
@@ -91,16 +96,19 @@
 <body>
   <div class="login-card">
     <h1>SLP Paper Survey</h1>
-    <p class="subtitle">Sign in to continue</p>
-    <div id="error-msg" class="error-msg">Incorrect email or password.</div>
-    <form id="login-form">
+    <p class="subtitle">Create an account</p>
+    <div id="error-msg" class="error-msg"></div>
+    <form id="register-form">
       <label for="email">Email</label>
       <input type="email" id="email" name="email" required autofocus>
       <label for="password">Password</label>
-      <input type="password" id="password" name="password" required>
-      <button type="submit" id="submit-btn">Sign in</button>
+      <input type="password" id="password" name="password" required minlength="8">
+      <label for="password-confirm">Confirm password</label>
+      <input type="password" id="password-confirm" name="password-confirm" required minlength="8">
+      <p class="hint">At least 8 characters.</p>
+      <button type="submit" id="submit-btn">Create account</button>
     </form>
-    <p class="footer-link">Don't have an account? <a href="register.html">Register</a></p>
+    <p class="footer-link">Already have an account? <a href="login.html">Sign in</a></p>
   </div>
   <script src="js/api.js"></script>
   <script>
@@ -112,48 +120,77 @@
       window.location.href = next;
     }
 
-    document.getElementById('login-form').addEventListener('submit', async e => {
+    document.getElementById('register-form').addEventListener('submit', async e => {
       e.preventDefault();
       const btn = document.getElementById('submit-btn');
       const errEl = document.getElementById('error-msg');
       btn.disabled = true;
-      btn.textContent = 'Signing in…';
       errEl.classList.remove('visible');
       errEl.textContent = '';
 
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
+      const passwordConfirm = document.getElementById('password-confirm').value;
+
+      if (password !== passwordConfirm) {
+        errEl.textContent = 'Passwords do not match.';
+        errEl.classList.add('visible');
+        btn.disabled = false;
+        return;
+      }
+
+      btn.textContent = 'Creating account…';
 
       try {
         let res;
         try {
           res = await fetch(
-            `${PB_URL}/api/collections/users/auth-with-password`,
+            `${PB_URL}/api/collections/users/records`,
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ identity: email, password }),
+              body: JSON.stringify({ email, password, passwordConfirm }),
             }
           );
         } catch {
           errEl.textContent = `Cannot reach backend (${PB_URL}). Is it running?`;
           errEl.classList.add('visible');
           btn.disabled = false;
-          btn.textContent = 'Sign in';
+          btn.textContent = 'Create account';
           return;
         }
-        if (!res.ok) throw new Error('auth failed');
-        const { token, record } = await res.json();
+
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          const fieldMsg = body?.data && Object.values(body.data)[0]?.message;
+          errEl.textContent = fieldMsg || body?.message || 'Could not create account.';
+          errEl.classList.add('visible');
+          btn.disabled = false;
+          btn.textContent = 'Create account';
+          return;
+        }
+
+        // Registered — sign them in immediately.
+        const authRes = await fetch(
+          `${PB_URL}/api/collections/users/auth-with-password`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ identity: email, password }),
+          }
+        );
+        if (!authRes.ok) throw new Error('auth failed');
+        const { token, record } = await authRes.json();
         localStorage.setItem('pb_token', token);
         localStorage.setItem('pb_user_id', record.id);
         localStorage.setItem('pb_token_expiry', String(Date.now() + SESSION_TTL_MS));
         localStorage.setItem('pb_email', email);
         window.location.href = next;
       } catch {
-        errEl.textContent = 'Incorrect email or password.';
+        errEl.textContent = 'Something went wrong. Please try again.';
         errEl.classList.add('visible');
         btn.disabled = false;
-        btn.textContent = 'Sign in';
+        btn.textContent = 'Create account';
       }
     });
   </script>
