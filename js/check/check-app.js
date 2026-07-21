@@ -242,6 +242,7 @@ async function persistPaper(index, extra = {}) {
       is_sign_language_processing: data.is_sign_language_processing || '',
       status:                      data.status,
       flag_reason:                 data.flag_reason || '',
+      checked_by:                  getEmail() || '',
     }
   );
   if (!ok && status === 404) showLockedNotice();
