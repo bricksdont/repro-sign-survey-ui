@@ -121,23 +121,35 @@ function populateForm(p) {
   document.getElementById('display-title').textContent = p.title || '—';
   setTextField('year', p.year != null ? String(p.year) : '');
 
-  const languageGroup = document.getElementById('language-group');
-  if (p.language) {
-    document.getElementById('display-language').textContent = p.language;
-    languageGroup.classList.remove('hidden');
-  } else {
-    languageGroup.classList.add('hidden');
-  }
+  setTextField('language', p.language || '');
 
-  document.querySelectorAll('input[name="has-empirical-results"]').forEach(r => {
-    r.checked = r.value === p.has_empirical_results;
-  });
+  const filters = p.filters || {};
+
+  const slpAnswer  = p.is_sign_language_processing || filterToAnswer(filters.area);
   document.querySelectorAll('input[name="is-sign-language-processing"]').forEach(r => {
-    r.checked = r.value === p.is_sign_language_processing;
+    r.checked = r.value === slpAnswer;
   });
+  setLlmBadge('slp-llm-badge', !p.is_sign_language_processing && !!slpAnswer);
+
+  const empiricalAnswer = p.has_empirical_results || filterToAnswer(filters.approach);
+  document.querySelectorAll('input[name="has-empirical-results"]').forEach(r => {
+    r.checked = r.value === empiricalAnswer;
+  });
+  setLlmBadge('empirical-llm-badge', !p.has_empirical_results && !!empiricalAnswer && slpAnswer !== 'no');
 
   updateEmpiricalAvailability();
   updateSaveBtns();
+}
+
+// Maps a filters.* boolean (LLM screening-pipeline verdict) to a radio value.
+function filterToAnswer(value) {
+  if (value === true) return 'yes';
+  if (value === false) return 'no';
+  return '';
+}
+
+function setLlmBadge(id, show) {
+  document.getElementById(id).classList.toggle('hidden', !show);
 }
 
 function updateEmpiricalAvailability() {
@@ -206,6 +218,9 @@ function collectFormState() {
       || document.getElementById('display-year').textContent.trim(),
       10
     ) || null,
+    language:
+      document.getElementById('input-language').value.trim()
+      || document.getElementById('display-language').textContent.trim(),
     has_empirical_results:       empirical ? empirical.value : '',
     is_sign_language_processing: slp       ? slp.value       : '',
   };
@@ -222,6 +237,7 @@ async function persistPaper(index, extra = {}) {
     `/api/collections/check_papers/records/${p._pb_id}`,
     {
       year:                         data.year,
+      language:                     data.language                    || '',
       has_empirical_results:       data.has_empirical_results       || '',
       is_sign_language_processing: data.is_sign_language_processing || '',
       status:                      data.status,
@@ -234,6 +250,8 @@ async function persistPaper(index, extra = {}) {
 async function saveCurrent() {
   const isFlagged = papers[currentIndex].status === 'flagged';
   await persistPaper(currentIndex, isFlagged ? {} : { status: 'checked' });
+  setLlmBadge('slp-llm-badge', false);
+  setLlmBadge('empirical-llm-badge', false);
   const p = papers[currentIndex];
   updateStatusBadge(p.status, p.flag_reason);
   flashMessage('save-confirm');
@@ -419,15 +437,25 @@ function wireEvents() {
     if (currentIndex < papers.length - 1) loadPaper(currentIndex + 1);
   });
 
-  document.querySelectorAll('input[name="has-empirical-results"]')
-    .forEach(r => r.addEventListener('change', updateSaveBtns));
-  document.querySelectorAll('input[name="is-sign-language-processing"]')
-    .forEach(r => r.addEventListener('change', () => { updateEmpiricalAvailability(); updateSaveBtns(); }));
+  document.querySelectorAll('input[name="has-empirical-results"]').forEach(r => {
+    r.addEventListener('change', updateSaveBtns);
+    r.addEventListener('click', () => setLlmBadge('empirical-llm-badge', false));
+  });
+  document.querySelectorAll('input[name="is-sign-language-processing"]').forEach(r => {
+    r.addEventListener('change', () => { updateEmpiricalAvailability(); updateSaveBtns(); });
+    r.addEventListener('click', () => setLlmBadge('slp-llm-badge', false));
+  });
 
   document.getElementById('edit-year').addEventListener('click', () => startEditing('year'));
   document.getElementById('input-year').addEventListener('blur', () => finishEditing('year'));
   document.getElementById('input-year').addEventListener('keydown', e => {
     if (e.key === 'Enter') finishEditing('year');
+  });
+
+  document.getElementById('edit-language').addEventListener('click', () => startEditing('language'));
+  document.getElementById('input-language').addEventListener('blur', () => finishEditing('language'));
+  document.getElementById('input-language').addEventListener('keydown', e => {
+    if (e.key === 'Enter') finishEditing('language');
   });
 
   document.getElementById('copy-link-btn').addEventListener('click', copyLink);

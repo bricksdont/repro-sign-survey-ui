@@ -506,6 +506,20 @@ body {
   color: #a61c1c;
 }
 
+.llm-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #eef1fb;
+  color: #4a5aa8;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0.03em;
+  vertical-align: middle;
+}
+
 /* ── Field groups ── */
 
 .field-group {
