@@ -67,6 +67,38 @@
     }
     button[type="submit"]:hover { background: #3d5d8f; }
     button[type="submit"]:disabled { background: #999; cursor: default; }
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 20px 0;
+      color: #999;
+      font-size: 12px;
+    }
+    .divider::before, .divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: #e2e2e2;
+    }
+    .oauth-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px;
+      background: #fff;
+      color: #333;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .oauth-btn:hover { background: #f7f7f7; }
+    .oauth-btn:disabled { opacity: 0.6; cursor: default; }
+    .oauth-btn svg { width: 18px; height: 18px; }
     .error-msg {
       display: none;
       background: #fde8e8;
@@ -100,17 +132,56 @@
       <input type="password" id="password" name="password" required>
       <button type="submit" id="submit-btn">Sign in</button>
     </form>
+    <div class="divider" id="oauth-divider" style="display:none">or</div>
+    <button type="button" class="oauth-btn" id="slack-btn" style="display:none">
+      <svg viewBox="0 0 122.8 122.8" aria-hidden="true">
+        <path d="M25.8 77.6c0 7.1-5.8 12.9-12.9 12.9S0 84.7 0 77.6s5.8-12.9 12.9-12.9h12.9v12.9zm6.5 0c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9v32.3c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V77.6z" fill="#E01E5A"/>
+        <path d="M45.2 25.8c-7.1 0-12.9-5.8-12.9-12.9S38.1 0 45.2 0s12.9 5.8 12.9 12.9v12.9H45.2zm0 6.5c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H12.9C5.8 58.1 0 52.3 0 45.2s5.8-12.9 12.9-12.9h32.3z" fill="#36C5F0"/>
+        <path d="M97 45.2c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9-5.8 12.9-12.9 12.9H97V45.2zm-6.5 0c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V12.9C64.7 5.8 70.5 0 77.6 0s12.9 5.8 12.9 12.9v32.3z" fill="#2EB67D"/>
+        <path d="M77.6 97c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9-12.9-5.8-12.9-12.9V97h12.9zm0-6.5c-7.1 0-12.9-5.8-12.9-12.9s5.8-12.9 12.9-12.9h32.3c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H77.6z" fill="#ECB22E"/>
+      </svg>
+      Sign in with Slack
+    </button>
     <p class="footer-link">Don't have an account? <a href="register.html">Register</a></p>
   </div>
   <script src="js/api.js"></script>
   <script>
     const params = new URLSearchParams(window.location.search);
-    const next = params.get('next') || 'index.html';
+    const next = sameOriginNext(params.get('next'));
 
     // Already logged in with a valid token? Skip the form.
     if (isAuthenticated()) {
       window.location.href = next;
     }
+
+    // Only surface "Sign in with Slack" if the oidc provider (Slack sits in the
+    // generic oidc slot) is actually registered on the backend.
+    (async () => {
+      try {
+        const providers = await listOAuth2Providers();
+        if (providers.some(p => p.name === 'oidc')) {
+          document.getElementById('oauth-divider').style.display = 'flex';
+          document.getElementById('slack-btn').style.display = 'flex';
+        }
+      } catch {
+        // Backend unreachable or no OAuth configured — leave the button hidden.
+      }
+    })();
+
+    document.getElementById('slack-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('slack-btn');
+      const errEl = document.getElementById('error-msg');
+      errEl.classList.remove('visible');
+      errEl.textContent = '';
+      btn.disabled = true;
+      try {
+        await startOAuth2('oidc', next);
+      } catch (err) {
+        errEl.textContent = err.message || 'Could not start Slack sign-in.';
+        errEl.classList.add('visible');
+        btn.disabled = false;
+      }
+    });
 
     document.getElementById('login-form').addEventListener('submit', async e => {
       e.preventDefault();

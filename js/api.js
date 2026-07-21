@@ -68,3 +68,92 @@ async function pbPatch(path, body) {
   });
   return { ok: res.ok, status: res.status, data: res.ok ? await res.json() : null };
 }
+
+// ---- OAuth2 (Slack, etc.) --------------------------------------------------
+// PocketBase OAuth2; the flow is:
+//   1. startOAuth2()   — fetch the provider's authURL, stash the
+//                        bits we need to finish the exchange, redirect to it.
+//   2. provider sends the browser back to oauth-redirect.html?state=…&code=…
+//   3. completeOAuth2() — verify state, POST the code, store the session.
+
+// Absolute URL the provider redirects back to. Must be whitelisted in the
+// Slack app config.
+function oauthRedirectURL() {
+  return new URL('oauth-redirect.html', window.location.href).href;
+}
+
+// Sanitize a post-login `next` destination to prevent open redirects: only
+// same-origin targets are allowed; anything else falls back to `index.html`.
+function sameOriginNext(next, fallback = 'index.html') {
+  if (!next) return fallback;
+  try {
+    const url = new URL(next, window.location.href);
+    return url.origin === window.location.origin ? url.href : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+// List the OAuth2 providers registered on the backend (each has name/state/
+// codeVerifier/authURL). Slack lives in the generic `oidc` slot.
+async function listOAuth2Providers() {
+  const res = await fetch(`${PB_URL}/api/collections/users/auth-methods`);
+  if (!res.ok) throw new Error('Cannot load sign-in methods from the backend.');
+  const methods = await res.json();
+  return methods.oauth2?.providers || [];
+}
+
+async function startOAuth2(provider, next = 'index.html') {
+  const providers = await listOAuth2Providers();
+  const p = providers.find(x => x.name === provider);
+  if (!p) throw new Error(`"${provider}" sign-in is not enabled on the backend.`);
+
+  const redirectURL = oauthRedirectURL();
+  // sessionStorage survives the same-tab redirect out to Slack and back.
+  sessionStorage.setItem('pb_oauth_provider', p.name);
+  sessionStorage.setItem('pb_oauth_state', p.state);
+  sessionStorage.setItem('pb_oauth_verifier', p.codeVerifier);
+  sessionStorage.setItem('pb_oauth_redirect', redirectURL);
+  sessionStorage.setItem('pb_oauth_next', next);
+
+  // authURL ends with `redirect_uri=`; append our (encoded) callback URL.
+  window.location.href = p.authURL + encodeURIComponent(redirectURL);
+}
+
+async function completeOAuth2() {
+  const url = new URL(window.location.href);
+  const error = url.searchParams.get('error');
+  if (error) {
+    const desc = url.searchParams.get('error_description');
+    throw new Error(`Sign-in failed: ${desc || error}`);
+  }
+  const state = url.searchParams.get('state');
+  const code = url.searchParams.get('code');
+  if (!state || !code) throw new Error('Missing authorization response from the provider.');
+
+  if (state !== sessionStorage.getItem('pb_oauth_state'))
+    throw new Error('Sign-in state mismatch — please try again.');
+
+  const provider     = sessionStorage.getItem('pb_oauth_provider');
+  const codeVerifier = sessionStorage.getItem('pb_oauth_verifier');
+  const redirectURL  = sessionStorage.getItem('pb_oauth_redirect');
+  const next         = sameOriginNext(sessionStorage.getItem('pb_oauth_next'));
+
+  const res = await fetch(`${PB_URL}/api/collections/users/auth-with-oauth2`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ provider, code, codeVerifier, redirectURL }),
+  });
+  if (!res.ok) throw new Error('Could not complete sign-in.');
+  const { token, record } = await res.json();
+
+  localStorage.setItem('pb_token', token);
+  localStorage.setItem('pb_user_id', record.id);
+  localStorage.setItem('pb_token_expiry', String(Date.now() + SESSION_TTL_MS));
+  localStorage.setItem('pb_email', record.email || '');
+
+  ['pb_oauth_provider', 'pb_oauth_state', 'pb_oauth_verifier', 'pb_oauth_redirect', 'pb_oauth_next']
+    .forEach(k => sessionStorage.removeItem(k));
+
+  return next;
+}
