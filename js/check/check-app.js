@@ -42,7 +42,7 @@ async function loadPaper(index) {
   history.replaceState(null, '', `?id=${p.id}`);
   document.title = 'SLP Paper Survey — Checking';
   updatePaperNav();
-  updateStatusBadge(p.status, p.flag_reason);
+  updateStatusBadge(p.status, p.flag_reason, p.checked_by);
   populateForm(p);
   loadSource(p);
   hideFooterMessages();
@@ -80,10 +80,11 @@ function updatePaperNav() {
   document.getElementById('next-paper').disabled = currentIndex >= papers.length - 1;
 }
 
-function updateStatusBadge(status, reason) {
-  const badge    = document.getElementById('status-badge');
-  const clearBtn = document.getElementById('clear-status-btn');
-  const flagBtn  = document.getElementById('flag-btn');
+function updateStatusBadge(status, reason, checkedBy) {
+  const badge     = document.getElementById('status-badge');
+  const clearBtn  = document.getElementById('clear-status-btn');
+  const flagBtn   = document.getElementById('flag-btn');
+  const byLabel   = document.getElementById('checked-by-label');
 
   flagBtn.disabled = false; flagBtn.title = '';
   clearBtn.classList.add('hidden');
@@ -106,6 +107,14 @@ function updateStatusBadge(status, reason) {
     badge.textContent = '● Needs Check';
     badge.className   = 'status-badge status-needs-review';
     badge.title       = '';
+  }
+
+  if ((status === 'checked' || status === 'flagged') && checkedBy) {
+    byLabel.textContent = `by ${checkedBy}`;
+    byLabel.classList.remove('hidden');
+  } else {
+    byLabel.textContent = '';
+    byLabel.classList.add('hidden');
   }
 
   if (isReadOnly) setReadOnly(true);
@@ -230,7 +239,7 @@ async function persistPaper(index, extra = {}) {
   const p    = papers[index];
   const base = { ...collectFormState(), status: p.status };
   if (p.flag_reason) base.flag_reason = p.flag_reason;
-  const data = { ...base, ...extra };
+  const data = { ...base, ...extra, checked_by: getEmail() || '' };
   papers[index] = { ...p, ...data };
 
   const { ok, status } = await pbPatch(
@@ -242,7 +251,7 @@ async function persistPaper(index, extra = {}) {
       is_sign_language_processing: data.is_sign_language_processing || '',
       status:                      data.status,
       flag_reason:                 data.flag_reason || '',
-      checked_by:                  getEmail() || '',
+      checked_by:                  data.checked_by,
     }
   );
   if (!ok && status === 404) showLockedNotice();
@@ -254,7 +263,7 @@ async function saveCurrent() {
   setLlmBadge('slp-llm-badge', false);
   setLlmBadge('empirical-llm-badge', false);
   const p = papers[currentIndex];
-  updateStatusBadge(p.status, p.flag_reason);
+  updateStatusBadge(p.status, p.flag_reason, p.checked_by);
   flashMessage('save-confirm');
 }
 
@@ -314,7 +323,7 @@ async function confirmFlag() {
   }
 
   await persistPaper(currentIndex, { status: 'flagged', flag_reason: reason });
-  updateStatusBadge('flagged', reason);
+  updateStatusBadge('flagged', reason, papers[currentIndex].checked_by);
   closeFlagDialog();
 }
 
