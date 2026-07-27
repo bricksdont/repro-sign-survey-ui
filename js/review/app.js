@@ -62,7 +62,7 @@ async function loadPaper(index) {
   history.replaceState(null, '', `?id=${p.id}`);
   document.title = 'SLP Paper Survey';
   updatePaperNav();
-  updateStatusBadge(p.status || 'needs_review', p.rejection_reason || p.flag_reason);
+  updateStatusBadge(p.status || 'needs_review', p.rejection_reason || p.flag_reason, p.reviewed_by);
   populateForm(p);
   loadPDF(p.pdf_url);
   hideFooterMessages();
@@ -86,11 +86,12 @@ function updatePaperNav() {
   document.getElementById('next-paper').disabled = currentIndex >= papers.length - 1;
 }
 
-function updateStatusBadge(status, reason) {
+function updateStatusBadge(status, reason, reviewedBy) {
   const badge     = document.getElementById('status-badge');
   const clearBtn  = document.getElementById('clear-status-btn');
   const flagBtn   = document.getElementById('flag-btn');
   const rejectBtn = document.getElementById('reject-btn');
+  const byLabel   = document.getElementById('reviewed-by-label');
 
   flagBtn.disabled   = false; flagBtn.title   = '';
   rejectBtn.disabled = false; rejectBtn.title = '';
@@ -126,6 +127,14 @@ function updateStatusBadge(status, reason) {
     badge.textContent = '● Needs Review';
     badge.className   = 'status-badge status-needs-review';
     badge.title       = '';
+  }
+
+  if ((status === 'final' || status === 'flagged' || status === 'rejected') && reviewedBy) {
+    byLabel.textContent = `by ${reviewedBy}`;
+    byLabel.classList.remove('hidden');
+  } else {
+    byLabel.textContent = '';
+    byLabel.classList.add('hidden');
   }
 
   // Re-apply read-only disable state if locked
@@ -417,7 +426,7 @@ async function persistPaper(index, extra = {}) {
   const base = { ...collectFormState(), status: p.status };
   if (p.rejection_reason) base.rejection_reason = p.rejection_reason;
   if (p.flag_reason)      base.flag_reason      = p.flag_reason;
-  const data = { ...base, ...extra };
+  const data = { ...base, ...extra, reviewed_by: getEmail() || '' };
   papers[index] = { ...p, ...data, expand: {
     datasets: datasets.map(d => ({ id: d.id, name: d.name })),
     metrics:  metrics.map(m => ({ id: m.id, name: m.name })),
@@ -436,6 +445,7 @@ async function persistPaper(index, extra = {}) {
       status:           data.status,
       rejection_reason: data.rejection_reason || '',
       flag_reason:      data.flag_reason      || '',
+      reviewed_by:      data.reviewed_by,
       area_of_slp:                 data.area_of_slp || [],
       area_of_slp_other:           data.area_of_slp_other || '',
       main_experiment_has_ranking: data.main_experiment_has_ranking || '',
@@ -454,7 +464,7 @@ async function saveCurrent() {
   const isLocked = currentStatus === 'rejected' || currentStatus === 'flagged';
   await persistPaper(currentIndex, isLocked ? {} : { status: 'final' });
   const p = papers[currentIndex];
-  updateStatusBadge(p.status, p.rejection_reason || p.flag_reason);
+  updateStatusBadge(p.status, p.rejection_reason || p.flag_reason, p.reviewed_by);
   flashMessage('save-confirm');
 }
 
@@ -517,7 +527,7 @@ async function confirmFlag() {
   }
 
   await persistPaper(currentIndex, { status: 'flagged', flag_reason: reason });
-  updateStatusBadge('flagged', reason);
+  updateStatusBadge('flagged', reason, papers[currentIndex].reviewed_by);
   closeFlagDialog();
 }
 
@@ -546,7 +556,7 @@ async function confirmReject() {
   }
 
   await persistPaper(currentIndex, { status: 'rejected', rejection_reason: reason });
-  updateStatusBadge('rejected', reason);
+  updateStatusBadge('rejected', reason, papers[currentIndex].reviewed_by);
   closeRejectDialog();
 }
 
