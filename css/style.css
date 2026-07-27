@@ -616,28 +616,6 @@ body {
   cursor: pointer;
 }
 
-/* ── Checkbox grid ── */
-
-.checkbox-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 6px 16px;
-  padding: 6px 0;
-}
-
-.checkbox-option {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  color: #333;
-  cursor: pointer;
-}
-
-.checkbox-option input[type="checkbox"] {
-  cursor: pointer;
-}
-
 /* ── Field textarea ── */
 
 .field-textarea {
