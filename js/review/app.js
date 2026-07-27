@@ -164,6 +164,10 @@ function populateForm(p) {
   document.getElementById('input-compute-requirements').value = p.compute_requirements || '';
   document.getElementById('input-textual-conclusion').value   = p.textual_conclusion   || '';
 
+  document.querySelectorAll('input[name="ethical-concerns"]').forEach(r => {
+    r.checked = r.value === p.paper_raises_ethical_concerns;
+  });
+
   // Support old single-string code_repo field from earlier localStorage entries
   code_repos = Array.isArray(p.code_repos) ? [...p.code_repos]
     : (p.code_repo ? [p.code_repo] : []);
@@ -379,6 +383,7 @@ function collectFormState() {
   const prChecked      = document.querySelector('input[name="peer-reviewed"]:checked');
   const rankingChecked = document.querySelector('input[name="has-ranking"]:checked');
   const humanEvalChecked = document.querySelector('input[name="human-evaluation"]:checked');
+  const ethicalConcernsChecked = document.querySelector('input[name="ethical-concerns"]:checked');
   const areaOfSlp = [...document.querySelectorAll('input[name="area-of-slp"]:checked')].map(c => c.value);
   return {
     title: document.getElementById('input-title').value.trim()
@@ -400,6 +405,7 @@ function collectFormState() {
     what_to_reproduce:    document.getElementById('input-what-to-reproduce').value.trim(),
     compute_requirements: document.getElementById('input-compute-requirements').value.trim(),
     textual_conclusion:   document.getElementById('input-textual-conclusion').value.trim(),
+    paper_raises_ethical_concerns: ethicalConcernsChecked ? ethicalConcernsChecked.value : '',
   };
 }
 
@@ -433,6 +439,7 @@ async function persistPaper(index, extra = {}) {
       what_to_reproduce:           data.what_to_reproduce    || '',
       compute_requirements:        data.compute_requirements || '',
       textual_conclusion:          data.textual_conclusion   || '',
+      paper_raises_ethical_concerns: data.paper_raises_ethical_concerns || '',
     }
   );
   if (!ok && status === 404) showLockedNotice();
