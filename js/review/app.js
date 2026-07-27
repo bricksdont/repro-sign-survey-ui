@@ -7,6 +7,8 @@ let currentIndex = 0;
 let datasets = [];   // [{id, name}] for the current paper
 let metrics  = [];   // [{id, name}] for the current paper
 let code_repos = [];
+let codeReposNA = false;           // "confirmed no code repositories"
+let computeRequirementsNA = false; // "confirmed not specified in paper"
 let isReadOnly = false;
 let heartbeatInterval = null;
 
@@ -172,17 +174,22 @@ function populateForm(p) {
   });
 
   document.getElementById('input-what-to-reproduce').value    = p.what_to_reproduce    || '';
-  document.getElementById('input-compute-requirements').value = p.compute_requirements || '';
   document.getElementById('input-textual-conclusion').value   = p.textual_conclusion   || '';
+
+  computeRequirementsNA = p.compute_requirements === 'N/A';
+  document.getElementById('input-compute-requirements').value = computeRequirementsNA ? '' : (p.compute_requirements || '');
+  updateComputeRequirementsNAButton();
 
   document.querySelectorAll('input[name="ethical-concerns"]').forEach(r => {
     r.checked = r.value === p.paper_raises_ethical_concerns;
   });
 
   // Support old single-string code_repo field from earlier localStorage entries
+  codeReposNA = p.code_repos === 'N/A';
   code_repos = Array.isArray(p.code_repos) ? [...p.code_repos]
     : (p.code_repo ? [p.code_repo] : []);
   renderTags('code_repos', code_repos);
+  updateCodeReposNAButton();
 
   const toArr = v => !v ? [] : Array.isArray(v) ? v : [v];
 
@@ -378,6 +385,7 @@ function addTag(type) {
   }
   input.value = '';
   input.focus();
+  if (type === 'code_repos') updateCodeReposNAButton();
 }
 
 function removeTag(type, index) {
@@ -386,6 +394,41 @@ function removeTag(type, index) {
     : code_repos;
   list.splice(index, 1);
   renderTags(type, list);
+  if (type === 'code_repos') updateCodeReposNAButton();
+}
+
+// ── N/A confirm toggles ────────────────────────────────────────────────────
+
+function updateCodeReposNAButton() {
+  const btn  = document.getElementById('code-repos-na-btn');
+  const icon = btn.querySelector('.na-toggle-icon');
+  const hasContent = code_repos.length > 0;
+  btn.setAttribute('aria-pressed', String(codeReposNA));
+  icon.textContent = codeReposNA ? '☑' : '☐';
+  btn.disabled = hasContent && !codeReposNA;
+  document.getElementById('code-repo-input').disabled = codeReposNA;
+  document.getElementById('add-code-repo-btn').disabled = codeReposNA;
+}
+
+function toggleCodeReposNA() {
+  codeReposNA = !codeReposNA;
+  updateCodeReposNAButton();
+}
+
+function updateComputeRequirementsNAButton() {
+  const btn      = document.getElementById('compute-requirements-na-btn');
+  const icon     = btn.querySelector('.na-toggle-icon');
+  const textarea = document.getElementById('input-compute-requirements');
+  const hasContent = textarea.value.trim() !== '';
+  btn.setAttribute('aria-pressed', String(computeRequirementsNA));
+  icon.textContent = computeRequirementsNA ? '☑' : '☐';
+  btn.disabled = hasContent && !computeRequirementsNA;
+  textarea.disabled = computeRequirementsNA;
+}
+
+function toggleComputeRequirementsNA() {
+  computeRequirementsNA = !computeRequirementsNA;
+  updateComputeRequirementsNAButton();
 }
 
 // ── Save logic ─────────────────────────────────────────────────────────────
@@ -407,7 +450,7 @@ function collectFormState() {
     venue: document.getElementById('input-venue').value.trim()
       || document.getElementById('display-venue').textContent.trim(),
     peer_reviewed: prChecked ? prChecked.value : '',
-    code_repos: [...code_repos],
+    code_repos: codeReposNA ? 'N/A' : [...code_repos],
     datasets:   datasets.map(d => d.id),
     metrics:    metrics.map(m => m.id),
     area_of_slp: areaOfSlp,
@@ -415,7 +458,7 @@ function collectFormState() {
     main_experiment_has_ranking: rankingChecked   ? rankingChecked.value   : '',
     includes_human_evaluation:   humanEvalChecked ? humanEvalChecked.value : '',
     what_to_reproduce:    document.getElementById('input-what-to-reproduce').value.trim(),
-    compute_requirements: document.getElementById('input-compute-requirements').value.trim(),
+    compute_requirements: computeRequirementsNA ? 'N/A' : document.getElementById('input-compute-requirements').value.trim(),
     textual_conclusion:   document.getElementById('input-textual-conclusion').value.trim(),
     paper_raises_ethical_concerns: ethicalConcernsChecked ? ethicalConcernsChecked.value : '',
   };
@@ -862,6 +905,9 @@ function wireEvents() {
   document.getElementById('code-repo-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') addTag('code_repos');
   });
+  document.getElementById('code-repos-na-btn').addEventListener('click', toggleCodeReposNA);
+  document.getElementById('compute-requirements-na-btn').addEventListener('click', toggleComputeRequirementsNA);
+  document.getElementById('input-compute-requirements').addEventListener('input', updateComputeRequirementsNAButton);
   document.getElementById('add-dataset-btn').addEventListener('click', () =>
     addDatasetChip(document.getElementById('dataset-input').value.trim()));
   document.getElementById('add-metric-btn').addEventListener('click', () =>

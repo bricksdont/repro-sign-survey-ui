@@ -662,6 +662,46 @@ body {
   color: #bbb;
 }
 
+/* ── N/A confirm toggle button ── */
+
+.na-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 8px;
+  background: #f7f7f7;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #555;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.na-toggle-btn:hover {
+  background: #eee;
+}
+
+.na-toggle-btn[aria-pressed="true"] {
+  background: #4a90d9;
+  border-color: #4a90d9;
+  color: #fff;
+}
+
+.na-toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.na-toggle-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
 /* ── Inline single-line field input (e.g. custom Area of SLP) ── */
 
 .field-input-inline {
