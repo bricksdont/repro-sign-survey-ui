@@ -85,6 +85,7 @@ The override is stored in `localStorage` as `pb_backend` the first time it is se
   - Flag and Reject buttons disable each other (clear/revert first).
   - "Clear flag" / "Revert rejection" / "Revert to needs review" link appears next to the badge to reset status.
   - Rejection/flag reason is folded into the badge text (`⚑ Flagged · <reason>`) and shown as a tooltip.
+  - **Attribution**: every save (`persistPaper()`) writes the logged-in reviewer's email to `reviewed_by`, regardless of status; shown next to the status badge (`by <email>`) once the paper is `final`, `flagged`, or `rejected`.
 - **Checking status workflow**: three statuses — `needs_check`, `flagged`, `checked`.
   - Save / Save & Next → marks as `checked` (only if currently `needs_check`; flagged status is preserved).
   - Save & Next → advances to the next `needs_check` paper; falls back to `check-index.html` if none remain.
