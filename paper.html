@@ -127,45 +127,14 @@
       <!-- Area of SLP -->
       <div class="field-group">
         <label>Area of SLP</label>
-        <div class="checkbox-grid" id="area-of-slp-container">
-          <label class="checkbox-option">
-            <input type="checkbox" name="area-of-slp" value="Translation"> Translation
-          </label>
-          <label class="checkbox-option">
-            <input type="checkbox" name="area-of-slp" value="Recognition"> Recognition
-          </label>
-          <label class="checkbox-option">
-            <input type="checkbox" name="area-of-slp" value="Segmentation / tokenization"> Segmentation / tokenization
-          </label>
-          <label class="checkbox-option">
-            <input type="checkbox" name="area-of-slp" value="Alignment"> Alignment
-          </label>
-          <label class="checkbox-option">
-            <input type="checkbox" name="area-of-slp" value="Signing detection"> Signing detection
-          </label>
-          <label class="checkbox-option">
-            <input type="checkbox" name="area-of-slp" value="Generation / production"> Generation / production
-          </label>
-          <label class="checkbox-option">
-            <input type="checkbox" name="area-of-slp" value="Unsupervised / representation learning"> Unsupervised / representation learning
-          </label>
-          <label class="checkbox-option">
-            <input type="checkbox" name="area-of-slp" value="Spotting / glossing"> Spotting / glossing
-          </label>
-          <label class="checkbox-option">
-            <input type="checkbox" name="area-of-slp" value="Transcription"> Transcription
-          </label>
-          <label class="checkbox-option">
-            <input type="checkbox" name="area-of-slp" value="Language identification"> Language identification
-          </label>
-          <label class="checkbox-option">
-            <input type="checkbox" name="area-of-slp" value="Retrieval"> Retrieval
-          </label>
-          <label class="checkbox-option">
-            <input type="checkbox" name="area-of-slp" value="Avatar systems"> Avatar systems
-          </label>
+        <div class="tag-container" id="area-of-slp-container"></div>
+        <div class="tag-input-wrapper">
+          <div class="tag-input-row">
+            <input type="text" id="area-of-slp-input" placeholder="Add area…" autocomplete="off">
+            <button id="add-area-of-slp-btn">+ Add</button>
+          </div>
+          <div id="area-of-slp-suggestions" class="suggestions-dropdown hidden"></div>
         </div>
-        <input type="text" id="input-area-of-slp-other" class="field-input-inline" placeholder="Other area not listed above (optional)">
       </div>
 
       <!-- Main experiment has a ranking -->
