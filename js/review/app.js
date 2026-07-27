@@ -144,14 +144,16 @@ function populateForm(p) {
   setTextField('venue', p.venue || '');
 
   document.querySelectorAll('input[name="peer-reviewed"]').forEach(r => {
-    r.checked = (p.peer_reviewed === true  && r.value === 'yes')
-             || (p.peer_reviewed === false && r.value === 'no');
+    r.checked = r.value === p.peer_reviewed
+      || (p.peer_reviewed === true  && r.value === 'yes')
+      || (p.peer_reviewed === false && r.value === 'no');
   });
 
   const selectedAreas = Array.isArray(p.area_of_slp) ? p.area_of_slp : [];
   document.querySelectorAll('input[name="area-of-slp"]').forEach(c => {
     c.checked = selectedAreas.includes(c.value);
   });
+  document.getElementById('input-area-of-slp-other').value = p.area_of_slp_other || '';
 
   document.querySelectorAll('input[name="has-ranking"]').forEach(r => {
     r.checked = r.value === p.main_experiment_has_ranking;
@@ -390,11 +392,12 @@ function collectFormState() {
     ) || null,
     venue: document.getElementById('input-venue').value.trim()
       || document.getElementById('display-venue').textContent.trim(),
-    peer_reviewed: prChecked ? prChecked.value === 'yes' : null,
+    peer_reviewed: prChecked ? prChecked.value : '',
     code_repos: [...code_repos],
     datasets:   datasets.map(d => d.id),
     metrics:    metrics.map(m => m.id),
     area_of_slp: areaOfSlp,
+    area_of_slp_other: document.getElementById('input-area-of-slp-other').value.trim(),
     main_experiment_has_ranking: rankingChecked   ? rankingChecked.value   : '',
     includes_human_evaluation:   humanEvalChecked ? humanEvalChecked.value : '',
     what_to_reproduce:    document.getElementById('input-what-to-reproduce').value.trim(),
@@ -428,6 +431,7 @@ async function persistPaper(index, extra = {}) {
       rejection_reason: data.rejection_reason || '',
       flag_reason:      data.flag_reason      || '',
       area_of_slp:                 data.area_of_slp || [],
+      area_of_slp_other:           data.area_of_slp_other || '',
       main_experiment_has_ranking: data.main_experiment_has_ranking || '',
       includes_human_evaluation:   data.includes_human_evaluation   || '',
       what_to_reproduce:           data.what_to_reproduce    || '',
