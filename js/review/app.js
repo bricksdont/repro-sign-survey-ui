@@ -7,8 +7,26 @@ let currentIndex = 0;
 let datasets = [];   // [{id, name}] for the current paper
 let metrics  = [];   // [{id, name}] for the current paper
 let code_repos = [];
+let areaOfSlp = [];  // [string] for the current paper — not a backend collection
 let isReadOnly = false;
 let heartbeatInterval = null;
+
+// Fixed suggestion list for Area of SLP — not backed by a collection, so any
+// value (including custom text) can be added as a chip.
+const KNOWN_SLP_AREAS = [
+  'Translation',
+  'Recognition',
+  'Segmentation / tokenization',
+  'Alignment',
+  'Signing detection',
+  'Generation / production',
+  'Unsupervised / representation learning',
+  'Spotting / glossing',
+  'Transcription',
+  'Language identification',
+  'Retrieval',
+  'Avatar systems',
+];
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 
@@ -158,11 +176,8 @@ function populateForm(p) {
       || (p.peer_reviewed === false && r.value === 'no');
   });
 
-  const selectedAreas = Array.isArray(p.area_of_slp) ? p.area_of_slp : [];
-  document.querySelectorAll('input[name="area-of-slp"]').forEach(c => {
-    c.checked = selectedAreas.includes(c.value);
-  });
-  document.getElementById('input-area-of-slp-other').value = p.area_of_slp_other || '';
+  areaOfSlp = Array.isArray(p.area_of_slp) ? [...p.area_of_slp] : [];
+  renderTags('area_of_slp', areaOfSlp);
 
   document.querySelectorAll('input[name="has-ranking"]').forEach(r => {
     r.checked = r.value === p.main_experiment_has_ranking;
@@ -316,7 +331,9 @@ function hideDatasetTooltip() {
 }
 
 function renderTags(type, items) {
-  const containerId = type === 'code_repos' ? 'code-repos-container' : type + '-container';
+  const containerId = type === 'code_repos'  ? 'code-repos-container'
+    : type === 'area_of_slp' ? 'area-of-slp-container'
+    : type + '-container';
   const container = document.getElementById(containerId);
   container.innerHTML = '';
   items.forEach((item, i) => {
@@ -364,6 +381,7 @@ function renderTags(type, items) {
 function addTag(type) {
   const inputId = type === 'datasets' ? 'dataset-input'
     : type === 'metrics'   ? 'metric-input'
+    : type === 'area_of_slp' ? 'area-of-slp-input'
     : 'code-repo-input';
   const input = document.getElementById(inputId);
   const value = input.value.trim();
@@ -371,6 +389,7 @@ function addTag(type) {
 
   const list = type === 'datasets' ? datasets
     : type === 'metrics'   ? metrics
+    : type === 'area_of_slp' ? areaOfSlp
     : code_repos;
   if (!list.includes(value)) {
     list.push(value);
@@ -383,6 +402,7 @@ function addTag(type) {
 function removeTag(type, index) {
   const list = type === 'datasets' ? datasets
     : type === 'metrics'   ? metrics
+    : type === 'area_of_slp' ? areaOfSlp
     : code_repos;
   list.splice(index, 1);
   renderTags(type, list);
@@ -395,7 +415,6 @@ function collectFormState() {
   const rankingChecked = document.querySelector('input[name="has-ranking"]:checked');
   const humanEvalChecked = document.querySelector('input[name="human-evaluation"]:checked');
   const ethicalConcernsChecked = document.querySelector('input[name="ethical-concerns"]:checked');
-  const areaOfSlp = [...document.querySelectorAll('input[name="area-of-slp"]:checked')].map(c => c.value);
   return {
     title: document.getElementById('input-title').value.trim()
       || document.getElementById('display-title').textContent.trim(),
@@ -410,8 +429,7 @@ function collectFormState() {
     code_repos: [...code_repos],
     datasets:   datasets.map(d => d.id),
     metrics:    metrics.map(m => m.id),
-    area_of_slp: areaOfSlp,
-    area_of_slp_other: document.getElementById('input-area-of-slp-other').value.trim(),
+    area_of_slp: [...areaOfSlp],
     main_experiment_has_ranking: rankingChecked   ? rankingChecked.value   : '',
     includes_human_evaluation:   humanEvalChecked ? humanEvalChecked.value : '',
     what_to_reproduce:    document.getElementById('input-what-to-reproduce').value.trim(),
@@ -447,7 +465,6 @@ async function persistPaper(index, extra = {}) {
       flag_reason:      data.flag_reason      || '',
       reviewed_by:      data.reviewed_by,
       area_of_slp:                 data.area_of_slp || [],
-      area_of_slp_other:           data.area_of_slp_other || '',
       main_experiment_has_ranking: data.main_experiment_has_ranking || '',
       includes_human_evaluation:   data.includes_human_evaluation   || '',
       what_to_reproduce:           data.what_to_reproduce    || '',
@@ -803,6 +820,44 @@ function initDatasetAutocomplete() {
   input.addEventListener('blur', () => setTimeout(() => dropdown.classList.add('hidden'), 150));
 }
 
+// Not backed by a collection — suggestions come from the fixed KNOWN_SLP_AREAS
+// list, but any typed value (including ones not in that list) can be added.
+function initAreaOfSlpAutocomplete() {
+  const input    = document.getElementById('area-of-slp-input');
+  const dropdown = document.getElementById('area-of-slp-suggestions');
+
+  function refresh() {
+    const q  = input.value.trim();
+    const ql = q.toLowerCase();
+    const matches = KNOWN_SLP_AREAS.filter(a =>
+      !areaOfSlp.includes(a) && (q === '' || a.toLowerCase().startsWith(ql))
+    );
+
+    dropdown.innerHTML = '';
+    matches.forEach(a => {
+      const item = document.createElement('div');
+      item.className = 'suggestion-item';
+      item.textContent = a;
+      item.addEventListener('mousedown', e => {
+        e.preventDefault();
+        if (!areaOfSlp.includes(a)) {
+          areaOfSlp.push(a);
+          renderTags('area_of_slp', areaOfSlp);
+        }
+        input.value = '';
+        refresh();
+      });
+      dropdown.appendChild(item);
+    });
+
+    dropdown.classList.toggle('hidden', dropdown.children.length === 0);
+  }
+
+  input.addEventListener('focus', refresh);
+  input.addEventListener('input', refresh);
+  input.addEventListener('blur', () => setTimeout(() => dropdown.classList.add('hidden'), 150));
+}
+
 // ── Divider drag ──────────────────────────────────────────────────────────
 
 function initDivider() {
@@ -861,6 +916,10 @@ function wireEvents() {
   document.getElementById('add-code-repo-btn').addEventListener('click', () => addTag('code_repos'));
   document.getElementById('code-repo-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') addTag('code_repos');
+  });
+  document.getElementById('add-area-of-slp-btn').addEventListener('click', () => addTag('area_of_slp'));
+  document.getElementById('area-of-slp-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addTag('area_of_slp');
   });
   document.getElementById('add-dataset-btn').addEventListener('click', () =>
     addDatasetChip(document.getElementById('dataset-input').value.trim()));
@@ -940,3 +999,4 @@ init();
 initDivider();
 initDatasetAutocomplete();
 initMetricAutocomplete();
+initAreaOfSlpAutocomplete();

@@ -616,28 +616,6 @@ body {
   cursor: pointer;
 }
 
-/* ── Checkbox grid ── */
-
-.checkbox-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 6px 16px;
-  padding: 6px 0;
-}
-
-.checkbox-option {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  color: #333;
-  cursor: pointer;
-}
-
-.checkbox-option input[type="checkbox"] {
-  cursor: pointer;
-}
-
 /* ── Field textarea ── */
 
 .field-textarea {
@@ -659,30 +637,6 @@ body {
 }
 
 .field-textarea::placeholder {
-  color: #bbb;
-}
-
-/* ── Inline single-line field input (e.g. custom Area of SLP) ── */
-
-.field-input-inline {
-  width: 100%;
-  margin-top: 10px;
-  border: 1px solid #d0d0d0;
-  border-radius: 5px;
-  padding: 8px 10px;
-  font-size: 14px;
-  font-family: inherit;
-  color: #333;
-  outline: none;
-  transition: border-color 0.15s;
-}
-
-.field-input-inline:focus {
-  border-color: #4a90d9;
-  box-shadow: 0 0 0 2px rgba(74, 144, 217, 0.15);
-}
-
-.field-input-inline::placeholder {
   color: #bbb;
 }
 
