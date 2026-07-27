@@ -94,6 +94,9 @@
           <input type="url" id="code-repo-input" placeholder="https://github.com/…" autocomplete="off">
           <button id="add-code-repo-btn">+ Add</button>
         </div>
+        <button type="button" id="code-repos-na-btn" class="na-toggle-btn" aria-pressed="false">
+          <span class="na-toggle-icon">&#9744;</span> I confirm that there are no code repositories available.
+        </button>
       </div>
 
       <!-- Datasets -->
@@ -179,6 +182,9 @@
           <button type="button" class="info-btn" aria-label="Info" data-tooltip="Leave empty if not specified in paper.">&#9432;</button>
         </label>
         <textarea id="input-compute-requirements" class="field-textarea" rows="2" placeholder="e.g. 4x V100 GPUs, 48 hours"></textarea>
+        <button type="button" id="compute-requirements-na-btn" class="na-toggle-btn" aria-pressed="false">
+          <span class="na-toggle-icon">&#9744;</span> I confirm that the compute requirements were not specified in the paper.
+        </button>
       </div>
 
       <!-- Textual conclusion -->
