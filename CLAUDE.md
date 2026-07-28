@@ -51,6 +51,7 @@ The override is stored in `localStorage` as `pb_backend` the first time it is se
 | `metric.html` | Metric detail page: form for name, URLs, comments; edit locking; `?id=<pb-id>` |
 | `login.html` | Login form: authenticates against PocketBase, stores token in localStorage with 24h expiry; also a "Sign in with Slack" OAuth2 button |
 | `oauth-redirect.html` | OAuth2 callback page: completes the Slack sign-in code exchange and redirects to `next` |
+| `register.html` | Self-service registration page (currently disabled — new registrations are blocked server-side) |
 | `js/api.js` | Shared PocketBase client: auto-detected `PB_URL`, `pbGet`, `pbPatch`, `pbGetAll`, `requireAuth`, token helpers, `startOAuth2`/`completeOAuth2` |
 | `js/review/overview.js` | Reviewing overview logic: loads `papers` collection, search/filter/render |
 | `js/review/app.js` | Review detail logic: form, PocketBase persistence, edit locking, autocomplete, divider drag |
@@ -66,7 +67,7 @@ The override is stored in `localStorage` as `pb_backend` the first time it is se
 | `Dockerfile` | Container image: Python 3.12 Alpine running server.py on port 8765 |
 | `fly.toml` | Fly.io app config: app `repro-sign-survey-frontend`, region `fra` |
 | `scripts/validate_data.py` | CI: validates data.json schema |
-| `tests/smoke.spec.js` | Playwright smoke tests (landing, review overview + detail, check overview + detail, datasets overview) |
+| `tests/smoke.spec.js` | Playwright smoke tests (landing, review overview + detail, check overview + detail, datasets/metrics overview + detail) |
 | `playwright.config.js` | Playwright config; auto-starts server.py for tests |
 | `package.json` | Dev dependencies: html-validate, @playwright/test |
 | `.github/workflows/ci.yml` | CI: syntax checks, JSON validation, HTML validation, Playwright |
@@ -85,7 +86,7 @@ The override is stored in `localStorage` as `pb_backend` the first time it is se
   - Save / Save & Next → marks as `final` (only if currently `needs_review`; flagged/rejected status is preserved).
   - Save & Next → advances to the next `needs_review` paper, skipping flagged/rejected/final.
   - Flag → opens a dialog to choose/enter a reason; stores `status: flagged` + `flag_reason`.
-  - Reject → opens a dialog to choose/enter a reason; stores `status: rejected` + `rejection_reason`.
+  - Reject → opens a dialog to choose/enter a reason (presets: "not in English", "no full text PDF", or free text); stores `status: rejected` + `rejection_reason`.
   - Flag and Reject buttons disable each other (clear/revert first).
   - "Clear flag" / "Revert rejection" / "Revert to needs review" link appears next to the badge to reset status.
   - Rejection/flag reason is folded into the badge text (`⚑ Flagged · <reason>`) and shown as a tooltip.
@@ -95,7 +96,7 @@ The override is stored in `localStorage` as `pb_backend` the first time it is se
   - Save & Next → advances to the next `needs_check` paper; falls back to `check-index.html` if none remain.
   - Flag → opens a dialog to choose/enter a reason; stores `status: flagged` + `flag_reason`.
   - "Clear flag" / "Revert to needs check" link resets to `needs_check`.
-  - **Form validation**: both yes/no questions (`has_empirical_results`, `is_sign_language_processing`) must be answered before Save / Save & Next become active.
+  - **Form validation**: `is_sign_language_processing` must always be answered; `has_empirical_results` is only shown (and required) when `is_sign_language_processing` is `yes`. Both must be answered before Save / Save & Next become active.
   - **Attribution**: every save (`persistPaper()`) writes the logged-in reviewer's email to `checked_by` (`check_papers` migration 10), regardless of status.
 - **Pre-filled fields** (title, year, venue in Reviewing; title, year, language in Checking): shown read-only, with a pencil button that makes the field editable; blur or Enter returns to display mode. In Checking, Title stays read-only — Year and Language are both editable this way.
 - **Checking source metadata** (from `check_papers` migration 9): `language` shows next to Title/Year and is reviewer-editable like Year. `filters` (automated screening-pipeline eligibility checks, e.g. `area`/`approach`) pre-selects the SLP and empirical-results radios when the reviewer hasn't answered yet — an "LLM suggested" badge marks these until the reviewer confirms by clicking or saving. `filter_explanations` is in the schema but not currently surfaced in the UI.
@@ -124,7 +125,7 @@ PB_TEST_EMAIL=<email> PB_TEST_PASSWORD=<password> npx playwright test
 
 Playwright tests require a running PocketBase backend and a valid user account. Pass credentials via environment variables — store them in a local `.env` file (gitignored) and source it, or pass inline as above. Without those variables the Playwright tests are skipped rather than failed (so CI still passes).
 
-Playwright tests cover (23 tests total):
+Playwright tests cover (19 tests total):
 - **Landing**: task cards render (4 cards), all task links present
 - **Review overview**: renders list/controls, search filters live, empty state, row click → `paper.html`
 - **Review detail**: core UI elements, Save → Final (idempotent: resets to `needs_review` first), ◀ ▶ navigation updates URL, back link → `review-index.html`
