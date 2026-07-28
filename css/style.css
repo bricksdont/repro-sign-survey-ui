@@ -375,6 +375,11 @@ body {
   text-decoration: underline;
 }
 
+.col-action {
+  width: 1%;
+  white-space: nowrap;
+}
+
 /* ── Metadata panel header ── */
 
 .meta-header {
@@ -706,7 +711,8 @@ body {
 
 /* ── Tag chips ── */
 
-.tag-container {
+.tag-container,
+.chip-container {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -714,7 +720,8 @@ body {
   margin-bottom: 8px;
 }
 
-.tag-container:empty {
+.tag-container:empty,
+.chip-container:empty {
   margin-bottom: 0;
 }
 
@@ -1217,71 +1224,7 @@ hr.field-divider {
   margin-bottom: 12px;
 }
 
-/* ── Dataset chip tooltip ── */
-
-.dataset-tooltip {
-  position: absolute;
-  z-index: 200;
-  background: #fff;
-  border: 1px solid #d0d0d0;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.13);
-  padding: 12px 14px;
-  min-width: 220px;
-  max-width: 340px;
-  pointer-events: auto;
-}
-
-.tt-name {
-  font-weight: 700;
-  font-size: 13px;
-  color: #111;
-  margin-bottom: 8px;
-}
-
-.tt-row {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  font-size: 12px;
-  color: #333;
-  margin-bottom: 4px;
-}
-
-.tt-label {
-  flex-shrink: 0;
-  width: 60px;
-  font-weight: 600;
-  color: #888;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.tt-link {
-  color: #2a6db5;
-  text-decoration: none;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: block;
-  min-width: 0;
-}
-
-.tt-link:hover {
-  text-decoration: underline;
-}
-
-.tt-muted {
-  color: #aaa;
-}
-
-/* ── Datasets modal ── */
-
-.modal-dialog-wide {
-  width: 580px;
-  max-width: calc(100vw - 48px);
-}
+/* ── Datasets / Metrics forms ── */
 
 .dataset-form {
   display: flex;
@@ -1368,35 +1311,51 @@ hr.field-divider {
   color: #666;
 }
 
-.col-action {
-  width: 1%;
-  white-space: nowrap;
+/* ── Detail page layout ── */
+
+.detail-form {
+  max-width: 560px;
+  margin-top: 24px;
 }
 
-.btn-edit-dataset {
-  padding: 4px 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background: #fff;
-  font-size: 12px;
-  cursor: pointer;
+.detail-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid #e8e8e8;
+  max-width: 560px;
 }
 
-.btn-edit-dataset:hover {
-  background: #f0f0f0;
+.detail-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.chip-link {
+.btn-primary-link {
+  display: inline-block;
+  text-decoration: none;
+  padding: 7px 16px;
+  background: #2a6db5;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.btn-primary-link:hover {
+  background: #225a9a;
+}
+
+.chip-detail-link {
   color: inherit;
   text-decoration: none;
-  max-width: 300px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: inline-block;
-  vertical-align: bottom;
 }
 
-.chip-link:hover {
+.chip-detail-link:hover {
   text-decoration: underline;
+  text-underline-offset: 2px;
 }
+

@@ -1,0 +1,211 @@
+// ── State ──────────────────────────────────────────────────────────────────
+
+let record = null; // null = new record
+let urlChips = [];
+let isReadOnly = false;
+let heartbeatInterval = null;
+
+// ── Bootstrap ─────────────────────────────────────────────────────────────
+
+async function init() {
+  requireAuth();
+  wireAccountMenu();
+
+  const id = new URLSearchParams(window.location.search).get('id');
+  if (id) {
+    record = await pbGet(`/api/collections/datasets/records/${id}`);
+    if (!record) return;
+    populateForm(record);
+    await acquireLock();
+  } else {
+    document.getElementById('breadcrumb-name').textContent = 'New Dataset';
+  }
+  wireEvents();
+}
+
+// ── Form ───────────────────────────────────────────────────────────────────
+
+function populateForm(r) {
+  document.getElementById('breadcrumb-name').textContent = r.name || 'Dataset';
+  document.title = `SLP Paper Survey — ${r.name || 'Dataset'}`;
+  document.getElementById('field-name').value     = r.name     || '';
+  document.getElementById('field-license').value  = r.license  || '';
+  document.getElementById('field-comments').value = r.comments || '';
+  urlChips = Array.isArray(r.url) ? [...r.url] : (r.url ? [r.url] : []);
+  renderUrlChips();
+  document.querySelectorAll('input[name="available"]').forEach(radio => {
+    radio.checked = radio.value === (r.available || '');
+  });
+}
+
+function renderUrlChips() {
+  const container = document.getElementById('url-chips');
+  container.innerHTML = '';
+  urlChips.forEach((url, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    const link = document.createElement('a');
+    link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer';
+    link.textContent = url; link.className = 'chip-link';
+    chip.appendChild(link);
+    const rm = document.createElement('button');
+    rm.className = 'chip-remove'; rm.innerHTML = '&times;'; rm.title = 'Remove';
+    rm.addEventListener('click', () => {
+      if (isReadOnly) return;
+      urlChips.splice(i, 1); renderUrlChips();
+    });
+    chip.appendChild(rm);
+    container.appendChild(chip);
+  });
+}
+
+function addUrlChip() {
+  if (isReadOnly) return;
+  const input = document.getElementById('url-input');
+  const val = input.value.trim();
+  if (val && !urlChips.includes(val)) { urlChips.push(val); renderUrlChips(); }
+  input.value = '';
+  input.focus();
+}
+
+// ── Save ───────────────────────────────────────────────────────────────────
+
+async function save() {
+  if (isReadOnly) return;
+  const name = document.getElementById('field-name').value.trim();
+  if (!name) { document.getElementById('field-name').focus(); return; }
+
+  const payload = {
+    name,
+    license:   document.getElementById('field-license').value.trim(),
+    url:       [...urlChips],
+    available: document.querySelector('input[name="available"]:checked')?.value || '',
+    comments:  document.getElementById('field-comments').value.trim(),
+  };
+
+  const saveBtn = document.getElementById('save-btn');
+  saveBtn.disabled = true;
+
+  let ok;
+  if (record) {
+    const result = await pbPatch(`/api/collections/datasets/records/${record.id}`, payload);
+    ok = result.ok;
+    if (ok) record = { ...record, ...payload };
+  } else {
+    const res = await fetch(`${PB_URL}/api/collections/datasets/records`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    ok = res.ok;
+    if (ok) {
+      record = await res.json();
+      history.replaceState(null, '', `?id=${record.id}`);
+      await acquireLock();
+    }
+  }
+
+  saveBtn.disabled = false;
+  if (ok) {
+    document.getElementById('breadcrumb-name').textContent = name;
+    document.title = `SLP Paper Survey — ${name}`;
+    const confirm = document.getElementById('save-confirm');
+    confirm.classList.remove('hidden');
+    setTimeout(() => confirm.classList.add('hidden'), 2000);
+  }
+}
+
+// ── Edit locking ───────────────────────────────────────────────────────────
+
+function isLockExpired(r) {
+  if (!r.locked_at) return true;
+  return (Date.now() - new Date(r.locked_at).getTime()) > 30 * 60 * 1000;
+}
+
+async function acquireLock() {
+  if (!record) return;
+  const ours    = record.locked_by === getUserId();
+  const expired = isLockExpired(record);
+  if (record.locked_by && !ours && !expired) { setReadOnly(true); return; }
+
+  const { ok } = await pbPatch(
+    `/api/collections/datasets/records/${record.id}`,
+    { locked_by: getUserId(), locked_at: new Date().toISOString() }
+  );
+  if (!ok) setReadOnly(true);
+  else startHeartbeat();
+}
+
+async function releaseLock() {
+  stopHeartbeat();
+  if (!record || isReadOnly) return;
+  await pbPatch(`/api/collections/datasets/records/${record.id}`,
+    { locked_by: '', locked_at: null });
+}
+
+function startHeartbeat() {
+  stopHeartbeat();
+  heartbeatInterval = setInterval(() => {
+    if (record) pbPatch(`/api/collections/datasets/records/${record.id}`,
+      { locked_at: new Date().toISOString() });
+  }, 60_000);
+}
+
+function stopHeartbeat() {
+  if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
+}
+
+function setReadOnly(ro) {
+  isReadOnly = ro;
+  document.getElementById('locked-notice').classList.toggle('hidden', !ro);
+  ['field-name', 'field-license', 'url-input', 'field-comments'].forEach(id => {
+    document.getElementById(id).disabled = ro;
+  });
+  document.querySelectorAll('input[name="available"]').forEach(r => r.disabled = ro);
+  document.getElementById('add-url-btn').disabled = ro;
+  document.getElementById('save-btn').disabled    = ro;
+}
+
+// ── Account menu ───────────────────────────────────────────────────────────
+
+function wireAccountMenu() {
+  document.getElementById('account-email').textContent =
+    getEmail() || getUserId() || 'Unknown user';
+  document.getElementById('account-btn').addEventListener('click', e => {
+    e.stopPropagation();
+    document.getElementById('account-dropdown').classList.toggle('hidden');
+  });
+  document.getElementById('logout-btn').addEventListener('click', () => {
+    logout(); window.location.href = 'login.html';
+  });
+  document.addEventListener('click', () => {
+    document.getElementById('account-dropdown').classList.add('hidden');
+  });
+}
+
+// ── Events ─────────────────────────────────────────────────────────────────
+
+function wireEvents() {
+  document.getElementById('save-btn').addEventListener('click', save);
+  document.getElementById('add-url-btn').addEventListener('click', addUrlChip);
+  document.getElementById('url-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addUrlChip();
+  });
+  document.getElementById('field-name').addEventListener('keydown', e => {
+    if (e.key === 'Enter') save();
+  });
+}
+
+window.addEventListener('beforeunload', () => {
+  if (!record || isReadOnly) return;
+  stopHeartbeat();
+  fetch(`${PB_URL}/api/collections/datasets/records/${record.id}`, {
+    method: 'PATCH', keepalive: true,
+    headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ locked_by: '', locked_at: null }),
+  });
+});
+
+// ── Start ──────────────────────────────────────────────────────────────────
+
+init();
