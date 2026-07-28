@@ -13,22 +13,26 @@ A landing page routes annotators to either task. Each task has its own overview 
 ## Features
 
 - Landing page with task cards routing to Reviewing, Checking, the Datasets catalogue, and the Metrics catalogue
-- Breadcrumb navigation (`Home → Reviewing` / `Home → Checking` / `Home → Datasets`) on all task pages
+- Breadcrumb navigation (`Home → Reviewing` / `Home → Checking` / `Home → Datasets` / `Home → Metrics`) on all task pages
 
 **Reviewing task** — add reproducibility metadata to papers:
 - Overview with paper list, status badges (Needs Review / Final / Flagged / Rejected), stats
 - Search by paper ID or title; filter by status; live result count; "Review Next →" for a random unreviewed paper
 - Detail page: native browser PDF viewer (text selection, zoom, full controls) + metadata form
 - Pre-filled fields (title, year, venue) shown read-only with one-click pencil editing
-- Tag chip inputs for datasets, metrics, and code repositories (with autocomplete); code repo chips are clickable links
-- Status workflow: Save / Save & Next → Final; Flag → reason dialog (`flagged`); Reject → reason dialog (`rejected`); inline clear/revert links
+- Tag chip inputs for datasets, metrics, and code repositories (with autocomplete); code repo chips are clickable links; dataset/metric chips link to their detail page
+- N/A confirm toggles for Code Repositories ("no repositories available") and Compute Requirements ("not specified in paper") — disables the input and saves `"N/A"` instead of an empty list/text
+- Status workflow: Save / Save & Next → Final; Flag → reason dialog (`flagged`); Reject → reason dialog (`rejected`, presets: "not in English", "no full text PDF"); inline clear/revert links
 - Flag and reject reasons shown in the status badge text and as a tooltip
+- Reviewer attribution: the logged-in email is saved to `reviewed_by` on every save and shown next to the status badge once the paper is Final, Flagged, or Rejected
 
 **Checking task** — verify paper scope in an independent paper set:
 - Overview with paper list, status badges (Needs Check / Flagged / Checked), stats; "Check Next →"
-- Detail page: two yes/no questions — "Paper has empirical results" and "Paper is on Sign Language Processing"
-- Both questions must be answered before Save / Save & Next become active
+- Detail page: left panel shows the paper's abstract (plain text) when available, falling back to the PDF viewer otherwise
+- Two scope questions: "Paper is on Sign Language Processing" (always shown); "Paper has empirical results" (only shown when SLP = Yes); both must be answered before Save / Save & Next become active
+- Language field (editable), pre-filled from the screening pipeline; LLM-suggested answers for the scope questions are pre-filled and marked with an "LLM suggested" badge until confirmed by the reviewer
 - Status workflow: Save / Save & Next → Checked; Flag → reason dialog; inline clear link
+- Reviewer attribution: logged-in email saved to `checked_by` on every save, shown next to the Checked/Flagged badge
 
 **Datasets catalogue** — manage the shared pool of datasets referenced in reviews:
 - Overview table with name, license, availability badge, and URL; clicking a row opens the dataset detail page
@@ -46,7 +50,7 @@ A landing page routes annotators to either task. Each task has its own overview 
 - Paper navigation (◀ ▶); each paper has a stable URL with a one-click Copy link button
 - Saves to a shared PocketBase backend — changes are immediately visible to all annotators
 - Edit locking: only one annotator can edit a paper at a time; others see a read-only notice
-- Auth: login with a PocketBase user account; token stored in `localStorage` with a 24-hour expiry, shared across tabs so copied paper links open without re-login
+- Auth: login with email/password or "Sign in with Slack" (OAuth2); token stored in `localStorage` with a 24-hour expiry, shared across tabs so copied paper links open without re-login
 - Account menu: shows logged-in email and a logout button
 
 ## Metadata fields
@@ -55,22 +59,30 @@ A landing page routes annotators to either task. Each task has its own overview 
 
 | Field | Notes |
 |-------|-------|
-| Title | Free text |
-| Year | Integer |
-| Venue | Conference/workshop abbreviation (e.g. EMNLP, ACL) |
-| Peer-Reviewed | Yes / No radio |
-| Code Repositories | Multi-value URL list; entries are clickable links |
-| Datasets | Multi-value tag list with autocomplete; chips show a ↗ link to the dataset detail page |
-| Metrics | Multi-value tag list with autocomplete backed by the `metrics` collection; chips show a ↗ link to the metric detail page |
+| Title | Free text (pencil edit) |
+| Year | Integer (pencil edit) |
+| Venue | Conference/workshop abbreviation, e.g. EMNLP, ACL (pencil edit) |
+| Peer-Reviewed | Yes / No / N/A radio |
+| Code Repositories | Multi-value URL list; entries are clickable links; N/A confirm toggle available |
+| Datasets | Multi-value tag list with autocomplete; chips link to the dataset detail page |
+| Metrics | Multi-value tag list with autocomplete; chips link to the metric detail page |
+| Area of SLP | Chip list with autocomplete from 12 fixed sub-areas (e.g. Translation, Recognition); any custom value also accepted |
+| Has Ranking | Yes / No radio (initially unanswered) |
+| Human Evaluation | Yes / No radio (initially unanswered) |
+| What to Reproduce | Free-text textarea |
+| Compute Requirements | Free-text textarea; N/A confirm toggle available |
+| Textual Conclusion | Free-text textarea |
+| Potential Ethical Concerns | Yes / No radio (optional) |
 
 ### Checking
 
 | Field | Notes |
 |-------|-------|
 | Title | Read-only display |
-| Year | Read-only display |
-| Paper has empirical results | Yes / No radio (required before Save) |
-| Paper is on Sign Language Processing | Yes / No radio (required before Save) |
+| Year | Editable (pencil button) |
+| Language | Editable (pencil button); pre-filled from screening pipeline |
+| Paper is on Sign Language Processing | Yes / No radio (required before Save; may be pre-filled by LLM filter) |
+| Paper has empirical results | Yes / No radio (only shown when SLP = Yes; required before Save; may be pre-filled by LLM filter) |
 
 ## Deployment
 
@@ -99,7 +111,7 @@ Run the local server only if you need to develop or test the frontend:
 python3 server.py
 ```
 
-Then open [http://localhost:8765](http://localhost:8765). You will be redirected to a login page — enter your PocketBase email and password. The token is stored in `localStorage` and expires after 24 hours.
+Then open [http://localhost:8765](http://localhost:8765). You will be redirected to a login page — enter your PocketBase email and password, or use "Sign in with Slack". The token is stored in `localStorage` and expires after 24 hours.
 
 `server.py` is a small wrapper around Python's built-in HTTP server that adds a `/pdf/<id>.pdf?url=<encoded>` proxy endpoint. This lets the browser's native PDF viewer embed PDFs from any host (including OpenReview, which sets `X-Frame-Options: SAMEORIGIN`) by fetching them server-side and stripping restrictive headers.
 
