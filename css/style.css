@@ -867,14 +867,19 @@ hr.field-divider {
   cursor: not-allowed;
 }
 
+.info-wrap {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
 .info-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  position: relative;
   width: 15px;
   height: 15px;
-  margin-left: 4px;
   padding: 0;
   border: none;
   background: none;
@@ -882,7 +887,6 @@ hr.field-divider {
   font-size: 14px;
   line-height: 1;
   cursor: help;
-  vertical-align: middle;
 }
 
 .info-btn:hover,
@@ -890,8 +894,7 @@ hr.field-divider {
   color: #555;
 }
 
-.info-btn::after {
-  content: attr(data-tooltip);
+.info-popup {
   position: absolute;
   bottom: 130%;
   left: 50%;
@@ -914,8 +917,8 @@ hr.field-divider {
   z-index: 200;
 }
 
-.info-btn:hover::after,
-.info-btn:focus::after {
+.info-btn:hover + .info-popup,
+.info-btn:focus + .info-popup {
   opacity: 1;
 }
 
