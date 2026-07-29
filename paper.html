@@ -86,6 +86,37 @@
         </div>
       </div>
 
+      <!-- Area of SLP -->
+      <div class="field-group">
+        <label>Area of SLP</label>
+        <div class="tag-container" id="area-of-slp-container"></div>
+        <div class="tag-input-wrapper">
+          <div class="tag-input-row">
+            <input type="text" id="area-of-slp-input" placeholder="Add area…" autocomplete="off">
+            <button id="add-area-of-slp-btn">+ Add</button>
+          </div>
+          <div id="area-of-slp-suggestions" class="suggestions-dropdown hidden"></div>
+        </div>
+      </div>
+
+      <!-- Ethical concerns -->
+      <div class="field-group">
+        <label class="field-label-primary">
+          Potential Ethical Concerns
+          <span class="info-wrap"><button type="button" class="info-btn" aria-label="Info">&#9432;</button><span class="info-popup">Choose yes if the paper uses e.g. derogatory / ableist language.</span></span>
+        </label>
+        <div class="radio-row">
+          <label class="radio-option">
+            <input type="radio" name="ethical-concerns" value="yes"> Yes
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="ethical-concerns" value="no"> No
+          </label>
+        </div>
+      </div>
+
+      <hr class="field-divider">
+
       <!-- Code repositories -->
       <div class="field-group">
         <label>Code Repositories</label>
@@ -127,19 +158,6 @@
 
       <hr class="field-divider">
 
-      <!-- Area of SLP -->
-      <div class="field-group">
-        <label>Area of SLP</label>
-        <div class="tag-container" id="area-of-slp-container"></div>
-        <div class="tag-input-wrapper">
-          <div class="tag-input-row">
-            <input type="text" id="area-of-slp-input" placeholder="Add area…" autocomplete="off">
-            <button id="add-area-of-slp-btn">+ Add</button>
-          </div>
-          <div id="area-of-slp-suggestions" class="suggestions-dropdown hidden"></div>
-        </div>
-      </div>
-
       <!-- Main experiment has a ranking -->
       <div class="field-group">
         <label class="field-label-primary">Main Experiment Has a Ranking</label>
@@ -149,6 +167,22 @@
           </label>
           <label class="radio-option">
             <input type="radio" name="has-ranking" value="no"> No
+          </label>
+        </div>
+      </div>
+
+      <!-- Copied baseline scores -->
+      <div class="field-group">
+        <label class="field-label-primary">
+          Copied Baseline Scores
+          <span class="info-wrap"><button type="button" class="info-btn" aria-label="Info">&#9432;</button><span class="info-popup">Yes if at least one score of the main experiment is copied from a different paper.</span></span>
+        </label>
+        <div class="radio-row">
+          <label class="radio-option">
+            <input type="radio" name="copied-scores" value="yes"> Yes
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="copied-scores" value="no"> No
           </label>
         </div>
       </div>
@@ -170,7 +204,7 @@
       <div class="field-group">
         <label class="field-label-primary">
           What to Reproduce
-          <button type="button" class="info-btn" aria-label="Info" data-tooltip="Insert pointer to table(s) or figure(s) that team R has to reproduce.">&#9432;</button>
+          <span class="info-wrap"><button type="button" class="info-btn" aria-label="Info">&#9432;</button><span class="info-popup">Insert pointer to table(s) or figure(s) that team R has to reproduce.</span></span>
         </label>
         <textarea id="input-what-to-reproduce" class="field-textarea" rows="3" placeholder="e.g. Table 3, Figure 2"></textarea>
       </div>
@@ -179,7 +213,7 @@
       <div class="field-group">
         <label class="field-label-primary">
           Compute Requirements
-          <button type="button" class="info-btn" aria-label="Info" data-tooltip="Leave empty if not specified in paper.">&#9432;</button>
+          <span class="info-wrap"><button type="button" class="info-btn" aria-label="Info">&#9432;</button><span class="info-popup">Leave empty if not specified in paper.</span></span>
         </label>
         <textarea id="input-compute-requirements" class="field-textarea" rows="2" placeholder="e.g. 4x V100 GPUs, 48 hours"></textarea>
         <button type="button" id="compute-requirements-na-btn" class="na-toggle-btn" aria-pressed="false">
@@ -191,22 +225,6 @@
       <div class="field-group">
         <label class="field-label-primary">Textual Conclusion</label>
         <textarea id="input-textual-conclusion" class="field-textarea" rows="4" placeholder="Copy-paste the main conclusion from the paper"></textarea>
-      </div>
-
-      <!-- Ethical concerns -->
-      <div class="field-group">
-        <label class="field-label-primary">
-          Potential Ethical Concerns
-          <button type="button" class="info-btn" aria-label="Info" data-tooltip="Choose yes if the paper uses e.g. derogatory / ableist language.">&#9432;</button>
-        </label>
-        <div class="radio-row">
-          <label class="radio-option">
-            <input type="radio" name="ethical-concerns" value="yes"> Yes
-          </label>
-          <label class="radio-option">
-            <input type="radio" name="ethical-concerns" value="no"> No
-          </label>
-        </div>
       </div>
 
       <div class="form-footer">
