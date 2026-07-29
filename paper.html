@@ -86,6 +86,37 @@
         </div>
       </div>
 
+      <!-- Area of SLP -->
+      <div class="field-group">
+        <label>Area of SLP</label>
+        <div class="tag-container" id="area-of-slp-container"></div>
+        <div class="tag-input-wrapper">
+          <div class="tag-input-row">
+            <input type="text" id="area-of-slp-input" placeholder="Add area…" autocomplete="off">
+            <button id="add-area-of-slp-btn">+ Add</button>
+          </div>
+          <div id="area-of-slp-suggestions" class="suggestions-dropdown hidden"></div>
+        </div>
+      </div>
+
+      <!-- Ethical concerns -->
+      <div class="field-group">
+        <label class="field-label-primary">
+          Potential Ethical Concerns
+          <span class="info-wrap"><button type="button" class="info-btn" aria-label="Info">&#9432;</button><span class="info-popup">Choose yes if the paper uses e.g. derogatory / ableist language.</span></span>
+        </label>
+        <div class="radio-row">
+          <label class="radio-option">
+            <input type="radio" name="ethical-concerns" value="yes"> Yes
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="ethical-concerns" value="no"> No
+          </label>
+        </div>
+      </div>
+
+      <hr class="field-divider">
+
       <!-- Code repositories -->
       <div class="field-group">
         <label>Code Repositories</label>
@@ -122,21 +153,6 @@
             <button id="add-metric-btn">+ Add</button>
           </div>
           <div id="metric-suggestions" class="suggestions-dropdown hidden"></div>
-        </div>
-      </div>
-
-      <hr class="field-divider">
-
-      <!-- Area of SLP -->
-      <div class="field-group">
-        <label>Area of SLP</label>
-        <div class="tag-container" id="area-of-slp-container"></div>
-        <div class="tag-input-wrapper">
-          <div class="tag-input-row">
-            <input type="text" id="area-of-slp-input" placeholder="Add area…" autocomplete="off">
-            <button id="add-area-of-slp-btn">+ Add</button>
-          </div>
-          <div id="area-of-slp-suggestions" class="suggestions-dropdown hidden"></div>
         </div>
       </div>
 
@@ -207,22 +223,6 @@
       <div class="field-group">
         <label class="field-label-primary">Textual Conclusion</label>
         <textarea id="input-textual-conclusion" class="field-textarea" rows="4" placeholder="Copy-paste the main conclusion from the paper"></textarea>
-      </div>
-
-      <!-- Ethical concerns -->
-      <div class="field-group">
-        <label class="field-label-primary">
-          Potential Ethical Concerns
-          <span class="info-wrap"><button type="button" class="info-btn" aria-label="Info">&#9432;</button><span class="info-popup">Choose yes if the paper uses e.g. derogatory / ableist language.</span></span>
-        </label>
-        <div class="radio-row">
-          <label class="radio-option">
-            <input type="radio" name="ethical-concerns" value="yes"> Yes
-          </label>
-          <label class="radio-option">
-            <input type="radio" name="ethical-concerns" value="no"> No
-          </label>
-        </div>
       </div>
 
       <div class="form-footer">
