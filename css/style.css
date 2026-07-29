@@ -856,6 +856,11 @@ hr.field-divider {
   text-transform: none !important;
   letter-spacing: 0 !important;
   color: #222 !important;
+  pointer-events: none;
+}
+
+.field-label-primary .info-btn {
+  pointer-events: auto;
 }
 
 .radio-option.disabled {
