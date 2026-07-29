@@ -196,7 +196,7 @@ function populateForm(p) {
   updateComputeRequirementsNAButton();
 
   document.querySelectorAll('input[name="ethical-concerns"]').forEach(r => {
-    r.checked = r.value === p.paper_raises_ethical_concerns;
+    r.checked = r.value === p.potential_ethical_concerns;
   });
 
   // Support old single-string code_repo field from earlier localStorage entries
@@ -398,7 +398,7 @@ function collectFormState() {
     what_to_reproduce:    document.getElementById('input-what-to-reproduce').value.trim(),
     compute_requirements: computeRequirementsNA ? 'N/A' : document.getElementById('input-compute-requirements').value.trim(),
     textual_conclusion:   document.getElementById('input-textual-conclusion').value.trim(),
-    paper_raises_ethical_concerns: ethicalConcernsChecked ? ethicalConcernsChecked.value : '',
+    potential_ethical_concerns: ethicalConcernsChecked ? ethicalConcernsChecked.value : '',
   };
 }
 
@@ -433,7 +433,7 @@ async function persistPaper(index, extra = {}) {
       what_to_reproduce:           data.what_to_reproduce    || '',
       compute_requirements:        data.compute_requirements || '',
       textual_conclusion:          data.textual_conclusion   || '',
-      paper_raises_ethical_concerns: data.paper_raises_ethical_concerns || '',
+      potential_ethical_concerns: data.potential_ethical_concerns || '',
     }
   );
   if (!ok && status === 404) showLockedNotice();
