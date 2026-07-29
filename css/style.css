@@ -891,7 +891,7 @@ hr.field-divider {
   color: #999;
   font-size: 14px;
   line-height: 1;
-  cursor: help;
+  cursor: default;
 }
 
 .info-btn:hover,
