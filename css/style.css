@@ -1192,6 +1192,46 @@ hr.field-divider {
   margin-bottom: 16px;
 }
 
+.status-history-dialog {
+  width: 520px;
+}
+
+.status-history-list {
+  max-height: 360px;
+  overflow-y: auto;
+  margin: 12px 0 20px;
+}
+
+.status-history-row {
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 13px;
+  color: #444;
+  line-height: 1.6;
+}
+
+.status-history-row:last-child {
+  border-bottom: none;
+}
+
+.status-history-who {
+  font-weight: 600;
+  color: #222;
+}
+
+.status-history-when {
+  display: block;
+  font-size: 12px;
+  color: #999;
+  margin-top: 2px;
+}
+
+.status-history-empty {
+  color: #999;
+  font-size: 13px;
+  padding: 8px 0;
+}
+
 .reject-options {
   display: flex;
   flex-direction: column;
