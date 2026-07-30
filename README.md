@@ -12,7 +12,7 @@ A landing page routes annotators to either task. Each task has its own overview 
 
 ## Features
 
-- Landing page with task cards routing to Reviewing, Checking, the Datasets catalogue, the Metrics catalogue, and the Stats dashboard
+- Landing page with task cards routing to Reviewing, Checking, the Datasets catalogue, the Metrics catalogue, and the Review Stats dashboard
 - Version badge (`v<version>`) in the corner of the landing page, linking to the matching GitHub release
 - Breadcrumb navigation (`Home → Reviewing` / `Home → Checking` / `Home → Datasets` / `Home → Metrics`) on all task pages
 
@@ -48,7 +48,7 @@ A landing page routes annotators to either task. Each task has its own overview 
 - Detail page has fields for name, URLs (chip list), and comments; same edit locking pattern as datasets
 - Metric chips on the review detail page show a ↗ icon that opens the metric detail page in a new tab
 
-**Stats dashboard** — reviewing progress at a glance:
+**Review Stats dashboard** — reviewing progress at a glance (named to distinguish it from any future Checking-task stats):
 - Total paper count and a status breakdown bar chart (Needs Review / Final / Flagged / Rejected)
 - Top finalizers by email (counted from `final` papers only)
 - Top datasets and top metrics used across all papers, linking to their catalogue detail pages

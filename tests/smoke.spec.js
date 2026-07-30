@@ -295,7 +295,7 @@ test.describe('Dataset detail page', () => {
   });
 });
 
-test.describe('Stats page', () => {
+test.describe('Review Stats page', () => {
   test('renders all breakdown sections', async ({ page }) => {
     await page.goto('/stats.html');
     await expect(page.locator('#stats-summary')).toContainText('papers total');
