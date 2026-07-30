@@ -91,7 +91,9 @@ test.describe('Review detail page', () => {
     const originalVenue = record.venue || '';
 
     await page.goto('/paper.html?id=emnlp-2024-518');
-    await page.click('#edit-venue');
+    // The pencil-edit button only shows when the field already has a value —
+    // when empty, the input is already visible in edit mode.
+    if (await page.locator('#edit-venue').isVisible()) await page.click('#edit-venue');
     await page.fill('#input-venue', 'AUTOSAVE-TEST-VENUE');
     await page.locator('#input-venue').press('Enter');
     await expect(page.locator('#save-indicator')).toContainText('Saved', { timeout: 5000 });
