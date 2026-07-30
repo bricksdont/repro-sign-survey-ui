@@ -92,6 +92,10 @@ test.describe('Review detail page', () => {
     const originalVenue = record.venue || '';
 
     await page.goto('/paper.html?id=emnlp-2024-518');
+    // Title is always populated for a real paper, so waiting for its display
+    // confirms populateForm() has actually run before we inspect other
+    // fields — otherwise display/input elements can still be mid-toggle.
+    await expect(page.locator('#display-title')).toBeVisible();
     // The pencil-edit button only shows when the field already has a value —
     // when empty, the input is already visible in edit mode.
     if (await page.locator('#edit-venue').isVisible()) await page.click('#edit-venue');
