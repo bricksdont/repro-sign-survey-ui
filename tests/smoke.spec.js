@@ -72,13 +72,13 @@ test.describe('Review detail page', () => {
     await page.goto('/paper.html?id=emnlp-2024-518');
     await expect(page.locator('#pdf-iframe')).toBeVisible();
     await expect(page.locator('#status-badge')).toBeVisible();
-    await expect(page.locator('#save-btn')).toBeVisible();
-    await expect(page.locator('#save-next-btn')).toBeVisible();
+    await expect(page.locator('#finalize-btn')).toBeVisible();
+    await expect(page.locator('#finalize-next-btn')).toBeVisible();
     await expect(page.locator('#flag-btn')).toBeVisible();
     await expect(page.locator('#reject-btn')).toBeVisible();
   });
 
-  test('Save marks paper as Final', async ({ page }) => {
+  test('autosave persists a field change without finalizing', async ({ page }) => {
     await page.goto('/login.html');
     const token = await page.evaluate(() => localStorage.getItem('pb_token'));
     const listRes = await page.request.get(
@@ -86,25 +86,103 @@ test.describe('Review detail page', () => {
       { headers: { Authorization: `Bearer ${token}` } }
     );
     const { items } = await listRes.json();
-    const pbId = items[0]?.id;
+    const record = items[0];
+    test.skip(!record, 'Fixture paper not found — skipping');
+    const originalVenue = record.venue || '';
 
-    async function setStatus(status) {
-      if (!pbId) return;
+    await page.goto('/paper.html?id=emnlp-2024-518');
+    await page.click('#edit-venue');
+    await page.fill('#input-venue', 'AUTOSAVE-TEST-VENUE');
+    await page.locator('#input-venue').press('Enter');
+    await expect(page.locator('#save-indicator')).toContainText('Saved', { timeout: 5000 });
+
+    const checkRes = await page.request.get(
+      `http://localhost:8090/api/collections/papers/records/${record.id}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const updated = await checkRes.json();
+    expect(updated.venue).toBe('AUTOSAVE-TEST-VENUE');
+    expect(updated.status).toBe(record.status || 'needs_review'); // autosave never changes status
+
+    await page.request.patch( // restore — leave no permanent side effects
+      `http://localhost:8090/api/collections/papers/records/${record.id}`,
+      {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        data: { venue: originalVenue },
+      }
+    );
+  });
+
+  test('Finalize is disabled until all required fields are filled, then marks paper as Final', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+
+    const papersRes = await page.request.get(
+      'http://localhost:8090/api/collections/papers/records?filter=(paper_id="emnlp-2024-518")',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const { items } = await papersRes.json();
+    const record = items[0];
+    test.skip(!record, 'Fixture paper not found — skipping');
+
+    const [datasetsRes, metricsRes] = await Promise.all([
+      page.request.get('http://localhost:8090/api/collections/datasets/records?perPage=1',
+        { headers: { Authorization: `Bearer ${token}` } }),
+      page.request.get('http://localhost:8090/api/collections/metrics/records?perPage=1',
+        { headers: { Authorization: `Bearer ${token}` } }),
+    ]);
+    const datasetId = (await datasetsRes.json()).items[0]?.id;
+    const metricId  = (await metricsRes.json()).items[0]?.id;
+    test.skip(!datasetId || !metricId, 'No datasets/metrics in backend — skipping');
+
+    async function patchPaper(data) {
       await page.request.patch(
-        `http://localhost:8090/api/collections/papers/records/${pbId}`,
-        {
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          data: { status },
-        }
+        `http://localhost:8090/api/collections/papers/records/${record.id}`,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, data }
       );
     }
 
-    await setStatus('needs_review');
+    await patchPaper({
+      status: 'needs_review',
+      title: record.title || 'Test Paper',
+      year: record.year || 2024,
+      peer_reviewed: 'yes',
+      code_repos: 'N/A',
+      datasets: [datasetId],
+      metrics: [metricId],
+      area_of_slp: ['Translation'],
+      main_experiment_has_ranking: 'yes',
+      copied_scores: 'no',
+      includes_human_evaluation: 'no',
+      compute_requirements: 'N/A',
+      textual_conclusion: 'Test conclusion.',
+      potential_ethical_concerns: 'no',
+      finalized_by: '',
+    });
+
     await page.goto('/paper.html?id=emnlp-2024-518');
     await expect(page.locator('#status-badge')).toContainText('Needs Review');
-    await page.click('#save-btn');
+    await expect(page.locator('#finalize-btn')).toBeEnabled();
+    await page.click('#finalize-btn');
     await expect(page.locator('#status-badge')).toContainText('Final');
-    await setStatus('needs_review'); // restore — leave no permanent side effects
+
+    await patchPaper({ // restore — leave no permanent side effects
+      status:                      record.status || 'needs_review',
+      title:                       record.title,
+      year:                        record.year,
+      peer_reviewed:               record.peer_reviewed || '',
+      code_repos:                  record.code_repos || [],
+      datasets:                    record.datasets || [],
+      metrics:                     record.metrics || [],
+      area_of_slp:                 record.area_of_slp || [],
+      main_experiment_has_ranking: record.main_experiment_has_ranking || '',
+      copied_scores:               record.copied_scores || '',
+      includes_human_evaluation:   record.includes_human_evaluation || '',
+      compute_requirements:        record.compute_requirements || '',
+      textual_conclusion:          record.textual_conclusion || '',
+      potential_ethical_concerns:  record.potential_ethical_concerns || '',
+      finalized_by:                record.finalized_by || '',
+    });
   });
 
   test('paper navigation updates URL', async ({ page }) => {
