@@ -116,6 +116,20 @@ body {
   color: #111;
 }
 
+.version-badge {
+  position: fixed;
+  right: 16px;
+  bottom: 12px;
+  font-size: 12px;
+  color: #999;
+  text-decoration: none;
+}
+
+.version-badge:hover {
+  color: #666;
+  text-decoration: underline;
+}
+
 .task-cards {
   display: flex;
   gap: 20px;

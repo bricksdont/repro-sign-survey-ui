@@ -13,6 +13,7 @@ A landing page routes annotators to either task. Each task has its own overview 
 ## Features
 
 - Landing page with task cards routing to Reviewing, Checking, the Datasets catalogue, and the Metrics catalogue
+- Version badge (`v<version>`) in the corner of the landing page, linking to the matching GitHub release
 - Breadcrumb navigation (`Home → Reviewing` / `Home → Checking` / `Home → Datasets` / `Home → Metrics`) on all task pages
 
 **Reviewing task** — add reproducibility metadata to papers:
@@ -153,6 +154,17 @@ PB_TEST_EMAIL=you@example.com PB_TEST_PASSWORD=yourpassword npx playwright test
 ```
 
 The Playwright tests auto-start `server.py` on port 8765 (or reuse an already-running instance) and authenticate against PocketBase before each test. Without the `PB_TEST_EMAIL` / `PB_TEST_PASSWORD` environment variables the tests are skipped rather than failed, so CI passes without a backend.
+
+### Releasing
+
+`package.json`'s `version` field is the single source of truth for the version badge shown on the landing page. Cut a release with:
+
+```bash
+npm version patch   # or minor / major
+git push --follow-tags
+```
+
+`npm version` bumps `package.json`, commits it, and creates the matching `vX.Y.Z` git tag in one step, so the two can never drift apart.
 
 ## Running without a backend
 
