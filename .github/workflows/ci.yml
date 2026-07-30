@@ -30,7 +30,7 @@ jobs:
 
       - name: JS syntax
         run: |
-          for f in js/api.js js/review/app.js js/review/overview.js js/check/check-app.js js/check/check-overview.js js/datasets/datasets-overview.js js/datasets/dataset-detail.js js/metrics/metrics-overview.js js/metrics/metric-detail.js; do
+          for f in js/api.js js/review/app.js js/review/overview.js js/check/check-app.js js/check/check-overview.js js/datasets/datasets-overview.js js/datasets/dataset-detail.js js/metrics/metrics-overview.js js/metrics/metric-detail.js js/stats/stats.js; do
             node --check "$f" && echo "✓ $f OK"
           done
 

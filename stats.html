@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SLP Paper Survey — Stats</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="overview stats-page">
+    <div class="overview-header">
+      <nav class="breadcrumb">
+        <a href="index.html" class="breadcrumb-link">Home</a>
+        <span class="breadcrumb-sep">&#8594;</span>
+        <span class="breadcrumb-current">Stats</span>
+      </nav>
+      <div class="header-actions">
+        <div class="account-menu">
+          <button id="account-btn" class="btn-account">Account</button>
+          <div id="account-dropdown" class="account-dropdown hidden">
+            <div id="account-email" class="account-email"></div>
+            <hr class="account-divider">
+            <button id="logout-btn" class="btn-logout">Log out</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="stats-summary" class="stats-row"></div>
+
+    <div class="stats-section">
+      <div class="stats-section-title">Status Breakdown</div>
+      <div id="status-breakdown"></div>
+    </div>
+
+    <div class="stats-section">
+      <div class="stats-section-title">Top Finalizers</div>
+      <div id="top-finalizers"></div>
+    </div>
+
+    <div class="stats-section">
+      <div class="stats-section-title">Top Datasets</div>
+      <div id="top-datasets"></div>
+    </div>
+
+    <div class="stats-section">
+      <div class="stats-section-title">Top Metrics</div>
+      <div id="top-metrics"></div>
+    </div>
+
+    <div class="stats-section">
+      <div class="stats-section-title">Papers by Area of SLP</div>
+      <div id="area-breakdown"></div>
+    </div>
+
+    <div class="stats-section">
+      <div class="stats-section-title">Answered Fields</div>
+      <table class="stats-table">
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>Yes</th>
+            <th>No</th>
+            <th>N/A</th>
+            <th>Unanswered</th>
+          </tr>
+        </thead>
+        <tbody id="fields-breakdown"></tbody>
+      </table>
+    </div>
+  </div>
+  <script src="js/api.js"></script>
+  <script src="js/stats/stats.js"></script>
+</body>
+</html>

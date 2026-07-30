@@ -12,7 +12,7 @@ A landing page routes annotators to either task. Each task has its own overview 
 
 ## Features
 
-- Landing page with task cards routing to Reviewing, Checking, the Datasets catalogue, and the Metrics catalogue
+- Landing page with task cards routing to Reviewing, Checking, the Datasets catalogue, the Metrics catalogue, and the Stats dashboard
 - Version badge (`v<version>`) in the corner of the landing page, linking to the matching GitHub release
 - Breadcrumb navigation (`Home → Reviewing` / `Home → Checking` / `Home → Datasets` / `Home → Metrics`) on all task pages
 
@@ -47,6 +47,14 @@ A landing page routes annotators to either task. Each task has its own overview 
 - "+ Add Metric" navigates to a blank detail page; saving POSTs a new record and updates the URL to `?id=<id>`
 - Detail page has fields for name, URLs (chip list), and comments; same edit locking pattern as datasets
 - Metric chips on the review detail page show a ↗ icon that opens the metric detail page in a new tab
+
+**Stats dashboard** — reviewing progress at a glance:
+- Total paper count and a status breakdown bar chart (Needs Review / Final / Flagged / Rejected)
+- Top finalizers by email (counted from `final` papers only)
+- Top datasets and top metrics used across all papers, linking to their catalogue detail pages
+- Breakdown of papers by Area of SLP
+- A compact Yes/No/N-A/Unanswered table for Peer-Reviewed, Ranking, Copied Baseline Scores, Human Evaluation, and Ethical Concerns
+- Computed entirely client-side from the `papers` collection — no backend aggregation endpoint, no charting library
 
 **Shared features:**
 - Paper navigation (◀ ▶); each paper has a stable URL with a one-click Copy link button

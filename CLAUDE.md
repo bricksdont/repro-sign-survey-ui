@@ -49,6 +49,7 @@ The override is stored in `localStorage` as `pb_backend` the first time it is se
 | `dataset.html` | Dataset detail page: form for name, license, URLs, availability, comments; edit locking; `?id=<pb-id>` |
 | `metrics-index.html` | Metrics overview: table of all metrics (name, URL, comments); rows navigate to detail page |
 | `metric.html` | Metric detail page: form for name, URLs, comments; edit locking; `?id=<pb-id>` |
+| `stats.html` | Reviewing stats dashboard: status breakdown, top finalizers, top datasets/metrics, SLP area breakdown, answered-fields table |
 | `login.html` | Login form: authenticates against PocketBase, stores token in localStorage with 24h expiry; also a "Sign in with Slack" OAuth2 button |
 | `oauth-redirect.html` | OAuth2 callback page: completes the Slack sign-in code exchange and redirects to `next` |
 | `register.html` | Self-service registration page (currently disabled — new registrations are blocked server-side) |
@@ -61,6 +62,7 @@ The override is stored in `localStorage` as `pb_backend` the first time it is se
 | `js/datasets/dataset-detail.js` | Dataset detail logic: load by `?id=`, POST/PATCH, edit locking, heartbeat |
 | `js/metrics/metrics-overview.js` | Metrics overview logic: loads `metrics` collection, renders clickable table rows |
 | `js/metrics/metric-detail.js` | Metric detail logic: load by `?id=`, POST/PATCH, edit locking, heartbeat |
+| `js/stats/stats.js` | Stats dashboard logic: loads all `papers` (expanded), computes and renders all breakdowns client-side |
 | `css/style.css` | Layout, form styles, tag chip styles, overview styles, landing page styles, breadcrumb styles |
 | `screenshots/` | README screenshots only |
 | `data.json` | Reference seed data; validated by CI (no longer read by the frontend) |
@@ -75,7 +77,7 @@ The override is stored in `localStorage` as `pb_backend` the first time it is se
 ## Key behaviours
 
 - **Auth**: all pages redirect to `login.html` if no valid PocketBase token is found in `localStorage`. The token is stored with a 24-hour expiry timestamp (`pb_token_expiry`); `getToken()` in `api.js` returns `null` and clears the keys if the token is missing or expired. Using `localStorage` (not `sessionStorage`) means the token is shared across tabs, so copied paper links open without re-login. Two ways in: email/password (`auth-with-password`) and Slack OAuth2; both end by storing the same `pb_token`/`pb_user_id`/`pb_email`/`pb_token_expiry` keys.
-- **Landing page** (`index.html`): four task cards — Reviewing and Checking (first row), Datasets and Metrics (second row) — plus an account menu. Each card links to its own overview page. All four cards are enabled.
+- **Landing page** (`index.html`): five task cards — Reviewing and Checking (first row), Datasets and Metrics (second row), Stats (third row) — plus an account menu. Each card links to its own overview page. All cards are enabled.
 - **Version badge** (issue #21): a small muted `v<version>` link in the bottom-right corner of the landing page, pointing at the matching GitHub release tag. Fetches `package.json` at runtime (served as a plain static file — no build step involved) and reads `.version`; fails silently if unavailable. `package.json`'s `version` field is the single source of truth — bump it with `npm version <patch|minor|major>` when cutting a release, which atomically bumps the field, commits, and creates the matching `vX.Y.Z` git tag, so the badge and the tag can't drift apart. Not currently duplicated onto other pages (each page has its own standalone account-menu markup/JS, so adding it elsewhere means repeating the same small fetch+badge snippet).
 - **Breadcrumb navigation**: overview pages show `Home → Reviewing` / `Home → Checking` / `Home → Datasets` / `Home → Metrics` at title-font size; "Home" is a muted grey link, current page is bold black. Detail pages have a `← Back` link returning to the appropriate overview.
 - **Reviewing overview** (`review-index.html`): lists all papers from the `papers` collection with ID, title, status badge, and a Review link. Shows counts per status. Search box filters by ID or title (live, substring). Status filter pills narrow to a specific status. "Review Next →" navigates to a random `needs_review` paper.
@@ -92,6 +94,7 @@ The override is stored in `localStorage` as `pb_backend` the first time it is se
   - "Clear flag" / "Revert rejection" / "Revert to needs review" link appears next to the badge to reset status.
   - Rejection/flag reason is folded into the badge text (`⚑ Flagged · <reason>`) and shown as a tooltip.
   - **Attribution**: `finalized_by` (`papers` migration 1, formerly a nonexistent `reviewed_by`) is set only by Finalize / Finalize & Next, to the logged-in reviewer's email; shown next to the status badge (`by <email>`) only once the paper is `final`. Flagging/rejecting does not stamp attribution — there's no `flagged_by`/`rejected_by` field in the backend.
+- **Reviewing stats dashboard** (`stats.html`, issue #54): loads every record from the `papers` collection (expanded on `datasets`/`metrics`) and computes all breakdowns client-side — no backend aggregation endpoint. Sections: total paper count; status breakdown (needs_review/final/flagged/rejected) as colored bar rows; top finalizers (`finalized_by`, only counted for `final` papers, so it never conflates a flag/reject action with attribution); top datasets and top metrics (bars link to the matching `dataset.html`/`metric.html`, capped at the top 10 with a "+ N more" note); a breakdown of `area_of_slp` usage (top 12); and a compact table of Yes/No/N-A/Unanswered counts for Peer-Reviewed, Ranking, Copied Baseline Scores, Human Evaluation, and Ethical Concerns. No charting library — bars are plain CSS width percentages, consistent with the "no framework" rule. Reachable from a fifth landing-page card.
 - **Checking status workflow**: three statuses — `needs_check`, `flagged`, `checked`.
   - Save / Save & Next → marks as `checked` (only if currently `needs_check`; flagged status is preserved).
   - Save & Next → advances to the next `needs_check` paper; falls back to `check-index.html` if none remain.
@@ -126,8 +129,8 @@ PB_TEST_EMAIL=<email> PB_TEST_PASSWORD=<password> npx playwright test
 
 Playwright tests require a running PocketBase backend and a valid user account. Pass credentials via environment variables — store them in a local `.env` file (gitignored) and source it, or pass inline as above. Without those variables the Playwright tests are skipped rather than failed (so CI still passes).
 
-Playwright tests cover (20 tests total):
-- **Landing**: task cards render (4 cards), all task links present
+Playwright tests cover (22 tests total):
+- **Landing**: task cards render (5 cards), all task links present
 - **Review overview**: renders list/controls, search filters live, empty state, row click → `paper.html`
 - **Review detail**: core UI elements, autosave persists a field change without finalizing, Finalize disabled until required fields are filled then marks paper as Final (skipped if no datasets/metrics in backend; restores mutated fields afterward), ◀ ▶ navigation updates URL, back link → `review-index.html`
 - **Check overview**: renders list/controls, row click → `paper-check.html`
@@ -136,6 +139,7 @@ Playwright tests cover (20 tests total):
 - **Dataset detail**: new dataset page loads form fields and back link
 - **Metrics overview**: renders table and controls (+ Add link), row click → `metric.html` (skipped if no records)
 - **Metric detail**: new metric page loads form fields and back link
+- **Stats page**: renders all breakdown sections (summary, status breakdown, answered-fields table), reachable from the landing page
 
 ## Adding papers
 
