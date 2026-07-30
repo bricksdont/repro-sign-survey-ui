@@ -32,7 +32,15 @@ function sortedEntries(counts) {
 
 // ── Rendering ────────────────────────────────────────────────────────────
 
-function renderBarSection(containerId, entries, { emptyMessage, topN = 10, linkFn, color = '#4a90d9' } = {}) {
+function availabilityBadge(available) {
+  if (available !== 'yes' && available !== 'no') return null;
+  const badge = document.createElement('span');
+  badge.className = `avail-badge avail-${available}`;
+  badge.textContent = available === 'yes' ? 'Available' : 'Not available';
+  return badge;
+}
+
+function renderBarSection(containerId, entries, { emptyMessage, topN = 10, linkFn, badgeFn, color = '#4a90d9' } = {}) {
   const container = document.getElementById(containerId);
   container.innerHTML = '';
 
@@ -68,6 +76,8 @@ function renderBarSection(containerId, entries, { emptyMessage, topN = 10, linkF
     countEl.textContent = count;
 
     row.appendChild(labelEl);
+    const badge = badgeFn ? badgeFn(label) : null;
+    if (badge) row.appendChild(badge);
     row.appendChild(track);
     row.appendChild(countEl);
     container.appendChild(row);
@@ -174,15 +184,18 @@ async function init() {
 
   const datasetNameById = new Map();
   const datasetCounts = new Map();
+  const datasetAvailByName = new Map();
   papers.forEach(p => {
     (p.expand?.datasets || []).forEach(d => {
       datasetNameById.set(d.name, d.id);
+      datasetAvailByName.set(d.name, d.available || '');
       datasetCounts.set(d.name, (datasetCounts.get(d.name) || 0) + 1);
     });
   });
   renderBarSection('top-datasets', sortedEntries(datasetCounts), {
     emptyMessage: 'No datasets recorded yet.',
     linkFn: name => datasetNameById.has(name) ? `dataset.html?id=${datasetNameById.get(name)}` : null,
+    badgeFn: name => availabilityBadge(datasetAvailByName.get(name)),
   });
 
   const metricNameById = new Map();

@@ -317,6 +317,10 @@ a.stat-bar-label:hover {
   text-decoration: underline;
 }
 
+.stat-bar-row .avail-badge {
+  flex: 0 0 auto;
+}
+
 .stat-bar-track {
   flex: 1;
   background: #f0f0f0;
