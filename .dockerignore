@@ -4,11 +4,10 @@ test-results/
 tests/
 scripts/
 .github/
-package.json
 package-lock.json
 playwright.config.js
 .htmlvalidate.json
-*.png
+screenshots/
 CLAUDE.md
 README.md
 .gitignore
