@@ -8,6 +8,7 @@ COPY js/ js/
 COPY css/ css/
 COPY data.json .
 COPY package.json .
+COPY favicon.png .
 
 EXPOSE 8765
 

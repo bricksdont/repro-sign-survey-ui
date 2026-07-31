@@ -116,11 +116,26 @@ body {
   color: #111;
 }
 
+.landing-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.landing-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+}
+
 .version-badge {
   position: fixed;
   left: 50%;
   bottom: 16px;
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-size: 14px;
   color: #888;
   text-decoration: none;
@@ -129,6 +144,12 @@ body {
 .version-badge:hover {
   color: #666;
   text-decoration: underline;
+}
+
+.version-badge-icon {
+  width: 14px;
+  height: 14px;
+  opacity: 0.7;
 }
 
 .task-cards {
