@@ -492,6 +492,12 @@ a.stat-bar-label:hover {
 }
 
 .paper-id {
+  display: inline-block;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
   font-size: 12px;
   color: #666;

@@ -56,7 +56,7 @@ function renderTable(papers) {
     const tr = document.createElement('tr');
     tr.className = 'paper-row';
     tr.innerHTML = `
-      <td><span class="paper-id">${p.id}</span></td>
+      <td><span class="paper-id" title="${p.id}">${p.id}</span></td>
       <td class="paper-title">${p.title || '—'}</td>
       <td><span class="status-badge ${badgeClass}" title="${badgeTitle}">${badgeText}</span></td>
       <td><a class="review-link" href="paper-check.html?id=${p.id}">Check &#8594;</a></td>
