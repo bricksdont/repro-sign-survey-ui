@@ -116,6 +116,18 @@ body {
   color: #111;
 }
 
+.landing-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.landing-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+}
+
 .version-badge {
   position: fixed;
   left: 50%;
