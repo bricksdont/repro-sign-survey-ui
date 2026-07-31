@@ -208,10 +208,6 @@ body {
   padding: 0 24px;
 }
 
-.overview-wide {
-  max-width: 1200px;
-}
-
 .overview-header {
   display: flex;
   align-items: center;
@@ -504,14 +500,6 @@ a.stat-bar-label:hover {
   color: #666;
 }
 
-.id-col {
-  width: 160px;
-}
-
-.status-col {
-  width: 140px;
-}
-
 .paper-title {
   color: #111;
 }
@@ -646,13 +634,6 @@ a.stat-bar-label:hover {
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.01em;
-}
-
-/* Long flag/reject reasons are folded into this badge's text on the detail
-   page and should still be able to wrap there — only force nowrap in the
-   overview table, where the badge text is always short (e.g. "Final"). */
-.papers-table .status-badge {
-  white-space: nowrap;
 }
 
 .status-needs-review {
