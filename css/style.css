@@ -266,6 +266,107 @@ body {
   color: #ccc;
 }
 
+/* ── Stats page ───────────────────────────────────────────────────────── */
+
+.stats-page {
+  max-width: 720px;
+}
+
+.stats-section {
+  border: 1px solid #d0d0d0;
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+}
+
+.stats-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 14px;
+}
+
+.stats-empty {
+  color: #999;
+  font-size: 13px;
+}
+
+.stat-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.stat-bar-row:last-child {
+  margin-bottom: 0;
+}
+
+.stat-bar-label {
+  flex: 0 0 180px;
+  color: #333;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+a.stat-bar-label:hover {
+  color: #4a90d9;
+  text-decoration: underline;
+}
+
+.stat-bar-row .avail-badge {
+  flex: 0 0 auto;
+}
+
+.stat-bar-track {
+  flex: 1;
+  background: #f0f0f0;
+  border-radius: 4px;
+  height: 14px;
+  overflow: hidden;
+}
+
+.stat-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+}
+
+.stat-bar-count {
+  flex: 0 0 28px;
+  text-align: right;
+  color: #666;
+  font-weight: 600;
+}
+
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.stats-table th {
+  text-align: left;
+  padding: 6px 10px;
+  color: #888;
+  font-weight: 600;
+  font-size: 12px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.stats-table th:not(:first-child),
+.stats-table td:not(:first-child) {
+  text-align: center;
+}
+
+.stats-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #333;
+}
+
 .filter-bar {
   display: flex;
   align-items: center;

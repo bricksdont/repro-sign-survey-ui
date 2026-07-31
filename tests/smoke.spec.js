@@ -24,14 +24,15 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe('Landing page', () => {
-  test('shows all four task cards', async ({ page }) => {
+  test('shows all five task cards', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('.task-card')).toHaveCount(4);
-    await expect(page.locator('.task-card:visible')).toHaveCount(4);
+    await expect(page.locator('.task-card')).toHaveCount(5);
+    await expect(page.locator('.task-card:visible')).toHaveCount(5);
     await expect(page.locator('a[href="review-index.html"]')).toBeVisible();
     await expect(page.locator('a[href="check-index.html"]')).toBeVisible();
     await expect(page.locator('a[href="datasets-index.html"]')).toBeVisible();
     await expect(page.locator('a[href="metrics-index.html"]')).toBeVisible();
+    await expect(page.locator('a[href="stats.html"]')).toBeVisible();
     await expect(page.locator('.task-card-disabled')).toHaveCount(0);
   });
 });
@@ -295,5 +296,21 @@ test.describe('Dataset detail page', () => {
     await expect(page.locator('input[name="available"]')).toHaveCount(3);
     await expect(page.locator('#save-btn')).toBeVisible();
     await expect(page.locator('.back-link')).toBeVisible();
+  });
+});
+
+test.describe('Review Stats page', () => {
+  test('renders all breakdown sections', async ({ page }) => {
+    await page.goto('/stats.html');
+    await expect(page.locator('#stats-summary')).toContainText('papers total');
+    await expect(page.locator('#status-breakdown .stat-bar-row')).toHaveCount(4);
+    await expect(page.locator('#fields-breakdown tr')).toHaveCount(5);
+    await expect(page.locator('a[href="index.html"]')).toBeVisible();
+  });
+
+  test('reachable from the landing page', async ({ page }) => {
+    await page.goto('/');
+    await page.click('a[href="stats.html"]');
+    await expect(page).toHaveURL(/stats\.html/);
   });
 });
