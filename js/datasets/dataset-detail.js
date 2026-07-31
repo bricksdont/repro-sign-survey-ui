@@ -27,7 +27,7 @@ async function init() {
 
 function populateForm(r) {
   document.getElementById('breadcrumb-name').textContent = r.name || 'Dataset';
-  document.title = `SLP Paper Survey — ${r.name || 'Dataset'}`;
+  document.title = `REPRO-SIGN Survey Tool — ${r.name || 'Dataset'}`;
   document.getElementById('field-name').value     = r.name     || '';
   document.getElementById('field-license').value  = r.license  || '';
   document.getElementById('field-comments').value = r.comments || '';
@@ -108,7 +108,7 @@ async function save() {
   saveBtn.disabled = false;
   if (ok) {
     document.getElementById('breadcrumb-name').textContent = name;
-    document.title = `SLP Paper Survey — ${name}`;
+    document.title = `REPRO-SIGN Survey Tool — ${name}`;
     const confirm = document.getElementById('save-confirm');
     confirm.classList.remove('hidden');
     setTimeout(() => confirm.classList.add('hidden'), 2000);

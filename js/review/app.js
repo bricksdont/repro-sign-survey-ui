@@ -86,7 +86,7 @@ async function loadPaper(index) {
   currentIndex = index;
   const p = papers[index];
   history.replaceState(null, '', `?id=${p.id}`);
-  document.title = 'SLP Paper Survey';
+  document.title = 'REPRO-SIGN Survey Tool';
   updatePaperNav();
   updateStatusBadge(p.status || 'needs_review', p.rejection_reason || p.flag_reason, p.finalized_by);
   populateForm(p);
