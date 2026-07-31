@@ -3,7 +3,7 @@ let activeFilter = 'all';
 let currentPage = 1;
 const PAGE_SIZE = 50;
 
-function truncateId(id, maxLen = 25) {
+function truncateId(id, maxLen = 20) {
   return id.length > maxLen ? id.slice(0, maxLen) + '…' : id;
 }
 
