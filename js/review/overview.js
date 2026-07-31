@@ -3,6 +3,10 @@ let activeFilter = 'all';
 let currentPage = 1;
 const PAGE_SIZE = 50;
 
+function truncateId(id, maxLen = 20) {
+  return id.length > maxLen ? id.slice(0, maxLen) + '…' : id;
+}
+
 async function loadPapers() {
   requireAuth();
   const items = await pbGetAll('papers');
@@ -64,7 +68,7 @@ function renderTable(papers) {
     const tr = document.createElement('tr');
     tr.className = 'paper-row';
     tr.innerHTML = `
-      <td><span class="paper-id">${p.id}</span></td>
+      <td><span class="paper-id" title="${p.id}">${truncateId(p.id)}</span></td>
       <td class="paper-title">${p.title || '—'}</td>
       <td><span class="status-badge ${badgeClass}" title="${badgeTitle}">${badgeText}</span></td>
       <td><a class="review-link" href="paper.html?id=${p.id}">Review &#8594;</a></td>
