@@ -7,6 +7,7 @@ COPY index.html review-index.html check-index.html paper.html paper-check.html l
 COPY js/ js/
 COPY css/ css/
 COPY data.json .
+COPY package.json .
 
 EXPOSE 8765
 

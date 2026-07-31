@@ -69,13 +69,14 @@ The override is stored in `localStorage` as `pb_backend` the first time it is se
 | `scripts/validate_data.py` | CI: validates data.json schema |
 | `tests/smoke.spec.js` | Playwright smoke tests (landing, review overview + detail, check overview + detail, datasets/metrics overview + detail) |
 | `playwright.config.js` | Playwright config; auto-starts server.py for tests |
-| `package.json` | Dev dependencies: html-validate, @playwright/test |
+| `package.json` | Dev dependencies (html-validate, @playwright/test); `version` is the single source of truth for the app version (issue #21) — served as a static file and fetched by `index.html` to render the version badge |
 | `.github/workflows/ci.yml` | CI: syntax checks, JSON validation, HTML validation, Playwright |
 
 ## Key behaviours
 
 - **Auth**: all pages redirect to `login.html` if no valid PocketBase token is found in `localStorage`. The token is stored with a 24-hour expiry timestamp (`pb_token_expiry`); `getToken()` in `api.js` returns `null` and clears the keys if the token is missing or expired. Using `localStorage` (not `sessionStorage`) means the token is shared across tabs, so copied paper links open without re-login. Two ways in: email/password (`auth-with-password`) and Slack OAuth2; both end by storing the same `pb_token`/`pb_user_id`/`pb_email`/`pb_token_expiry` keys.
 - **Landing page** (`index.html`): four task cards — Reviewing and Checking (first row), Datasets and Metrics (second row) — plus an account menu. Each card links to its own overview page. All four cards are enabled.
+- **Version badge** (issue #21): a small muted `v<version>` link in the bottom-right corner of the landing page, pointing at the matching GitHub release tag. Fetches `package.json` at runtime (served as a plain static file — no build step involved) and reads `.version`; fails silently if unavailable. `package.json`'s `version` field is the single source of truth — bump it with `npm version <patch|minor|major>` when cutting a release, which atomically bumps the field, commits, and creates the matching `vX.Y.Z` git tag, so the badge and the tag can't drift apart. Not currently duplicated onto other pages (each page has its own standalone account-menu markup/JS, so adding it elsewhere means repeating the same small fetch+badge snippet).
 - **Breadcrumb navigation**: overview pages show `Home → Reviewing` / `Home → Checking` / `Home → Datasets` / `Home → Metrics` at title-font size; "Home" is a muted grey link, current page is bold black. Detail pages have a `← Back` link returning to the appropriate overview.
 - **Reviewing overview** (`review-index.html`): lists all papers from the `papers` collection with ID, title, status badge, and a Review link. Shows counts per status. Search box filters by ID or title (live, substring). Status filter pills narrow to a specific status. "Review Next →" navigates to a random `needs_review` paper.
 - **Checking overview** (`check-index.html`): lists all papers from the `check_papers` collection. Status values: `needs_check`, `flagged`, `checked`. "Check Next →" navigates to a random `needs_check` paper.
