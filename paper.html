@@ -36,7 +36,7 @@
 
       <div class="status-row">
         <span id="status-badge" class="status-badge status-needs-review">&#9679; Needs Review</span>
-        <span id="reviewed-by-label" class="status-reason hidden"></span>
+        <span id="finalized-by-label" class="status-reason hidden"></span>
         <button id="clear-status-btn" class="clear-status-btn hidden" aria-label="Clear status"></button>
       </div>
 
@@ -228,11 +228,17 @@
       </div>
 
       <div class="form-footer">
-        <button id="save-btn" class="btn-secondary">Save</button>
-        <button id="save-next-btn" class="btn-primary">Save &amp; Next &#8594;</button>
+        <span class="finalize-tooltip-wrap">
+          <button id="finalize-btn" class="btn-secondary" disabled>Finalize</button>
+          <span id="finalize-tooltip" class="info-popup"></span>
+        </span>
+        <span class="finalize-tooltip-wrap">
+          <button id="finalize-next-btn" class="btn-primary" disabled>Finalize &amp; Next &#8594;</button>
+          <span id="finalize-next-tooltip" class="info-popup"></span>
+        </span>
         <button id="flag-btn" class="btn-flag">Flag</button>
         <button id="reject-btn" class="btn-danger">Reject</button>
-        <span id="save-confirm" class="save-confirm hidden">Saved &#10003;</span>
+        <span id="save-indicator" class="save-indicator hidden"></span>
       </div>
 
     </div>

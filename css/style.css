@@ -927,6 +927,24 @@ hr.field-divider {
   opacity: 1;
 }
 
+.finalize-tooltip-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.finalize-tooltip-wrap .info-popup {
+  left: 0;
+  transform: none;
+  width: 260px;
+}
+
+/* Disabled buttons don't receive hover/focus themselves, so the tooltip is
+   triggered by hovering the (non-disabled) wrapper instead, gated on the
+   button still being disabled — nothing to explain once it's enabled. */
+.finalize-tooltip-wrap:hover > button:disabled + .info-popup {
+  opacity: 1;
+}
+
 .form-footer {
   margin-top: 28px;
   padding-top: 18px;
@@ -1112,6 +1130,23 @@ hr.field-divider {
   font-size: 13px;
   color: #27ae60;
   font-weight: 500;
+}
+
+.save-indicator {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.save-indicator.state-saving {
+  color: #888;
+}
+
+.save-indicator.state-saved {
+  color: #27ae60;
+}
+
+.save-indicator.state-error {
+  color: #c0392b;
 }
 
 .all-done {

@@ -82,15 +82,15 @@ The override is stored in `localStorage` as `pb_backend` the first time it is se
 - **Two independent collections**: `papers` and `check_papers` are separate PocketBase collections with independent paper sets (a paper may appear in one, both, or neither). The frontend never mixes them.
 - **PDF viewer**: native browser `<iframe>` routed through the local proxy (`/pdf/<id>.pdf?url=...`). Text selection, zoom, and all native controls work. No pdf.js. In Checking, the left panel shows the paper's `abstract` (plain text) instead when present — the screening-pipeline batch behind `check_papers` migration 9 ships abstracts but not always a usable `pdf_url`; papers without an `abstract` still fall back to the PDF iframe.
 - **Paper navigation**: ◀ ▶ buttons step through papers. URL updates via `history.replaceState` (`?id=<paper-id>`), so every paper has a stable direct link. "Copy link" button in the header copies the current URL to clipboard.
-- **Reviewing status workflow**: four statuses — `needs_review`, `final`, `flagged`, `rejected`.
-  - Save / Save & Next → marks as `final` (only if currently `needs_review`; flagged/rejected status is preserved).
-  - Save & Next → advances to the next `needs_review` paper, skipping flagged/rejected/final.
+- **Reviewing status workflow** (issue #47): four statuses — `needs_review`, `final`, `flagged`, `rejected`.
+  - **Autosave**: every field change (radio, chip add/remove, textarea, N/A toggle, or blurring a pencil-edit field) schedules a debounced save 1 second after the last change (`scheduleAutoSave()`/`runAutoSave()` in `app.js`). Autosave never changes `status` or `finalized_by` — it only persists the editable field values, whatever the current status. A `Saving…` / `Saved ✓` / `Save failed` indicator appears next to the action buttons. Pending edits are flushed immediately (not just debounced) before switching papers (◀ ▶, Finalize & Next) and folded into the same keepalive PATCH that releases the edit lock on tab close/navigation (`beforeunload`), so an edit is never silently lost.
+  - **Finalize / Finalize & Next** (replacing the old Save / Save & Next) → the only actions that set `status: final` and stamp `finalized_by` with the reviewer's email. Disabled (with a hover tooltip listing what's missing) unless every required field is filled: Title, Year, Peer-Reviewed, Code Repositories (chip or N/A), Datasets (≥1), Metrics (≥1), Area of SLP (≥1), Ranking, Copied Baseline Scores, Human Evaluation, Compute Requirements (text or N/A), Textual Conclusion, Ethical Concerns. Also disabled while the paper is `flagged` or `rejected` (tooltip explains to clear/revert first). Finalize & Next then advances to the next `needs_review` paper, skipping flagged/rejected/final.
   - Flag → opens a dialog to choose/enter a reason; stores `status: flagged` + `flag_reason`.
   - Reject → opens a dialog to choose/enter a reason (presets: "not in English", "no full text PDF", or free text); stores `status: rejected` + `rejection_reason`.
   - Flag and Reject buttons disable each other (clear/revert first).
   - "Clear flag" / "Revert rejection" / "Revert to needs review" link appears next to the badge to reset status.
   - Rejection/flag reason is folded into the badge text (`⚑ Flagged · <reason>`) and shown as a tooltip.
-  - **Attribution**: every save (`persistPaper()`) writes the logged-in reviewer's email to `reviewed_by`, regardless of status; shown next to the status badge (`by <email>`) once the paper is `final`, `flagged`, or `rejected`.
+  - **Attribution**: `finalized_by` (`papers` migration 1, formerly a nonexistent `reviewed_by`) is set only by Finalize / Finalize & Next, to the logged-in reviewer's email; shown next to the status badge (`by <email>`) only once the paper is `final`. Flagging/rejecting does not stamp attribution — there's no `flagged_by`/`rejected_by` field in the backend.
 - **Checking status workflow**: three statuses — `needs_check`, `flagged`, `checked`.
   - Save / Save & Next → marks as `checked` (only if currently `needs_check`; flagged status is preserved).
   - Save & Next → advances to the next `needs_check` paper; falls back to `check-index.html` if none remain.
@@ -125,10 +125,10 @@ PB_TEST_EMAIL=<email> PB_TEST_PASSWORD=<password> npx playwright test
 
 Playwright tests require a running PocketBase backend and a valid user account. Pass credentials via environment variables — store them in a local `.env` file (gitignored) and source it, or pass inline as above. Without those variables the Playwright tests are skipped rather than failed (so CI still passes).
 
-Playwright tests cover (19 tests total):
+Playwright tests cover (20 tests total):
 - **Landing**: task cards render (4 cards), all task links present
 - **Review overview**: renders list/controls, search filters live, empty state, row click → `paper.html`
-- **Review detail**: core UI elements, Save → Final (idempotent: resets to `needs_review` first), ◀ ▶ navigation updates URL, back link → `review-index.html`
+- **Review detail**: core UI elements, autosave persists a field change without finalizing, Finalize disabled until required fields are filled then marks paper as Final (skipped if no datasets/metrics in backend; restores mutated fields afterward), ◀ ▶ navigation updates URL, back link → `review-index.html`
 - **Check overview**: renders list/controls, row click → `paper-check.html`
 - **Check detail**: core UI elements including both radio groups, back link → `check-index.html`
 - **Datasets overview**: renders table and controls (+ Add link), row click → `dataset.html` (skipped if no records)

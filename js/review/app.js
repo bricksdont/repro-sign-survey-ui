@@ -12,6 +12,10 @@ let computeRequirementsNA = false; // "confirmed not specified in paper"
 let areaOfSlp = [];  // [string] for the current paper — not a backend collection
 let isReadOnly = false;
 let heartbeatInterval = null;
+let autoSaveTimer = null;
+let autoSavePending = false; // a field changed since the last successful save
+
+const AUTOSAVE_DEBOUNCE_MS = 1000;
 
 // Fixed suggestion list for Area of SLP — not backed by a collection, so any
 // value (including custom text) can be added as a chip.
@@ -74,6 +78,8 @@ async function loadAllMetrics() {
 // ── Paper loading ──────────────────────────────────────────────────────────
 
 async function loadPaper(index) {
+  // Flush any debounced edit on the paper we're leaving before switching away
+  await flushAutoSave();
   // Release lock on previous paper before switching
   if (papers[currentIndex]?._pb_id && index !== currentIndex) await releaseLock();
 
@@ -82,10 +88,11 @@ async function loadPaper(index) {
   history.replaceState(null, '', `?id=${p.id}`);
   document.title = 'SLP Paper Survey';
   updatePaperNav();
-  updateStatusBadge(p.status || 'needs_review', p.rejection_reason || p.flag_reason, p.reviewed_by);
+  updateStatusBadge(p.status || 'needs_review', p.rejection_reason || p.flag_reason, p.finalized_by);
   populateForm(p);
   loadPDF(p.pdf_url);
   hideFooterMessages();
+  updateFinalizeButtonState();
 
   await acquireLock();
 }
@@ -106,12 +113,12 @@ function updatePaperNav() {
   document.getElementById('next-paper').disabled = currentIndex >= papers.length - 1;
 }
 
-function updateStatusBadge(status, reason, reviewedBy) {
+function updateStatusBadge(status, reason, finalizedBy) {
   const badge     = document.getElementById('status-badge');
   const clearBtn  = document.getElementById('clear-status-btn');
   const flagBtn   = document.getElementById('flag-btn');
   const rejectBtn = document.getElementById('reject-btn');
-  const byLabel   = document.getElementById('reviewed-by-label');
+  const byLabel   = document.getElementById('finalized-by-label');
 
   flagBtn.disabled   = false; flagBtn.title   = '';
   rejectBtn.disabled = false; rejectBtn.title = '';
@@ -149,8 +156,8 @@ function updateStatusBadge(status, reason, reviewedBy) {
     badge.title       = '';
   }
 
-  if ((status === 'final' || status === 'flagged' || status === 'rejected') && reviewedBy) {
-    byLabel.textContent = `by ${reviewedBy}`;
+  if (status === 'final' && finalizedBy) {
+    byLabel.textContent = `by ${finalizedBy}`;
     byLabel.classList.remove('hidden');
   } else {
     byLabel.textContent = '';
@@ -159,10 +166,11 @@ function updateStatusBadge(status, reason, reviewedBy) {
 
   // Re-apply read-only disable state if locked
   if (isReadOnly) setReadOnly(true);
+  updateFinalizeButtonState();
 }
 
 function hideFooterMessages() {
-  document.getElementById('save-confirm').classList.add('hidden');
+  setSaveIndicator(null);
 }
 
 // ── Form population ────────────────────────────────────────────────────────
@@ -258,6 +266,7 @@ function startEditing(field) {
 function finishEditing(field) {
   const value = document.getElementById('input-' + field).value.trim();
   setTextField(field, value);
+  onFieldChanged();
 }
 
 // ── Tag chips ──────────────────────────────────────────────────────────────
@@ -324,6 +333,7 @@ function addTag(type) {
   if (!list.includes(value)) {
     list.push(value);
     renderTags(type, list);
+    onFieldChanged();
   }
   input.value = '';
   input.focus();
@@ -337,6 +347,7 @@ function removeTag(type, index) {
     : code_repos;
   list.splice(index, 1);
   renderTags(type, list);
+  onFieldChanged();
   if (type === 'code_repos') updateCodeReposNAButton();
 }
 
@@ -356,6 +367,7 @@ function updateCodeReposNAButton() {
 function toggleCodeReposNA() {
   codeReposNA = !codeReposNA;
   updateCodeReposNAButton();
+  onFieldChanged();
 }
 
 function updateComputeRequirementsNAButton() {
@@ -372,6 +384,7 @@ function updateComputeRequirementsNAButton() {
 function toggleComputeRequirementsNA() {
   computeRequirementsNA = !computeRequirementsNA;
   updateComputeRequirementsNAButton();
+  onFieldChanged();
 }
 
 // ── Save logic ─────────────────────────────────────────────────────────────
@@ -407,57 +420,175 @@ function collectFormState() {
   };
 }
 
+// Builds the full PATCH payload for the papers collection from a form-state
+// snapshot plus the paper's current status-related fields. Shared by
+// persistPaper() and the beforeunload flush, so both send an identical body.
+function buildPatchPayload(state, p, extra = {}) {
+  return {
+    title:            state.title,
+    year:             state.year,
+    venue:            state.venue,
+    peer_reviewed:    state.peer_reviewed,
+    code_repos:       state.code_repos || [],
+    datasets:         state.datasets   || [],
+    metrics:          state.metrics    || [],
+    status:           p.status,
+    rejection_reason: p.rejection_reason || '',
+    flag_reason:      p.flag_reason      || '',
+    finalized_by:     p.finalized_by     || '',
+    area_of_slp:                 state.area_of_slp || [],
+    main_experiment_has_ranking: state.main_experiment_has_ranking || '',
+    copied_scores:               state.copied_scores               || '',
+    includes_human_evaluation:   state.includes_human_evaluation   || '',
+    what_to_reproduce:           state.what_to_reproduce    || '',
+    compute_requirements:        state.compute_requirements || '',
+    textual_conclusion:          state.textual_conclusion   || '',
+    potential_ethical_concerns: state.potential_ethical_concerns || '',
+    ...extra,
+  };
+}
+
+// extra may override status / finalized_by / rejection_reason / flag_reason —
+// autosave passes {} (preserving whatever the paper's status already is);
+// finalizing, flagging, and rejecting pass the relevant status change.
 async function persistPaper(index, extra = {}) {
-  const p    = papers[index];
-  const base = { ...collectFormState(), status: p.status };
-  if (p.rejection_reason) base.rejection_reason = p.rejection_reason;
-  if (p.flag_reason)      base.flag_reason      = p.flag_reason;
-  const data = { ...base, ...extra, reviewed_by: getEmail() || '' };
-  papers[index] = { ...p, ...data, expand: {
-    datasets: datasets.map(d => ({ id: d.id, name: d.name })),
-    metrics:  metrics.map(m => ({ id: m.id, name: m.name })),
-  } };
+  const p       = papers[index];
+  const state   = collectFormState();
+  const payload = buildPatchPayload(state, p, extra);
+  papers[index] = {
+    ...p,
+    ...state,
+    status:           payload.status,
+    rejection_reason: payload.rejection_reason,
+    flag_reason:      payload.flag_reason,
+    finalized_by:     payload.finalized_by,
+    expand: {
+      datasets: datasets.map(d => ({ id: d.id, name: d.name })),
+      metrics:  metrics.map(m => ({ id: m.id, name: m.name })),
+    },
+  };
 
-  const { ok, status } = await pbPatch(
-    `/api/collections/papers/records/${p._pb_id}`,
-    {
-      title:            data.title,
-      year:             data.year,
-      venue:            data.venue,
-      peer_reviewed:    data.peer_reviewed,
-      code_repos:       data.code_repos  || [],
-      datasets:         data.datasets    || [],
-      metrics:          data.metrics     || [],
-      status:           data.status,
-      rejection_reason: data.rejection_reason || '',
-      flag_reason:      data.flag_reason      || '',
-      reviewed_by:      data.reviewed_by,
-      area_of_slp:                 data.area_of_slp || [],
-      main_experiment_has_ranking: data.main_experiment_has_ranking || '',
-      copied_scores:               data.copied_scores               || '',
-      includes_human_evaluation:   data.includes_human_evaluation   || '',
-      what_to_reproduce:           data.what_to_reproduce    || '',
-      compute_requirements:        data.compute_requirements || '',
-      textual_conclusion:          data.textual_conclusion   || '',
-      potential_ethical_concerns: data.potential_ethical_concerns || '',
-    }
-  );
+  const { ok, status } = await pbPatch(`/api/collections/papers/records/${p._pb_id}`, payload);
   if (!ok && status === 404) showLockedNotice();
+  return { ok, status };
 }
 
-async function saveCurrent() {
-  const currentStatus = papers[currentIndex].status;
-  const isLocked = currentStatus === 'rejected' || currentStatus === 'flagged';
-  await persistPaper(currentIndex, isLocked ? {} : { status: 'final' });
+// ── Autosave ────────────────────────────────────────────────────────────────
+
+function setSaveIndicator(state) {
+  const el = document.getElementById('save-indicator');
+  el.classList.remove('hidden', 'state-saving', 'state-saved', 'state-error');
+  if (state === 'saving') {
+    el.textContent = 'Saving…';
+    el.classList.add('state-saving');
+  } else if (state === 'saved') {
+    el.textContent = 'Saved ✓';
+    el.classList.add('state-saved');
+    setTimeout(() => el.classList.add('hidden'), 2000);
+  } else if (state === 'error') {
+    el.textContent = 'Save failed — will retry on next change';
+    el.classList.add('state-error');
+  } else {
+    el.classList.add('hidden');
+  }
+}
+
+function scheduleAutoSave() {
+  autoSavePending = true;
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(runAutoSave, AUTOSAVE_DEBOUNCE_MS);
+}
+
+// Awaits any pending debounced save immediately — used before navigating to
+// another paper so an in-flight edit is never silently dropped.
+async function flushAutoSave() {
+  if (!autoSavePending) return;
+  clearTimeout(autoSaveTimer);
+  await runAutoSave();
+}
+
+async function runAutoSave() {
+  if (isReadOnly) { autoSavePending = false; return; }
+  autoSavePending = false;
+  setSaveIndicator('saving');
+  const { ok } = await persistPaper(currentIndex, {});
+  setSaveIndicator(ok ? 'saved' : 'error');
+}
+
+// Called on every field mutation: keeps the Finalize button's enabled state
+// in sync and schedules a debounced autosave of the new value.
+function onFieldChanged() {
+  updateFinalizeButtonState();
+  scheduleAutoSave();
+}
+
+// ── Required-field validation for Finalize ──────────────────────────────────
+
+const REQUIRED_FIELD_LABELS = {
+  title:                       'Title',
+  year:                        'Year',
+  peer_reviewed:               'Peer-Reviewed',
+  code_repos:                  'Code Repositories',
+  datasets:                    'Datasets',
+  metrics:                     'Metrics',
+  area_of_slp:                 'Area of SLP',
+  main_experiment_has_ranking: 'Ranking',
+  copied_scores:               'Copied Baseline Scores',
+  includes_human_evaluation:   'Human Evaluation',
+  compute_requirements:        'Compute Requirements',
+  textual_conclusion:          'Textual Conclusion',
+  potential_ethical_concerns:  'Ethical Concerns',
+};
+
+function getMissingFields(state) {
+  return Object.keys(REQUIRED_FIELD_LABELS).filter(key => {
+    const value = state[key];
+    return !value || value.length === 0;
+  }).map(key => REQUIRED_FIELD_LABELS[key]);
+}
+
+function updateFinalizeButtonState() {
   const p = papers[currentIndex];
-  updateStatusBadge(p.status, p.rejection_reason || p.flag_reason, p.reviewed_by);
-  flashMessage('save-confirm');
+  if (!p) return;
+  const blockedByStatus = p.status === 'flagged' || p.status === 'rejected';
+  const missing = blockedByStatus ? [] : getMissingFields(collectFormState());
+  const disabled = blockedByStatus || missing.length > 0 || isReadOnly;
+
+  let tooltip = '';
+  if (blockedByStatus) {
+    tooltip = p.status === 'flagged'
+      ? 'Clear the flag before finalizing.'
+      : 'Revert the rejection before finalizing.';
+  } else if (missing.length > 0) {
+    tooltip = `Missing: ${missing.join(', ')}`;
+  }
+
+  ['finalize-btn', 'finalize-next-btn'].forEach(id => {
+    document.getElementById(id).disabled = disabled;
+  });
+  ['finalize-tooltip', 'finalize-next-tooltip'].forEach(id => {
+    document.getElementById(id).textContent = tooltip;
+  });
 }
 
-async function saveAndNext() {
-  const currentStatus = papers[currentIndex].status;
-  const isLocked = currentStatus === 'rejected' || currentStatus === 'flagged';
-  await persistPaper(currentIndex, isLocked ? {} : { status: 'final' });
+// ── Finalize logic ──────────────────────────────────────────────────────────
+
+async function finalizeCurrent() {
+  const p = papers[currentIndex];
+  if (p.status === 'flagged' || p.status === 'rejected') return;
+  if (getMissingFields(collectFormState()).length > 0) return;
+
+  clearTimeout(autoSaveTimer);
+  autoSavePending = false;
+  setSaveIndicator('saving');
+  const { ok } = await persistPaper(currentIndex, { status: 'final', finalized_by: getEmail() || '' });
+  const updated = papers[currentIndex];
+  updateStatusBadge(updated.status, updated.rejection_reason || updated.flag_reason, updated.finalized_by);
+  setSaveIndicator(ok ? 'saved' : 'error');
+}
+
+async function finalizeAndNext() {
+  await finalizeCurrent();
 
   const total = papers.length;
   for (let offset = 1; offset <= total; offset++) {
@@ -513,7 +644,7 @@ async function confirmFlag() {
   }
 
   await persistPaper(currentIndex, { status: 'flagged', flag_reason: reason });
-  updateStatusBadge('flagged', reason, papers[currentIndex].reviewed_by);
+  updateStatusBadge('flagged', reason, papers[currentIndex].finalized_by);
   closeFlagDialog();
 }
 
@@ -542,16 +673,8 @@ async function confirmReject() {
   }
 
   await persistPaper(currentIndex, { status: 'rejected', rejection_reason: reason });
-  updateStatusBadge('rejected', reason, papers[currentIndex].reviewed_by);
+  updateStatusBadge('rejected', reason, papers[currentIndex].finalized_by);
   closeRejectDialog();
-}
-
-function flashMessage(id) {
-  const el = document.getElementById(id);
-  el.classList.remove('hidden');
-  if (id === 'save-confirm') {
-    setTimeout(() => el.classList.add('hidden'), 2000);
-  }
 }
 
 // ── Edit locking ───────────────────────────────────────────────────────────
@@ -600,8 +723,10 @@ function stopHeartbeat() {
 function setReadOnly(ro) {
   isReadOnly = ro;
   document.getElementById('locked-notice').classList.toggle('hidden', !ro);
-  ['save-btn', 'save-next-btn', 'flag-btn', 'reject-btn', 'clear-status-btn']
+  ['flag-btn', 'reject-btn', 'clear-status-btn']
     .forEach(id => { document.getElementById(id).disabled = ro; });
+  // finalize-btn / finalize-next-btn disabled state already factors in isReadOnly
+  updateFinalizeButtonState();
 }
 
 function showLockedNotice() { setReadOnly(true); }
@@ -611,6 +736,13 @@ window.addEventListener('beforeunload', () => {
   const p = papers[currentIndex];
   if (!p?._pb_id || isReadOnly) return;
   stopHeartbeat();
+  // If an edit is still debounced, fold its payload into the same keepalive
+  // PATCH that releases the lock — avoids losing it and avoids a second
+  // in-flight request racing this one during unload.
+  const lockRelease = { locked_by: '', locked_at: null };
+  const body = autoSavePending
+    ? buildPatchPayload(collectFormState(), p, lockRelease)
+    : lockRelease;
   fetch(`${PB_URL}/api/collections/papers/records/${p._pb_id}`, {
     method: 'PATCH',
     keepalive: true,
@@ -618,7 +750,7 @@ window.addEventListener('beforeunload', () => {
       Authorization: `Bearer ${getToken()}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ locked_by: '', locked_at: null }),
+    body: JSON.stringify(body),
   });
 });
 
@@ -650,6 +782,7 @@ async function addMetricChip(name) {
   }
   metrics.push(metric);
   renderTags('metrics', metrics);
+  onFieldChanged();
   input.value = '';
   input.dispatchEvent(new Event('input'));
 }
@@ -677,6 +810,7 @@ function initMetricAutocomplete() {
         if (!metrics.some(x => x.id === m.id)) {
           metrics.push(m);
           renderTags('metrics', metrics);
+          onFieldChanged();
         }
         input.value = '';
         refresh();
@@ -736,6 +870,7 @@ async function addDatasetChip(name) {
 
   datasets.push(dataset);
   renderTags('datasets', datasets);
+  onFieldChanged();
   input.value = '';
   input.dispatchEvent(new Event('input')); // re-run refresh to update dropdown in place
 }
@@ -763,6 +898,7 @@ function initDatasetAutocomplete() {
         if (!datasets.some(x => x.id === d.id)) {
           datasets.push(d);
           renderTags('datasets', datasets);
+          onFieldChanged();
         }
         input.value = '';
         refresh();
@@ -812,6 +948,7 @@ function initAreaOfSlpAutocomplete() {
         if (!areaOfSlp.includes(a)) {
           areaOfSlp.push(a);
           renderTags('area_of_slp', areaOfSlp);
+          onFieldChanged();
         }
         input.value = '';
         refresh();
@@ -888,7 +1025,17 @@ function wireEvents() {
   });
   document.getElementById('code-repos-na-btn').addEventListener('click', toggleCodeReposNA);
   document.getElementById('compute-requirements-na-btn').addEventListener('click', toggleComputeRequirementsNA);
-  document.getElementById('input-compute-requirements').addEventListener('input', updateComputeRequirementsNAButton);
+  document.getElementById('input-compute-requirements').addEventListener('input', () => {
+    updateComputeRequirementsNAButton();
+    onFieldChanged();
+  });
+  document.getElementById('input-what-to-reproduce').addEventListener('input', onFieldChanged);
+  document.getElementById('input-textual-conclusion').addEventListener('input', onFieldChanged);
+  ['peer-reviewed', 'has-ranking', 'copied-scores', 'human-evaluation', 'ethical-concerns'].forEach(name => {
+    document.querySelectorAll(`input[name="${name}"]`).forEach(radio => {
+      radio.addEventListener('change', onFieldChanged);
+    });
+  });
   document.getElementById('add-area-of-slp-btn').addEventListener('click', () => addTag('area_of_slp'));
   document.getElementById('area-of-slp-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') addTag('area_of_slp');
@@ -905,8 +1052,8 @@ function wireEvents() {
   });
 
   document.getElementById('copy-link-btn').addEventListener('click', copyLink);
-  document.getElementById('save-btn').addEventListener('click', saveCurrent);
-  document.getElementById('save-next-btn').addEventListener('click', saveAndNext);
+  document.getElementById('finalize-btn').addEventListener('click', finalizeCurrent);
+  document.getElementById('finalize-next-btn').addEventListener('click', finalizeAndNext);
   document.getElementById('clear-status-btn').addEventListener('click', clearStatus);
   document.getElementById('flag-btn').addEventListener('click', flagCurrent);
   document.getElementById('flag-cancel-btn').addEventListener('click', closeFlagDialog);
