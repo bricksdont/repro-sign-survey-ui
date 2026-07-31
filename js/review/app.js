@@ -436,6 +436,7 @@ function buildPatchPayload(state, p, extra = {}) {
     rejection_reason: p.rejection_reason || '',
     flag_reason:      p.flag_reason      || '',
     finalized_by:     p.finalized_by     || '',
+    status_history:   p.status_history   || [],
     area_of_slp:                 state.area_of_slp || [],
     main_experiment_has_ranking: state.main_experiment_has_ranking || '',
     copied_scores:               state.copied_scores               || '',
@@ -452,9 +453,24 @@ function buildPatchPayload(state, p, extra = {}) {
 // autosave passes {} (preserving whatever the paper's status already is);
 // finalizing, flagging, and rejecting pass the relevant status change.
 async function persistPaper(index, extra = {}) {
-  const p       = papers[index];
-  const state   = collectFormState();
-  const payload = buildPatchPayload(state, p, extra);
+  const p     = papers[index];
+  const state = collectFormState();
+
+  // Log every actual status transition — never for autosave, which passes no
+  // status override at all.
+  let historyExtra = {};
+  if (extra.status !== undefined && extra.status !== p.status) {
+    const history = Array.isArray(p.status_history) ? [...p.status_history] : [];
+    history.push({
+      by:     getEmail() || '',
+      before: p.status,
+      after:  extra.status,
+      when:   new Date().toISOString(),
+    });
+    historyExtra = { status_history: history };
+  }
+
+  const payload = buildPatchPayload(state, p, { ...extra, ...historyExtra });
   papers[index] = {
     ...p,
     ...state,
@@ -462,6 +478,7 @@ async function persistPaper(index, extra = {}) {
     rejection_reason: payload.rejection_reason,
     flag_reason:      payload.flag_reason,
     finalized_by:     payload.finalized_by,
+    status_history:   payload.status_history,
     expand: {
       datasets: datasets.map(d => ({ id: d.id, name: d.name })),
       metrics:  metrics.map(m => ({ id: m.id, name: m.name })),
@@ -610,6 +627,55 @@ function copyLink() {
     btn.textContent = 'Copied ✓';
     setTimeout(() => { btn.innerHTML = original; }, 2000);
   });
+}
+
+// ── Status history ───────────────────────────────────────────────────────
+
+const STATUS_HISTORY_LABELS = {
+  needs_review: 'Needs Review',
+  final:        'Final',
+  flagged:      'Flagged',
+  rejected:     'Rejected',
+};
+
+function formatStatusLabel(status) {
+  return STATUS_HISTORY_LABELS[status] || status;
+}
+
+function showStatusHistory() {
+  const history = papers[currentIndex].status_history || [];
+  const list = document.getElementById('status-history-list');
+  list.innerHTML = '';
+
+  if (history.length === 0) {
+    list.innerHTML = '<div class="status-history-empty">No status changes recorded yet.</div>';
+  } else {
+    [...history].reverse().forEach(entry => {
+      const row = document.createElement('div');
+      row.className = 'status-history-row';
+      const when = entry.when ? new Date(entry.when).toLocaleString() : '';
+      row.innerHTML = `
+        <span class="status-history-who">${escapeHtml(entry.by || 'Unknown')}</span>
+        changed status from
+        <strong>${formatStatusLabel(entry.before)}</strong> to
+        <strong>${formatStatusLabel(entry.after)}</strong>
+        <span class="status-history-when">${escapeHtml(when)}</span>
+      `;
+      list.appendChild(row);
+    });
+  }
+
+  document.getElementById('status-history-overlay').classList.remove('hidden');
+}
+
+function closeStatusHistory() {
+  document.getElementById('status-history-overlay').classList.add('hidden');
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
 }
 
 async function clearStatus() {
@@ -1052,6 +1118,11 @@ function wireEvents() {
   });
 
   document.getElementById('copy-link-btn').addEventListener('click', copyLink);
+  document.getElementById('status-history-btn').addEventListener('click', showStatusHistory);
+  document.getElementById('status-history-close-btn').addEventListener('click', closeStatusHistory);
+  document.getElementById('status-history-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('status-history-overlay')) closeStatusHistory();
+  });
   document.getElementById('finalize-btn').addEventListener('click', finalizeCurrent);
   document.getElementById('finalize-next-btn').addEventListener('click', finalizeAndNext);
   document.getElementById('clear-status-btn').addEventListener('click', clearStatus);

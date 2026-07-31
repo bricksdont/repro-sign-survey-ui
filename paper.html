@@ -24,6 +24,7 @@
         <div class="meta-header-left">
           <a href="review-index.html" class="back-link">&#8592; Overview</a>
           <button id="copy-link-btn" class="copy-link-btn" title="Copy link to this paper">&#128279; Copy link</button>
+          <button id="status-history-btn" class="copy-link-btn" title="View status change history">&#128340; Status History</button>
         </div>
         <div class="paper-nav">
           <button id="prev-paper" title="Previous paper" disabled>&#9664;</button>
@@ -311,6 +312,17 @@
       <div class="modal-footer">
         <button id="reject-cancel-btn" class="btn-secondary">Cancel</button>
         <button id="reject-confirm-btn" class="btn-danger" disabled>Reject</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status history dialog -->
+  <div id="status-history-overlay" class="modal-overlay hidden">
+    <div class="modal-dialog status-history-dialog">
+      <h3 class="modal-title">Status History</h3>
+      <div id="status-history-list" class="status-history-list"></div>
+      <div class="modal-footer">
+        <button id="status-history-close-btn" class="btn-secondary">Close</button>
       </div>
     </div>
   </div>

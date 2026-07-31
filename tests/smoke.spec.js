@@ -77,6 +77,7 @@ test.describe('Review detail page', () => {
     await expect(page.locator('#finalize-next-btn')).toBeVisible();
     await expect(page.locator('#flag-btn')).toBeVisible();
     await expect(page.locator('#reject-btn')).toBeVisible();
+    await expect(page.locator('#status-history-btn')).toBeVisible();
   });
 
   test('autosave persists a field change without finalizing', async ({ page }) => {
@@ -190,6 +191,53 @@ test.describe('Review detail page', () => {
       potential_ethical_concerns:  record.potential_ethical_concerns || '',
       finalized_by:                record.finalized_by || '',
     });
+  });
+
+  test('Status History logs flag/clear transitions, newest first', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const listRes = await page.request.get(
+      'http://localhost:8090/api/collections/papers/records?filter=(paper_id="emnlp-2024-518")',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const { items } = await listRes.json();
+    const record = items[0];
+    test.skip(!record, 'Fixture paper not found — skipping');
+
+    await page.request.patch(
+      `http://localhost:8090/api/collections/papers/records/${record.id}`,
+      {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        data: { status: 'needs_review', status_history: [] },
+      }
+    );
+
+    await page.goto('/paper.html?id=emnlp-2024-518');
+    await page.click('#status-history-btn');
+    await expect(page.locator('.status-history-empty')).toContainText('No status changes recorded yet.');
+    await page.click('#status-history-close-btn');
+
+    await page.click('#flag-btn');
+    await page.click('input[name="flag-reason"][value="Conflict of interest"]');
+    await page.click('#flag-confirm-btn');
+    await expect(page.locator('#status-badge')).toContainText('Flagged');
+
+    await page.click('#clear-status-btn');
+    await expect(page.locator('#status-badge')).toContainText('Needs Review');
+
+    await page.click('#status-history-btn');
+    const rows = page.locator('.status-history-row');
+    await expect(rows).toHaveCount(2);
+    await expect(rows.nth(0)).toContainText('Flagged to Needs Review');
+    await expect(rows.nth(1)).toContainText('Needs Review to Flagged');
+
+    await page.request.patch( // restore — leave no permanent side effects
+      `http://localhost:8090/api/collections/papers/records/${record.id}`,
+      {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        data: { status: record.status || 'needs_review', status_history: record.status_history || [] },
+      }
+    );
   });
 
   test('paper navigation updates URL', async ({ page }) => {

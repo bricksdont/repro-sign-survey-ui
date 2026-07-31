@@ -27,6 +27,7 @@ A landing page routes annotators to either task. Each task has its own overview 
 - Status workflow: Finalize / Finalize & Next → Final (disabled with a tooltip until every required field is filled, and while the paper is Flagged/Rejected); Flag → reason dialog (`flagged`); Reject → reason dialog (`rejected`, presets: "not in English", "no full text PDF"); inline clear/revert links
 - Flag and reject reasons shown in the status badge text and as a tooltip
 - Reviewer attribution: the logged-in email is saved to `finalized_by` only when a paper is Finalized, and shown next to the status badge once the paper is Final
+- "Status History" button (next to Copy Link) opens a dialog listing every status change — who made it, from what to what, and when — newest first
 
 **Checking task** — verify paper scope in an independent paper set:
 - Overview with paper list, status badges (Needs Check / Flagged / Checked), stats; "Check Next →"
