@@ -208,6 +208,10 @@ body {
   padding: 0 24px;
 }
 
+.overview-wide {
+  max-width: 1200px;
+}
+
 .overview-header {
   display: flex;
   align-items: center;
@@ -493,7 +497,7 @@ a.stat-bar-label:hover {
 
 .paper-id {
   display: inline-block;
-  max-width: 140px;
+  max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
