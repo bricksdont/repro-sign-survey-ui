@@ -114,6 +114,16 @@ fly apps create repro-sign-survey-frontend
 fly deploy
 ```
 
+### PDF fallback via Cloudflare R2
+
+Some papers' PDFs are dead links or paywalled. As a preparation step those PDFs get downloaded and uploaded to a private Cloudflare R2 bucket, one object per paper named `<paper_id>.pdf`. If the direct fetch fails, `server.py`'s `/pdf/` proxy automatically retries via R2 — no changes to `papers.pdf_url` needed. Enable it by setting four Fly secrets:
+
+```bash
+fly secrets set R2_ACCOUNT_ID=... R2_ACCESS_KEY_ID=... R2_SECRET_ACCESS_KEY=... R2_BUCKET_NAME=...
+```
+
+Without these secrets set (or without `boto3` installed locally), the fallback is silently skipped and the original fetch error is returned as before.
+
 ## Running the frontend server locally
 
 Run the local server only if you need to develop or test the frontend:
@@ -124,7 +134,7 @@ python3 server.py
 
 Then open [http://localhost:8765](http://localhost:8765). You will be redirected to a login page — enter your PocketBase email and password, or use "Sign in with Slack". The token is stored in `localStorage` and expires after 24 hours.
 
-`server.py` is a small wrapper around Python's built-in HTTP server that adds a `/pdf/<id>.pdf?url=<encoded>` proxy endpoint. This lets the browser's native PDF viewer embed PDFs from any host (including OpenReview, which sets `X-Frame-Options: SAMEORIGIN`) by fetching them server-side and stripping restrictive headers.
+`server.py` is a small wrapper around Python's built-in HTTP server that adds a `/pdf/<id>.pdf?url=<encoded>` proxy endpoint. This lets the browser's native PDF viewer embed PDFs from any host (including OpenReview, which sets `X-Frame-Options: SAMEORIGIN`) by fetching them server-side and stripping restrictive headers. No extra Python packages are required to run the app — `pip install -r requirements.txt` is only needed if you want to test the [R2 PDF fallback](#pdf-fallback-via-cloudflare-r2) locally, and you'd also need to export the same four `R2_*` variables in your shell.
 
 ## Backend
 

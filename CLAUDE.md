@@ -18,6 +18,8 @@ python3 server.py 9000   # custom port
 
 Use `server.py`, not bare `python3 -m http.server`. The custom server adds a `/pdf/<id>.pdf?url=<encoded>` endpoint that fetches PDFs server-side, bypassing both CORS restrictions and `X-Frame-Options: SAMEORIGIN` headers (e.g. OpenReview). Must be served (not `file://`) for the API fetch and proxy to work.
 
+If the direct fetch fails (dead link, paywall), the proxy falls back to fetching `<id>.pdf` from a private Cloudflare R2 bucket, for papers whose PDF has been manually re-hosted there as a preparation step. Requires `boto3` (`pip install -r requirements.txt` — optional for local dev; without it, or without the `R2_*` env vars below set, the fallback is silently skipped and the original fetch error is returned) and four Fly secrets: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`. No changes to `papers.pdf_url` are needed — the fallback is automatic and keyed purely off the paper's `id`.
+
 ## Backend URL
 
 `api.js` checks `window.location.hostname` (the hostname in the browser's address bar) to pick a backend:
@@ -67,6 +69,7 @@ The override is stored in `localStorage` as `pb_backend` the first time it is se
 | `screenshots/` | README screenshots only |
 | `data.json` | Reference seed data; validated by CI (no longer read by the frontend) |
 | `Dockerfile` | Container image: Python 3.12 Alpine running server.py on port 8765 |
+| `requirements.txt` | Python deps for server.py — currently just `boto3`, for the R2 PDF fallback |
 | `fly.toml` | Fly.io app config: app `repro-sign-survey-frontend`, region `fra` |
 | `scripts/validate_data.py` | CI: validates data.json schema |
 | `tests/smoke.spec.js` | Playwright smoke tests (landing, review overview + detail, check overview + detail, datasets/metrics overview + detail) |
