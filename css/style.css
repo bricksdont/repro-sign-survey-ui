@@ -497,14 +497,19 @@ a.stat-bar-label:hover {
 
 .paper-id {
   display: inline-block;
-  max-width: 220px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  vertical-align: bottom;
+  max-width: 160px;
+  overflow-wrap: anywhere;
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
   font-size: 12px;
   color: #666;
+}
+
+.id-col {
+  width: 160px;
+}
+
+.status-col {
+  width: 140px;
 }
 
 .paper-title {
@@ -641,6 +646,13 @@ a.stat-bar-label:hover {
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.01em;
+}
+
+/* Long flag/reject reasons are folded into this badge's text on the detail
+   page and should still be able to wrap there — only force nowrap in the
+   overview table, where the badge text is always short (e.g. "Final"). */
+.papers-table .status-badge {
+  white-space: nowrap;
 }
 
 .status-needs-review {
