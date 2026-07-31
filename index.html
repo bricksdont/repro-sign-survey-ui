@@ -52,7 +52,10 @@
     </div>
   </div>
 
-  <a id="version-badge" class="version-badge hidden"></a>
+  <a id="version-badge" class="version-badge hidden">
+    <img src="https://github.githubassets.com/favicons/favicon.svg" alt="" class="version-badge-icon">
+    <span id="version-badge-text"></span>
+  </a>
 
   <script src="js/api.js"></script>
   <script>
@@ -72,7 +75,7 @@
 
     fetch('package.json').then(r => r.json()).then(pkg => {
       const badge = document.getElementById('version-badge');
-      badge.textContent = `v${pkg.version}`;
+      document.getElementById('version-badge-text').textContent = `v${pkg.version}`;
       badge.href = `https://github.com/bricksdont/repro-sign-survey-ui/releases/tag/v${pkg.version}`;
       badge.target = '_blank';
       badge.rel = 'noopener noreferrer';
