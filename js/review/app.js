@@ -679,9 +679,7 @@ function escapeHtml(str) {
 }
 
 async function clearStatus() {
-  delete papers[currentIndex].rejection_reason;
-  delete papers[currentIndex].flag_reason;
-  await persistPaper(currentIndex, { status: 'needs_review' });
+  await persistPaper(currentIndex, { status: 'needs_review', rejection_reason: '', flag_reason: '' });
   updateStatusBadge('needs_review');
 }
 

@@ -293,8 +293,7 @@ function copyLink() {
 }
 
 async function clearStatus() {
-  delete papers[currentIndex].flag_reason;
-  await persistPaper(currentIndex, { status: 'needs_check' });
+  await persistPaper(currentIndex, { status: 'needs_check', flag_reason: '' });
   updateStatusBadge('needs_check');
 }
 
