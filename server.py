@@ -66,6 +66,15 @@ def _r2_client():
     return _r2_client_instance
 
 
+def _looks_like_pdf(data):
+    """Real PDFs start with the %PDF- magic header. Some sources (DOI links
+    that redirect to a publisher landing page, WAF/bot-challenge responses,
+    etc.) return HTTP 200/202 with HTML or an empty body instead of an
+    actual PDF — urlopen doesn't treat that as an error, so we have to check
+    the content ourselves."""
+    return bool(data) and data.lstrip()[:5] == b'%PDF-'
+
+
 def _fetch_from_r2(paper_id):
     """Fetches <paper_id>.pdf from the configured R2 bucket.
 
@@ -110,7 +119,11 @@ class Handler(SimpleHTTPRequestHandler):
             try:
                 req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
                 with urlopen(req, timeout=30) as resp:
-                    data = resp.read()
+                    fetched = resp.read()
+                if _looks_like_pdf(fetched):
+                    data = fetched
+                else:
+                    fetch_error = f'response was not a PDF ({len(fetched)} bytes, status {resp.status})'
             except URLError as e:
                 fetch_error = str(e.reason)
         else:

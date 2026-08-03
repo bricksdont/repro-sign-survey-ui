@@ -20,6 +20,8 @@ Use `server.py`, not bare `python3 -m http.server`. The custom server adds a `/p
 
 If the direct fetch fails (dead link, paywall), the proxy falls back to fetching `<id>.pdf` from a private Cloudflare R2 bucket, for papers whose PDF has been manually re-hosted there as a preparation step. Requires `boto3` (`pip install -r requirements.txt` — optional for local dev; without it, or without the `R2_*` env vars below set, the fallback is silently skipped and the original fetch error is returned) and four Fly secrets: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`. No changes to `papers.pdf_url` are needed — the fallback is automatic and keyed purely off the paper's `id`.
 
+"Failure" isn't just a network error or 4xx/5xx status — a `pdf_url` that's a DOI link commonly redirects to a publisher landing page, or gets a WAF/bot-challenge response, both of which can come back as HTTP 200/202 with an empty or HTML body instead of a real PDF. `_looks_like_pdf()` checks the fetched bytes start with the `%PDF-` magic header before accepting a direct fetch as successful; anything else is treated as a failure and falls through to the R2 attempt exactly like a network error would.
+
 ## Backend URL
 
 `api.js` checks `window.location.hostname` (the hostname in the browser's address bar) to pick a backend:
