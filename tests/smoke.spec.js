@@ -240,6 +240,62 @@ test.describe('Review detail page', () => {
     );
   });
 
+  test('clearing a flag or rejection also clears its reason (#63)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const listRes = await page.request.get(
+      'http://localhost:8090/api/collections/papers/records?filter=(paper_id="emnlp-2024-518")',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const { items } = await listRes.json();
+    const record = items[0];
+    test.skip(!record, 'Fixture paper not found — skipping');
+
+    async function patchPaper(data) {
+      await page.request.patch(
+        `http://localhost:8090/api/collections/papers/records/${record.id}`,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, data }
+      );
+    }
+    async function getPaper() {
+      const res = await page.request.get(
+        `http://localhost:8090/api/collections/papers/records/${record.id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return res.json();
+    }
+
+    // Flag -> clear
+    await patchPaper({ status: 'needs_review', flag_reason: '', rejection_reason: '' });
+    await page.goto('/paper.html?id=emnlp-2024-518');
+    await page.click('#flag-btn');
+    await page.click('input[name="flag-reason"][value="Conflict of interest"]');
+    await page.click('#flag-confirm-btn');
+    await expect(page.locator('#status-badge')).toContainText('Flagged');
+    await page.click('#clear-status-btn');
+    await expect(page.locator('#status-badge')).toContainText('Needs Review');
+    let updated = await getPaper();
+    expect(updated.flag_reason).toBe('');
+
+    // Reject -> revert
+    await patchPaper({ status: 'needs_review', flag_reason: '', rejection_reason: '' });
+    await page.goto('/paper.html?id=emnlp-2024-518');
+    await page.click('#reject-btn');
+    await page.click('input[name="reject-reason"][value="The paper is not in English"]');
+    await page.click('#reject-confirm-btn');
+    await expect(page.locator('#status-badge')).toContainText('Rejected');
+    await page.click('#clear-status-btn');
+    await expect(page.locator('#status-badge')).toContainText('Needs Review');
+    updated = await getPaper();
+    expect(updated.rejection_reason).toBe('');
+
+    await patchPaper({ // restore — leave no permanent side effects
+      status: record.status || 'needs_review',
+      flag_reason: record.flag_reason || '',
+      rejection_reason: record.rejection_reason || '',
+    });
+  });
+
   test('paper navigation updates URL', async ({ page }) => {
     await page.goto('/paper.html?id=emnlp-2024-518');
     const initialUrl = page.url();
@@ -288,6 +344,46 @@ test.describe('Check detail page', () => {
     await page.goto('/paper-check.html?id=arxiv-2303-10782');
     await page.click('.back-link');
     await expect(page).toHaveURL(/check-index\.html/);
+  });
+
+  test('clearing a flag also clears its reason (#63)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const listRes = await page.request.get(
+      'http://localhost:8090/api/collections/check_papers/records?filter=(paper_id="arxiv-2303-10782")',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const { items } = await listRes.json();
+    const record = items[0];
+    test.skip(!record, 'Fixture paper not found — skipping');
+
+    async function patchPaper(data) {
+      await page.request.patch(
+        `http://localhost:8090/api/collections/check_papers/records/${record.id}`,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, data }
+      );
+    }
+
+    await patchPaper({ status: 'needs_check', flag_reason: '' });
+    await page.goto('/paper-check.html?id=arxiv-2303-10782');
+    await page.click('#flag-btn');
+    await page.click('input[name="flag-reason"][value="Unclear whether SLP"]');
+    await page.click('#flag-confirm-btn');
+    await expect(page.locator('#status-badge')).toContainText('Flagged');
+    await page.click('#clear-status-btn');
+    await expect(page.locator('#status-badge')).toContainText('Needs Check');
+
+    const res = await page.request.get(
+      `http://localhost:8090/api/collections/check_papers/records/${record.id}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const updated = await res.json();
+    expect(updated.flag_reason).toBe('');
+
+    await patchPaper({ // restore — leave no permanent side effects
+      status: record.status || 'needs_check',
+      flag_reason: record.flag_reason || '',
+    });
   });
 });
 

@@ -94,7 +94,7 @@ The override is stored in `localStorage` as `pb_backend` the first time it is se
   - Flag → opens a dialog to choose/enter a reason; stores `status: flagged` + `flag_reason`.
   - Reject → opens a dialog to choose/enter a reason (presets: "not in English", "no full text PDF", or free text); stores `status: rejected` + `rejection_reason`.
   - Flag and Reject buttons disable each other (clear/revert first).
-  - "Clear flag" / "Revert rejection" / "Revert to needs review" link appears next to the badge to reset status.
+  - "Clear flag" / "Revert rejection" / "Revert to needs review" link appears next to the badge to reset status, explicitly clearing `flag_reason`/`rejection_reason` to `''` in the same request (issue #63).
   - Rejection/flag reason is folded into the badge text (`⚑ Flagged · <reason>`) and shown as a tooltip.
   - **Attribution**: `finalized_by` (`papers` migration 1, formerly a nonexistent `reviewed_by`) is set only by Finalize / Finalize & Next, to the logged-in reviewer's email; shown next to the status badge (`by <email>`) only once the paper is `final`. Flagging/rejecting does not stamp attribution — there's no `flagged_by`/`rejected_by` field in the backend.
   - **Status History** (issue #20): a "Status History" button next to "Copy link" opens a dialog listing every status transition, newest first — `<email> changed status from <Before> to <After>` plus a localized timestamp — sourced from `papers.status_history` (`papers` migration 1, a JSON array of `{by, before, after, when}`). Appended to inside `persistPaper()` whenever `extra.status` differs from the paper's current status, so it captures Finalize, Flag, Reject, and Clear/Revert, but never autosave (which never overrides `status`). Empty state: "No status changes recorded yet."
@@ -103,7 +103,7 @@ The override is stored in `localStorage` as `pb_backend` the first time it is se
   - Save / Save & Next → marks as `checked` (only if currently `needs_check`; flagged status is preserved).
   - Save & Next → advances to the next `needs_check` paper; falls back to `check-index.html` if none remain.
   - Flag → opens a dialog to choose/enter a reason; stores `status: flagged` + `flag_reason`.
-  - "Clear flag" / "Revert to needs check" link resets to `needs_check`.
+  - "Clear flag" / "Revert to needs check" link resets to `needs_check`, explicitly clearing `flag_reason` to `''` in the same request (issue #63).
   - **Form validation**: `is_sign_language_processing` must always be answered; `has_empirical_results` is only shown (and required) when `is_sign_language_processing` is `yes`. Both must be answered before Save / Save & Next become active.
   - **Attribution**: every save (`persistPaper()`) writes the logged-in reviewer's email to `checked_by` (`check_papers` migration 10), regardless of status.
 - **Pre-filled fields** (title, year, venue in Reviewing; title, year, language in Checking): shown read-only, with a pencil button that makes the field editable; blur or Enter returns to display mode. In Checking, Title stays read-only — Year and Language are both editable this way.
@@ -133,12 +133,12 @@ PB_TEST_EMAIL=<email> PB_TEST_PASSWORD=<password> npx playwright test
 
 Playwright tests require a running PocketBase backend and a valid user account. Pass credentials via environment variables — store them in a local `.env` file (gitignored) and source it, or pass inline as above. Without those variables the Playwright tests are skipped rather than failed (so CI still passes).
 
-Playwright tests cover (23 tests total):
+Playwright tests cover (25 tests total):
 - **Landing**: task cards render (5 cards), all task links present
 - **Review overview**: renders list/controls, search filters live, empty state, row click → `paper.html`
-- **Review detail**: core UI elements, autosave persists a field change without finalizing, Finalize disabled until required fields are filled then marks paper as Final (skipped if no datasets/metrics in backend; restores mutated fields afterward), Status History logs flag/clear transitions newest-first, ◀ ▶ navigation updates URL, back link → `review-index.html`
+- **Review detail**: core UI elements, autosave persists a field change without finalizing, Finalize disabled until required fields are filled then marks paper as Final (skipped if no datasets/metrics in backend; restores mutated fields afterward), Status History logs flag/clear transitions newest-first, clearing a flag/rejection also clears its reason (#63), ◀ ▶ navigation updates URL, back link → `review-index.html`
 - **Check overview**: renders list/controls, row click → `paper-check.html`
-- **Check detail**: core UI elements including both radio groups, back link → `check-index.html`
+- **Check detail**: core UI elements including both radio groups, back link → `check-index.html`, clearing a flag also clears its reason (#63)
 - **Datasets overview**: renders table and controls (+ Add link), row click → `dataset.html` (skipped if no records)
 - **Dataset detail**: new dataset page loads form fields and back link
 - **Metrics overview**: renders table and controls (+ Add link), row click → `metric.html` (skipped if no records)
