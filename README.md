@@ -24,7 +24,7 @@ A landing page routes annotators to either task. Each task has its own overview 
 - Tag chip inputs for datasets, metrics, and code repositories (with autocomplete); code repo chips are clickable links; dataset/metric chips link to their detail page
 - N/A confirm toggles for Code Repositories ("no repositories available") and Compute Requirements ("not specified in paper") — disables the input and saves `"N/A"` instead of an empty list/text
 - Autosaves every field change 1 second after you stop editing, independent of status — a "Saving…" / "Saved ✓" indicator confirms it, and a pending edit is always flushed before switching papers or leaving the page
-- Status workflow: Finalize / Finalize & Next → Final (disabled with a tooltip until every required field is filled, and while the paper is Flagged/Rejected); Flag → reason dialog (`flagged`); Reject → reason dialog (`rejected`, presets: "not in English", "no full text PDF"); inline clear/revert links
+- Status workflow: Finalize / Finalize & Next → Final (disabled with a tooltip until every required field is filled, and while the paper is Flagged/Rejected); Flag → reason dialog (`flagged`); Reject → reason dialog (`rejected`, presets include "not in English", "no full text PDF", "requires specialized hardware"); inline clear/revert links
 - Flag and reject reasons shown in the status badge text and as a tooltip
 - Reviewer attribution: the logged-in email is saved to `finalized_by` only when a paper is Finalized, and shown next to the status badge once the paper is Final
 - "Status History" button (next to Copy Link) opens a dialog listing every status change — who made it, from what to what, and when — newest first
