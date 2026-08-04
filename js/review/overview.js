@@ -126,6 +126,7 @@ function updateReviewNextBtn() {
 }
 
 async function init() {
+  initVersionBadge();
   allPapers = await loadPapers();
   renderStats(allPapers);
   renderTable(allPapers);

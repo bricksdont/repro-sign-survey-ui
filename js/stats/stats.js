@@ -169,6 +169,7 @@ function renderSummary(papers) {
 // ── Bootstrap ────────────────────────────────────────────────────────────
 
 async function init() {
+  initVersionBadge();
   const papers = await loadPapers();
 
   renderSummary(papers);

@@ -73,14 +73,7 @@
       document.getElementById('account-dropdown').classList.add('hidden');
     });
 
-    fetch('package.json').then(r => r.json()).then(pkg => {
-      const badge = document.getElementById('version-badge');
-      document.getElementById('version-badge-text').textContent = `v${pkg.version}`;
-      badge.href = `https://github.com/bricksdont/repro-sign-survey-ui/releases/tag/v${pkg.version}`;
-      badge.target = '_blank';
-      badge.rel = 'noopener noreferrer';
-      badge.classList.remove('hidden');
-    }).catch(() => {}); // decorative — silently do nothing if unavailable
+    initVersionBadge();
   </script>
 </body>
 </html>

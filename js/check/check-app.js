@@ -8,6 +8,7 @@ let heartbeatInterval = null;
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 
 async function init() {
+  initVersionBadge();
   papers = await loadAllPapers();
 
   const requestedId = new URLSearchParams(window.location.search).get('id');

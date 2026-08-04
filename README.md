@@ -13,7 +13,7 @@ A landing page routes annotators to either task. Each task has its own overview 
 ## Features
 
 - Landing page with task cards routing to Reviewing, Checking, the Datasets catalogue, the Metrics catalogue, and the Review Stats dashboard
-- Version badge (`v<version>`) in the corner of the landing page, linking to the matching GitHub release
+- Version badge (`v<version>`, GitHub icon) at the bottom of every page, linking to the matching GitHub release — a quick way to spot a stale cached page
 - Breadcrumb navigation (`Home → Reviewing` / `Home → Checking` / `Home → Datasets` / `Home → Metrics`) on all task pages
 
 **Reviewing task** — add reproducibility metadata to papers:

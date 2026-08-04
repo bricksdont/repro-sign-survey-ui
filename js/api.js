@@ -57,6 +57,23 @@ async function pbGetAll(collection, extraParams = '') {
   return all;
 }
 
+// Populates the #version-badge element (markup: <a id="version-badge"><img
+// class="version-badge-icon">...<span id="version-badge-text">...) from
+// package.json, fetched fresh every page load — a quick visual check that
+// you're not looking at a stale cached page. No-ops if the page doesn't
+// have the markup.
+function initVersionBadge() {
+  const badge = document.getElementById('version-badge');
+  if (!badge) return;
+  fetch('package.json').then(r => r.json()).then(pkg => {
+    document.getElementById('version-badge-text').textContent = `v${pkg.version}`;
+    badge.href = `https://github.com/bricksdont/repro-sign-survey-ui/releases/tag/v${pkg.version}`;
+    badge.target = '_blank';
+    badge.rel = 'noopener noreferrer';
+    badge.classList.remove('hidden');
+  }).catch(() => {}); // decorative — silently do nothing if unavailable
+}
+
 async function pbPatch(path, body) {
   const res = await fetch(PB_URL + path, {
     method: 'PATCH',
