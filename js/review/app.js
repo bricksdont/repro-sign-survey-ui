@@ -37,6 +37,7 @@ const KNOWN_SLP_AREAS = [
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 
 async function init() {
+  initVersionBadge();
   [papers, allDatasets, allMetrics] = await Promise.all([loadAllPapers(), loadAllDatasets(), loadAllMetrics()]);
 
   // Honour ?id= param so direct links work (e.g. from overview page)
