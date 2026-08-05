@@ -7,6 +7,13 @@ function truncateId(id, maxLen = 20) {
   return id.length > maxLen ? id.slice(0, maxLen) + '…' : id;
 }
 
+// Same 30-minute expiry rule app.js uses to decide whether a stale lock
+// should still block editing.
+function isLocked(p) {
+  if (!p.locked_by || !p.locked_at) return false;
+  return (Date.now() - new Date(p.locked_at).getTime()) <= 30 * 60 * 1000;
+}
+
 async function loadPapers() {
   requireAuth();
   const items = await pbGetAll('papers');
@@ -118,11 +125,15 @@ function applyFilters(resetPage = true) {
   }
 }
 
+function reviewNextCandidates() {
+  return allPapers.filter(p => (p.status || 'needs_review') === 'needs_review' && !isLocked(p));
+}
+
 function updateReviewNextBtn() {
   const btn = document.getElementById('review-next-btn');
-  const unreviewed = allPapers.filter(p => (p.status || 'needs_review') === 'needs_review');
-  btn.disabled = unreviewed.length === 0;
-  btn.title = unreviewed.length === 0 ? 'No papers left to review' : '';
+  const available = reviewNextCandidates();
+  btn.disabled = available.length === 0;
+  btn.title = available.length === 0 ? 'No unlocked papers left to review' : '';
 }
 
 async function init() {
@@ -167,9 +178,9 @@ async function init() {
   });
 
   document.getElementById('review-next-btn').addEventListener('click', () => {
-    const unreviewed = allPapers.filter(p => (p.status || 'needs_review') === 'needs_review');
-    if (unreviewed.length === 0) return;
-    const pick = unreviewed[Math.floor(Math.random() * unreviewed.length)];
+    const available = reviewNextCandidates();
+    if (available.length === 0) return;
+    const pick = available[Math.floor(Math.random() * available.length)];
     window.location.href = `paper.html?id=${pick.id}`;
   });
 }
