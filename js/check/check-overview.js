@@ -7,6 +7,13 @@ function truncateId(id, maxLen = 20) {
   return id.length > maxLen ? id.slice(0, maxLen) + '…' : id;
 }
 
+// Same 30-minute expiry rule check-app.js uses to decide whether a stale
+// lock should still block editing.
+function isLocked(p) {
+  if (!p.locked_by || !p.locked_at) return false;
+  return (Date.now() - new Date(p.locked_at).getTime()) <= 30 * 60 * 1000;
+}
+
 async function loadPapers() {
   requireAuth();
   const items = await pbGetAll('check_papers');
@@ -110,11 +117,15 @@ function applyFilters(resetPage = true) {
   }
 }
 
+function checkNextCandidates() {
+  return allPapers.filter(p => (p.status || 'needs_check') === 'needs_check' && !isLocked(p));
+}
+
 function updateCheckNextBtn() {
   const btn = document.getElementById('check-next-btn');
-  const unchecked = allPapers.filter(p => (p.status || 'needs_check') === 'needs_check');
-  btn.disabled = unchecked.length === 0;
-  btn.title = unchecked.length === 0 ? 'No papers left to check' : '';
+  const available = checkNextCandidates();
+  btn.disabled = available.length === 0;
+  btn.title = available.length === 0 ? 'No unlocked papers left to check' : '';
 }
 
 async function init() {
@@ -159,9 +170,9 @@ async function init() {
   });
 
   document.getElementById('check-next-btn').addEventListener('click', () => {
-    const unchecked = allPapers.filter(p => (p.status || 'needs_check') === 'needs_check');
-    if (unchecked.length === 0) return;
-    const pick = unchecked[Math.floor(Math.random() * unchecked.length)];
+    const available = checkNextCandidates();
+    if (available.length === 0) return;
+    const pick = available[Math.floor(Math.random() * available.length)];
     window.location.href = `paper-check.html?id=${pick.id}`;
   });
 }
