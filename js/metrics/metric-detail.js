@@ -17,10 +17,59 @@ async function init() {
     if (!record) return;
     populateForm(record);
     await acquireLock();
+    renderUsedInPapers(record.id); // not awaited — fills in once loaded, doesn't block the rest of the page
   } else {
     document.getElementById('breadcrumb-name').textContent = 'New Metric';
   }
   wireEvents();
+}
+
+// ── Used in Papers ─────────────────────────────────────────────────────────
+
+async function renderUsedInPapers(metricId) {
+  const section = document.getElementById('used-in-papers-section');
+  const list = document.getElementById('used-in-papers-list');
+  section.classList.remove('hidden');
+
+  const allPapers = await pbGetAll('papers');
+  const matches = allPapers.filter(p => Array.isArray(p.metrics) && p.metrics.includes(metricId));
+
+  list.innerHTML = '';
+  if (matches.length === 0) {
+    list.innerHTML = '<div class="used-in-papers-empty">No papers reference this metric yet.</div>';
+    return;
+  }
+
+  matches.forEach(p => {
+    const status = p.status || 'needs_review';
+    const badgeClass = status === 'final'    ? 'status-final'
+      : status === 'flagged'  ? 'status-flagged'
+      : status === 'rejected' ? 'status-rejected'
+      : 'status-needs-review';
+    const badgeText = status === 'final'    ? '✓ Final'
+      : status === 'flagged'  ? '⚑ Flagged'
+      : status === 'rejected' ? '✕ Rejected'
+      : '● Needs Review';
+
+    const row = document.createElement('div');
+    row.className = 'used-in-papers-row';
+
+    const link = document.createElement('a');
+    link.href = `paper.html?id=${p.paper_id}`;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.className = 'used-in-papers-title';
+    link.title = p.title || p.paper_id;
+    link.textContent = p.title || p.paper_id;
+
+    const badge = document.createElement('span');
+    badge.className = `status-badge ${badgeClass}`;
+    badge.textContent = badgeText;
+
+    row.appendChild(link);
+    row.appendChild(badge);
+    list.appendChild(row);
+  });
 }
 
 // ── Form ───────────────────────────────────────────────────────────────────

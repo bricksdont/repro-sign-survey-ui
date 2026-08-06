@@ -118,6 +118,7 @@ The override is stored in `localStorage` as `pb_backend` the first time it is se
 - **Peer-Reviewed field** (issue #37): three radios — Yes / No / N/A — instead of the original Yes/No pair. `peer_reviewed` is stored as the string `"yes"` / `"no"` / `"na"` (previously a bare bool); `populateForm` still recognizes legacy `true`/`false` values for backward compatibility with existing records.
 - **Datasets catalogue** (`datasets-index.html`): table listing all records from the `datasets` collection (name, license, availability badge, first URL). Clicking a row navigates to `dataset.html?id=<pb-id>`. "+ Add Dataset" navigates to a blank `dataset.html`. The detail page (`dataset.html`) has fields for name, license, URLs (chip list), availability radio, and comments, with edit locking and a `← Back` link.
 - **Metrics catalogue** (`metrics-index.html`): table listing all records from the `metrics` collection (name, first URL, comments). Clicking a row navigates to `metric.html?id=<pb-id>`. "+ Add Metric" navigates to a blank `metric.html`. The detail page (`metric.html`) has fields for name, URLs (chip list), and comments, with the same edit locking pattern.
+- **Used in Papers** (dataset/metric detail pages only, not for a new/unsaved record): a scrollable, always-fully-shown list of every paper referencing this dataset/metric — title (links to `paper.html?id=<paper-id>` in a new tab) plus a status badge, same class/text mapping as the Reviewing overview table. Computed entirely client-side (`pbGetAll('papers')` filtered by `p.datasets`/`p.metrics` array membership), matching the Review Stats page's approach — no backend relation-filter query involved, so no risk from PocketBase's `~` operator not being an exact array-membership match (confirmed empirically it under-counts for this use case). Loads in the background after the form/lock, doesn't block page interactivity.
 - **Persistence**: Save sends a PATCH to the appropriate collection endpoint on PocketBase. Two IDs per record: `paper_id` (kebab slug used in URLs and display) mapped to `p.id`; opaque PocketBase `id` stored as `p._pb_id` and used only for API calls.
 - **Pagination**: `pbGetAll(collection)` in `api.js` pages through PocketBase results until all records are loaded, avoiding the 500-record ceiling. Both overview and detail scripts use this helper.
 - **Edit locking**: opening a paper acquires a lock by setting `locked_by` + `locked_at` on the record. A heartbeat PATCH fires every 60 s to keep the lock alive. On save, navigation, or tab close the lock is released (`locked_by: ""`). If PATCH returns 404, the paper is locked by another user — the form goes read-only with a notice banner. Lock expiry (30 min of inactivity) is enforced client-side only.
@@ -135,16 +136,16 @@ PB_TEST_EMAIL=<email> PB_TEST_PASSWORD=<password> npx playwright test
 
 Playwright tests require a running PocketBase backend and a valid user account. Pass credentials via environment variables — store them in a local `.env` file (gitignored) and source it, or pass inline as above. Without those variables the Playwright tests are skipped rather than failed (so CI still passes).
 
-Playwright tests cover (25 tests total):
+Playwright tests cover (27 tests total):
 - **Landing**: task cards render (5 cards), all task links present
 - **Review overview**: renders list/controls, search filters live, empty state, row click → `paper.html`
 - **Review detail**: core UI elements, autosave persists a field change without finalizing, Finalize disabled until required fields are filled then marks paper as Final (skipped if no datasets/metrics in backend; restores mutated fields afterward), Status History logs flag/clear transitions newest-first, clearing a flag/rejection also clears its reason (#63), ◀ ▶ navigation updates URL, back link → `review-index.html`
 - **Check overview**: renders list/controls, row click → `paper-check.html`
 - **Check detail**: core UI elements including both radio groups, back link → `check-index.html`, clearing a flag also clears its reason (#63)
 - **Datasets overview**: renders table and controls (+ Add link), row click → `dataset.html` (skipped if no records)
-- **Dataset detail**: new dataset page loads form fields and back link
+- **Dataset detail**: new dataset page loads form fields and back link, existing dataset shows the Used in Papers section
 - **Metrics overview**: renders table and controls (+ Add link), row click → `metric.html` (skipped if no records)
-- **Metric detail**: new metric page loads form fields and back link
+- **Metric detail**: new metric page loads form fields and back link, existing metric shows the Used in Papers section
 - **Review Stats page**: renders all breakdown sections (summary, status breakdown, answered-fields table), reachable from the landing page
 
 ## Adding papers

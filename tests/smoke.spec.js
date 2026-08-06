@@ -412,6 +412,17 @@ test.describe('Metric detail page', () => {
     await expect(page.locator('#save-btn')).toBeVisible();
     await expect(page.locator('.back-link')).toBeVisible();
   });
+
+  test('shows Used in Papers section for an existing metric (#used-in-papers)', async ({ page }) => {
+    await page.goto('/metrics-index.html');
+    const rows = page.locator('.paper-row');
+    const count = await rows.count();
+    test.skip(count === 0, 'No metrics in backend — skipping');
+    await rows.first().click();
+    await expect(page).toHaveURL(/metric\.html\?id=/);
+    await page.waitForSelector('.used-in-papers-row, .used-in-papers-empty', { timeout: 8000 });
+    await expect(page.locator('#used-in-papers-section')).toBeVisible();
+  });
 });
 
 test.describe('Datasets overview page', () => {
@@ -440,6 +451,17 @@ test.describe('Dataset detail page', () => {
     await expect(page.locator('input[name="available"]')).toHaveCount(3);
     await expect(page.locator('#save-btn')).toBeVisible();
     await expect(page.locator('.back-link')).toBeVisible();
+  });
+
+  test('shows Used in Papers section for an existing dataset (#used-in-papers)', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    const rows = page.locator('.paper-row');
+    const count = await rows.count();
+    test.skip(count === 0, 'No datasets in backend — skipping');
+    await rows.first().click();
+    await expect(page).toHaveURL(/dataset\.html\?id=/);
+    await page.waitForSelector('.used-in-papers-row, .used-in-papers-empty', { timeout: 8000 });
+    await expect(page.locator('#used-in-papers-section')).toBeVisible();
   });
 });
 
