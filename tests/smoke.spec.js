@@ -336,6 +336,27 @@ test.describe('Review detail page', () => {
     await expect(page.locator('#paper-counter')).toContainText(`/ ${totalItems}`);
   });
 
+  test('returning via Back restores the search/filter state on review-index.html (#75)', async ({ page }) => {
+    await page.goto('/review-index.html');
+    await page.fill('#search-input', 'SignCLIP');
+    await expect(page.locator('.paper-row')).toHaveCount(1);
+    await page.locator('.paper-row').first().click();
+    await expect(page).toHaveURL(/paper\.html\?id=/);
+
+    await page.click('.back-link');
+    await expect(page).toHaveURL(/review-index\.html/);
+    await expect(page.locator('#search-input')).toHaveValue('SignCLIP');
+    await expect(page.locator('.paper-row')).toHaveCount(1);
+  });
+
+  test('a fresh visit (no prior session state) starts unfiltered on review-index.html (#75)', async ({ page }) => {
+    await page.goto('/review-index.html');
+    await page.evaluate(() => sessionStorage.clear());
+    await page.reload();
+    await expect(page.locator('#search-input')).toHaveValue('');
+    await expect(page.locator('.filter-btn.active')).toHaveAttribute('data-status', 'all');
+  });
+
   test('direct navigation to paper.html falls back to the full collection (#75)', async ({ page }) => {
     await page.goto('/login.html');
     const token = await page.evaluate(() => localStorage.getItem('pb_token'));
@@ -451,6 +472,27 @@ test.describe('Check detail page', () => {
     await expect(page.locator('#paper-counter')).toContainText('1 / 1');
     await expect(page.locator('#prev-paper')).toBeDisabled();
     await expect(page.locator('#next-paper')).toBeDisabled();
+  });
+
+  test('returning via Back restores the search/filter state on check-index.html (#75)', async ({ page }) => {
+    await page.goto('/check-index.html');
+    await page.fill('#search-input', 'arxiv-2303-10782');
+    await expect(page.locator('.paper-row')).toHaveCount(1);
+    await page.locator('.paper-row').first().click();
+    await expect(page).toHaveURL(/paper-check\.html\?id=/);
+
+    await page.click('.back-link');
+    await expect(page).toHaveURL(/check-index\.html/);
+    await expect(page.locator('#search-input')).toHaveValue('arxiv-2303-10782');
+    await expect(page.locator('.paper-row')).toHaveCount(1);
+  });
+
+  test('a fresh visit (no prior session state) starts unfiltered on check-index.html (#75)', async ({ page }) => {
+    await page.goto('/check-index.html');
+    await page.evaluate(() => sessionStorage.clear());
+    await page.reload();
+    await expect(page.locator('#search-input')).toHaveValue('');
+    await expect(page.locator('.filter-btn.active')).toHaveAttribute('data-status', 'all');
   });
 
   test('clicking an unfiltered row navigates the full collection (#75)', async ({ page }) => {

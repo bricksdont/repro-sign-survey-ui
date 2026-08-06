@@ -123,6 +123,7 @@ function applyFilters(resetPage = true) {
     return matchesSearch && matchesFilter;
   });
   renderTable(filtered);
+  saveFilterState();
 
   const countEl = document.getElementById('results-count');
   const isFiltered = q !== '' || activeFilter !== 'all';
@@ -132,6 +133,31 @@ function applyFilters(resetPage = true) {
   } else {
     countEl.classList.add('hidden');
   }
+}
+
+// Persists the current search text and status filter so this page restores
+// the same view when navigated back to (e.g. via paper.html's Back link)
+// instead of always resetting to the unfiltered list.
+function saveFilterState() {
+  sessionStorage.setItem('pb_review_filter_state', JSON.stringify({
+    search: document.getElementById('search-input').value,
+    filter: activeFilter,
+  }));
+}
+
+function restoreFilterState() {
+  let stored = null;
+  try {
+    stored = JSON.parse(sessionStorage.getItem('pb_review_filter_state') || 'null');
+  } catch {
+    stored = null;
+  }
+  if (!stored) return;
+  document.getElementById('search-input').value = stored.search || '';
+  activeFilter = stored.filter || 'all';
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.status === activeFilter);
+  });
 }
 
 function reviewNextCandidates() {
@@ -148,7 +174,6 @@ function updateReviewNextBtn() {
 async function init() {
   allPapers = await loadPapers();
   renderStats(allPapers);
-  renderTable(allPapers);
   updateReviewNextBtn();
 
   document.getElementById('search-input').addEventListener('input', applyFilters);
@@ -161,6 +186,9 @@ async function init() {
       applyFilters();
     });
   });
+
+  restoreFilterState();
+  applyFilters();
 
   document.getElementById('page-prev').addEventListener('click', () => {
     currentPage--;
