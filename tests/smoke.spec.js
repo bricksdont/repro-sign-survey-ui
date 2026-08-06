@@ -323,6 +323,19 @@ test.describe('Review detail page', () => {
     await expect(page).toHaveURL(/review-index\.html/);
   });
 
+  test('Copy Link copies a plain ?id= link, stripping the active nav filter (#75)', async ({ page, context }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.goto('/review-index.html');
+    await page.fill('#search-input', 'SignCLIP');
+    await expect(page.locator('.paper-row')).toHaveCount(1);
+    await page.locator('.paper-row').first().click();
+    await expect(page).toHaveURL(/paper\.html\?id=.*q=SignCLIP/);
+
+    await page.click('#copy-link-btn');
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toMatch(/paper\.html\?id=[^&]+$/);
+  });
+
   test('clicking a filtered row carries the filter into the URL and constrains ◀ ▶ to that subset (#75)', async ({ page }) => {
     await page.goto('/review-index.html');
     await page.fill('#search-input', 'SignCLIP');
@@ -438,6 +451,19 @@ test.describe('Check detail page', () => {
     await page.goto('/paper-check.html?id=arxiv-2303-10782');
     await page.click('.back-link');
     await expect(page).toHaveURL(/check-index\.html/);
+  });
+
+  test('Copy Link copies a plain ?id= link, stripping the active nav filter (#75)', async ({ page, context }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.goto('/check-index.html');
+    await page.fill('#search-input', 'arxiv-2303-10782');
+    await expect(page.locator('.paper-row')).toHaveCount(1);
+    await page.locator('.paper-row').first().click();
+    await expect(page).toHaveURL(/paper-check\.html\?id=.*q=arxiv-2303-10782/);
+
+    await page.click('#copy-link-btn');
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toMatch(/paper-check\.html\?id=[^&]+$/);
   });
 
   test('clicking a filtered row carries the filter into the URL and constrains ◀ ▶ to that subset (#75)', async ({ page }) => {

@@ -352,7 +352,11 @@ async function saveAndNext() {
 }
 
 function copyLink() {
-  navigator.clipboard.writeText(window.location.href).then(() => {
+  // Deliberately strips ?q=/?status= — a shared/copied link should stay a
+  // plain, interpretable link to this one paper, not carry the sender's
+  // current overview filter along with it.
+  const plainUrl = `${window.location.origin}${window.location.pathname}?id=${papers[currentIndex].id}`;
+  navigator.clipboard.writeText(plainUrl).then(() => {
     const btn = document.getElementById('copy-link-btn');
     const original = btn.innerHTML;
     btn.textContent = 'Copied ✓';
