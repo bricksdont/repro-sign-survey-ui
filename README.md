@@ -42,12 +42,14 @@ A landing page routes annotators to either task. Each task has its own overview 
 - "+ Add Dataset" navigates to a blank detail page; saving POSTs a new record and updates the URL to `?id=<id>`
 - Detail page has fields for name, license, URLs (chip list), availability, and comments; edit locking with 30-minute heartbeat
 - Dataset chips on the review detail page show a ↗ icon that opens the dataset detail page in a new tab
+- Detail page shows a scrollable "Used in Papers" list — every paper referencing this dataset, with a status badge, linking to the paper in a new tab
 
 **Metrics catalogue** — manage the shared pool of metrics referenced in reviews:
 - Overview table with name, URL, and comments; clicking a row opens the metric detail page
 - "+ Add Metric" navigates to a blank detail page; saving POSTs a new record and updates the URL to `?id=<id>`
 - Detail page has fields for name, URLs (chip list), and comments; same edit locking pattern as datasets
 - Metric chips on the review detail page show a ↗ icon that opens the metric detail page in a new tab
+- Detail page shows the same "Used in Papers" list as the dataset detail page
 
 **Review Stats dashboard** — reviewing progress at a glance (named to distinguish it from any future Checking-task stats):
 - Total paper count and a status breakdown bar chart (Needs Review / Final / Flagged / Rejected)

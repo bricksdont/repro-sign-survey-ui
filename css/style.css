@@ -1254,6 +1254,45 @@ hr.field-divider {
   padding: 8px 0;
 }
 
+.used-in-papers-list {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.used-in-papers-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 13px;
+}
+
+.used-in-papers-row:last-child {
+  border-bottom: none;
+}
+
+.used-in-papers-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #4a90d9;
+  text-decoration: none;
+}
+
+.used-in-papers-title:hover {
+  text-decoration: underline;
+}
+
+.used-in-papers-empty {
+  color: #999;
+  font-size: 13px;
+  padding: 8px 0;
+}
+
 .reject-options {
   display: flex;
   flex-direction: column;
