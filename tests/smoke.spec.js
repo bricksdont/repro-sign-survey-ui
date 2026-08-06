@@ -66,6 +66,19 @@ test.describe('Review overview page', () => {
     await page.locator('.paper-row').first().click();
     await expect(page).toHaveURL(/paper\.html\?id=/);
   });
+
+  test('the search clear button appears while typing and resets the search on click', async ({ page }) => {
+    await page.goto('/review-index.html');
+    await expect(page.locator('#search-clear-btn')).toBeHidden();
+    await page.fill('#search-input', 'SignCLIP');
+    await expect(page.locator('#search-clear-btn')).toBeVisible();
+    await expect(page).toHaveURL(/\?q=SignCLIP/);
+
+    await page.click('#search-clear-btn');
+    await expect(page.locator('#search-input')).toHaveValue('');
+    await expect(page.locator('#search-clear-btn')).toBeHidden();
+    await expect(page).not.toHaveURL(/q=/);
+  });
 });
 
 test.describe('Review detail page', () => {
@@ -393,6 +406,19 @@ test.describe('Check overview page', () => {
     await page.goto('/check-index.html');
     await page.locator('.paper-row').first().click();
     await expect(page).toHaveURL(/paper-check\.html\?id=/);
+  });
+
+  test('the search clear button appears while typing and resets the search on click', async ({ page }) => {
+    await page.goto('/check-index.html');
+    await expect(page.locator('#search-clear-btn')).toBeHidden();
+    await page.fill('#search-input', 'arxiv-2303-10782');
+    await expect(page.locator('#search-clear-btn')).toBeVisible();
+    await expect(page).toHaveURL(/\?q=arxiv-2303-10782/);
+
+    await page.click('#search-clear-btn');
+    await expect(page.locator('#search-input')).toHaveValue('');
+    await expect(page.locator('#search-clear-btn')).toBeHidden();
+    await expect(page).not.toHaveURL(/q=/);
   });
 });
 

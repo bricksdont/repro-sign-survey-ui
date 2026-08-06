@@ -396,12 +396,17 @@ a.stat-bar-label:hover {
   flex-wrap: wrap;
 }
 
-.search-input {
+.search-input-wrapper {
+  position: relative;
   flex: 1;
   min-width: 200px;
+}
+
+.search-input {
+  width: 100%;
   border: 1px solid #d0d0d0;
   border-radius: 6px;
-  padding: 7px 12px;
+  padding: 7px 28px 7px 12px;
   font-size: 14px;
   color: #333;
   outline: none;
@@ -415,6 +420,27 @@ a.stat-bar-label:hover {
 
 .search-input::placeholder {
   color: #bbb;
+}
+
+.search-clear-btn {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  color: #999;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.search-clear-btn:hover {
+  color: #333;
+  background: #eee;
 }
 
 .status-filters {

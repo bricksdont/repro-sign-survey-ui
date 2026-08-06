@@ -139,6 +139,7 @@ function applyFilters(resetPage = true) {
   });
   renderTable(filtered);
   syncURL();
+  document.getElementById('search-clear-btn').classList.toggle('hidden', q === '');
 
   const countEl = document.getElementById('results-count');
   const isFiltered = q !== '' || activeFilter !== 'all';
@@ -180,6 +181,12 @@ async function init() {
   }
 
   document.getElementById('search-input').addEventListener('input', applyFilters);
+  document.getElementById('search-clear-btn').addEventListener('click', () => {
+    const input = document.getElementById('search-input');
+    input.value = '';
+    applyFilters();
+    input.focus();
+  });
 
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
