@@ -309,6 +309,62 @@ test.describe('Review detail page', () => {
     await page.click('.back-link');
     await expect(page).toHaveURL(/review-index\.html/);
   });
+
+  test('clicking a filtered row constrains ◀ ▶ navigation to that subset (#75)', async ({ page }) => {
+    await page.goto('/review-index.html');
+    await page.fill('#search-input', 'SignCLIP');
+    await expect(page.locator('.paper-row')).toHaveCount(1);
+    await page.locator('.paper-row').first().click();
+    await expect(page).toHaveURL(/paper\.html\?id=/);
+    await expect(page.locator('#paper-counter')).toContainText('1 / 1');
+    await expect(page.locator('#prev-paper')).toBeDisabled();
+    await expect(page.locator('#next-paper')).toBeDisabled();
+  });
+
+  test('clicking an unfiltered row navigates the full collection (#75)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get(
+      'http://localhost:8090/api/collections/papers/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const { totalItems } = await res.json();
+
+    await page.goto('/review-index.html');
+    await page.locator('.paper-row').first().click();
+    await expect(page).toHaveURL(/paper\.html\?id=/);
+    await expect(page.locator('#paper-counter')).toContainText(`/ ${totalItems}`);
+  });
+
+  test('direct navigation to paper.html falls back to the full collection (#75)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get(
+      'http://localhost:8090/api/collections/papers/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const { totalItems } = await res.json();
+
+    await page.evaluate(() => sessionStorage.clear());
+    await page.goto('/paper.html?id=emnlp-2024-518');
+    await expect(page.locator('#paper-counter')).toContainText(`/ ${totalItems}`);
+  });
+
+  test('a stale sessionStorage nav order not containing the current paper falls back to the full collection (#75)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get(
+      'http://localhost:8090/api/collections/papers/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const { totalItems } = await res.json();
+
+    await page.evaluate(() => {
+      sessionStorage.setItem('pb_review_nav_order', JSON.stringify(['nonexistent-1', 'nonexistent-2']));
+    });
+    await page.goto('/paper.html?id=emnlp-2024-518');
+    await expect(page.locator('#paper-counter')).toContainText(`/ ${totalItems}`);
+  });
 });
 
 test.describe('Check overview page', () => {
@@ -384,6 +440,46 @@ test.describe('Check detail page', () => {
       status: record.status || 'needs_check',
       flag_reason: record.flag_reason || '',
     });
+  });
+
+  test('clicking a filtered row constrains ◀ ▶ navigation to that subset (#75)', async ({ page }) => {
+    await page.goto('/check-index.html');
+    await page.fill('#search-input', 'arxiv-2303-10782');
+    await expect(page.locator('.paper-row')).toHaveCount(1);
+    await page.locator('.paper-row').first().click();
+    await expect(page).toHaveURL(/paper-check\.html\?id=/);
+    await expect(page.locator('#paper-counter')).toContainText('1 / 1');
+    await expect(page.locator('#prev-paper')).toBeDisabled();
+    await expect(page.locator('#next-paper')).toBeDisabled();
+  });
+
+  test('clicking an unfiltered row navigates the full collection (#75)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get(
+      'http://localhost:8090/api/collections/check_papers/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const { totalItems } = await res.json();
+
+    await page.goto('/check-index.html');
+    await page.locator('.paper-row').first().click();
+    await expect(page).toHaveURL(/paper-check\.html\?id=/);
+    await expect(page.locator('#paper-counter')).toContainText(`/ ${totalItems}`);
+  });
+
+  test('direct navigation to paper-check.html falls back to the full collection (#75)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get(
+      'http://localhost:8090/api/collections/check_papers/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const { totalItems } = await res.json();
+
+    await page.evaluate(() => sessionStorage.clear());
+    await page.goto('/paper-check.html?id=arxiv-2303-10782');
+    await expect(page.locator('#paper-counter')).toContainText(`/ ${totalItems}`);
   });
 });
 

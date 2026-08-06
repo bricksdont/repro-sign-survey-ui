@@ -82,6 +82,15 @@ function renderTable(papers) {
     `;
     tr.addEventListener('click', e => {
       if (e.target.tagName !== 'A') {
+        // Records the currently filtered/searched set (in display order, not
+        // just this page) so paper.html's ◀ ▶ navigation can stay within it
+        // instead of the full collection. Always overwritten on every click
+        // — including when unfiltered — so a stale entry from an earlier
+        // filter never lingers. Session-only and same-tab only by design: a
+        // copied/shared link, or one opened in a new tab, falls back to full
+        // navigation, which is the correct default for someone without this
+        // browsing context.
+        sessionStorage.setItem('pb_review_nav_order', JSON.stringify(papers.map(x => x.id)));
         window.location.href = `paper.html?id=${p.id}`;
       }
     });

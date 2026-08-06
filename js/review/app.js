@@ -4,6 +4,7 @@ let papers = [];
 let allDatasets = []; // [{id, name, ...}] loaded from backend
 let allMetrics  = []; // [{id, name, comments}] loaded from backend
 let currentIndex = 0;
+let navOrder = []; // paper IDs in the order ◀ ▶ should step through — see initNavOrder()
 let datasets = [];   // [{id, name}] for the current paper
 let metrics  = [];   // [{id, name}] for the current paper
 let code_repos = [];
@@ -47,8 +48,26 @@ async function init() {
     if (startIndex < 0) startIndex = 0;
   }
 
+  initNavOrder(papers[startIndex]?.id);
   await loadPaper(startIndex);
   wireEvents();
+}
+
+// Restores the filtered/searched subset review-index.html left in
+// sessionStorage (if any) so ◀ ▶ stays within it instead of the full
+// collection. Only trusted if it actually contains the paper we're about to
+// open — otherwise it's a stale leftover from a different filter/session and
+// we fall back to the full collection, same as if nothing were stored at all.
+function initNavOrder(startId) {
+  let stored = null;
+  try {
+    stored = JSON.parse(sessionStorage.getItem('pb_review_nav_order') || 'null');
+  } catch {
+    stored = null;
+  }
+  navOrder = (Array.isArray(stored) && stored.includes(startId))
+    ? stored
+    : papers.map(p => p.id);
 }
 
 async function loadAllPapers() {
@@ -107,10 +126,29 @@ function loadPDF(url) {
 }
 
 function updatePaperNav() {
+  let pos = navOrder.indexOf(papers[currentIndex].id);
+  if (pos < 0) {
+    // The current paper isn't in the active subset — e.g. Finalize & Next
+    // (unchanged, always searches the full collection) landed outside a
+    // filtered navOrder. Fall back to the full collection rather than show
+    // a nonsensical position.
+    navOrder = papers.map(p => p.id);
+    pos = navOrder.indexOf(papers[currentIndex].id);
+  }
   document.getElementById('paper-counter').textContent =
-    `${currentIndex + 1} / ${papers.length}`;
-  document.getElementById('prev-paper').disabled = currentIndex <= 0;
-  document.getElementById('next-paper').disabled = currentIndex >= papers.length - 1;
+    `${pos + 1} / ${navOrder.length}`;
+  document.getElementById('prev-paper').disabled = pos <= 0;
+  document.getElementById('next-paper').disabled = pos >= navOrder.length - 1;
+}
+
+// ◀ ▶ step within navOrder (the filtered/searched subset, or the full
+// collection if there wasn't one), not just adjacent full-array indices.
+function loadAdjacentPaper(offset) {
+  const pos = navOrder.indexOf(papers[currentIndex].id);
+  const targetPos = pos + offset;
+  if (targetPos < 0 || targetPos >= navOrder.length) return;
+  const targetIndex = papers.findIndex(p => p.id === navOrder[targetPos]);
+  if (targetIndex >= 0) loadPaper(targetIndex);
 }
 
 function updateStatusBadge(status, reason, finalizedBy) {
@@ -1068,12 +1106,8 @@ function initDivider() {
 // ── Event wiring ───────────────────────────────────────────────────────────
 
 function wireEvents() {
-  document.getElementById('prev-paper').addEventListener('click', () => {
-    if (currentIndex > 0) loadPaper(currentIndex - 1);
-  });
-  document.getElementById('next-paper').addEventListener('click', () => {
-    if (currentIndex < papers.length - 1) loadPaper(currentIndex + 1);
-  });
+  document.getElementById('prev-paper').addEventListener('click', () => loadAdjacentPaper(-1));
+  document.getElementById('next-paper').addEventListener('click', () => loadAdjacentPaper(1));
 
   ['title', 'year', 'venue'].forEach(field => {
     document.getElementById('edit-'  + field).addEventListener('click', () => startEditing(field));
