@@ -4,6 +4,9 @@ let papers = [];
 let allDatasets = []; // [{id, name, ...}] loaded from backend
 let allMetrics  = []; // [{id, name, comments}] loaded from backend
 let currentIndex = 0;
+let navOrder  = []; // paper IDs matching navQuery/navStatus, in papers order
+let navQuery  = ''; // ?q= from the URL — mirrors review-index.html's search box
+let navStatus = 'all'; // ?status= from the URL — mirrors review-index.html's status pill
 let datasets = [];   // [{id, name}] for the current paper
 let metrics  = [];   // [{id, name}] for the current paper
 let code_repos = [];
@@ -39,8 +42,15 @@ const KNOWN_SLP_AREAS = [
 async function init() {
   [papers, allDatasets, allMetrics] = await Promise.all([loadAllPapers(), loadAllDatasets(), loadAllMetrics()]);
 
-  // Honour ?id= param so direct links work (e.g. from overview page)
-  const requestedId = new URLSearchParams(window.location.search).get('id');
+  // Honour ?id= param so direct links work (e.g. from overview page); ?q=/
+  // ?status= (if present) carry over review-index.html's active search/filter
+  // so ◀ ▶ navigation here stays within that same subset.
+  const urlParams = new URLSearchParams(window.location.search);
+  const requestedId = urlParams.get('id');
+  navQuery  = urlParams.get('q') || '';
+  navStatus = urlParams.get('status') || 'all';
+  computeNavOrder();
+
   let startIndex = papers.findIndex(p => p.id === requestedId);
   if (startIndex < 0) {
     startIndex = papers.findIndex(p => p.status !== 'final');
@@ -49,6 +59,50 @@ async function init() {
 
   await loadPaper(startIndex);
   wireEvents();
+}
+
+// Recomputes navOrder from navQuery/navStatus using the exact same predicate
+// review-index.html's applyFilters() uses, so the subset a paper was opened
+// from is reproduced here from live data rather than a frozen ID list.
+function computeNavOrder() {
+  const ql = navQuery.toLowerCase();
+  navOrder = papers.filter(p => {
+    const matchesSearch = !ql
+      || p.id.toLowerCase().includes(ql)
+      || (p.title || '').toLowerCase().includes(ql);
+    const matchesStatus = navStatus === 'all' || (p.status || 'needs_review') === navStatus;
+    return matchesSearch && matchesStatus;
+  }).map(p => p.id);
+}
+
+// Builds the ?id=&q=&status= URL for a given paper, carrying the current
+// nav filter along (q/status omitted when at their default, same as
+// review-index.html's buildFilterQuery()).
+function buildPaperUrl(id) {
+  const params = new URLSearchParams();
+  params.set('id', id);
+  if (navQuery) params.set('q', navQuery);
+  if (navStatus !== 'all') params.set('status', navStatus);
+  return `?${params.toString()}`;
+}
+
+// Keeps the Back link pointed at review-index.html with the same filter
+// still applied, so returning there restores the exact view this paper was
+// opened from.
+function updateBackLink() {
+  const params = new URLSearchParams();
+  if (navQuery) params.set('q', navQuery);
+  if (navStatus !== 'all') params.set('status', navStatus);
+  const qs = params.toString();
+  document.querySelector('.back-link').href = `review-index.html${qs ? '?' + qs : ''}`;
+}
+
+function loadAdjacentPaper(offset) {
+  const pos = navOrder.indexOf(papers[currentIndex].id);
+  const targetPos = pos + offset;
+  if (targetPos < 0 || targetPos >= navOrder.length) return;
+  const targetIndex = papers.findIndex(p => p.id === navOrder[targetPos]);
+  if (targetIndex >= 0) loadPaper(targetIndex);
 }
 
 async function loadAllPapers() {
@@ -85,9 +139,21 @@ async function loadPaper(index) {
 
   currentIndex = index;
   const p = papers[index];
-  history.replaceState(null, '', `?id=${p.id}`);
+
+  // Self-heal: if the paper we're loading isn't in the current filtered nav
+  // subset (e.g. Finalize & Next intentionally landed outside it — that flow
+  // always searches the full needs_review pool), fall back to the full
+  // collection rather than getting stuck.
+  if (!navOrder.includes(p.id)) {
+    navQuery = '';
+    navStatus = 'all';
+    computeNavOrder();
+  }
+
+  history.replaceState(null, '', buildPaperUrl(p.id));
   document.title = 'REPRO-SIGN Survey Tool';
   updatePaperNav();
+  updateBackLink();
   updateStatusBadge(p.status || 'needs_review', p.rejection_reason || p.flag_reason, p.finalized_by);
   populateForm(p);
   loadPDF(p.pdf_url);
@@ -107,10 +173,11 @@ function loadPDF(url) {
 }
 
 function updatePaperNav() {
+  const pos = navOrder.indexOf(papers[currentIndex].id);
   document.getElementById('paper-counter').textContent =
-    `${currentIndex + 1} / ${papers.length}`;
-  document.getElementById('prev-paper').disabled = currentIndex <= 0;
-  document.getElementById('next-paper').disabled = currentIndex >= papers.length - 1;
+    `${pos + 1} / ${navOrder.length}`;
+  document.getElementById('prev-paper').disabled = pos <= 0;
+  document.getElementById('next-paper').disabled = pos >= navOrder.length - 1;
 }
 
 function updateStatusBadge(status, reason, finalizedBy) {
@@ -1068,12 +1135,8 @@ function initDivider() {
 // ── Event wiring ───────────────────────────────────────────────────────────
 
 function wireEvents() {
-  document.getElementById('prev-paper').addEventListener('click', () => {
-    if (currentIndex > 0) loadPaper(currentIndex - 1);
-  });
-  document.getElementById('next-paper').addEventListener('click', () => {
-    if (currentIndex < papers.length - 1) loadPaper(currentIndex + 1);
-  });
+  document.getElementById('prev-paper').addEventListener('click', () => loadAdjacentPaper(-1));
+  document.getElementById('next-paper').addEventListener('click', () => loadAdjacentPaper(1));
 
   ['title', 'year', 'venue'].forEach(field => {
     document.getElementById('edit-'  + field).addEventListener('click', () => startEditing(field));
