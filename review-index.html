@@ -30,7 +30,10 @@
     <div id="stats-row" class="stats-row"></div>
 
     <div class="filter-bar">
-      <input type="text" id="search-input" class="search-input" placeholder="Search by ID or title…">
+      <div class="search-input-wrapper">
+        <input type="text" id="search-input" class="search-input" placeholder="Search by ID or title…">
+        <button id="search-clear-btn" class="search-clear-btn hidden" type="button" aria-label="Clear search">&times;</button>
+      </div>
       <div class="status-filters">
         <button class="filter-btn active" data-status="all">All</button>
         <button class="filter-btn" data-status="needs_review">Needs Review</button>

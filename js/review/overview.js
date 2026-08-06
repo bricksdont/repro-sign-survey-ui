@@ -82,13 +82,37 @@ function renderTable(papers) {
     `;
     tr.addEventListener('click', e => {
       if (e.target.tagName !== 'A') {
-        window.location.href = `paper.html?id=${p.id}`;
+        // Carries the active search/filter into paper.html's URL so its
+        // ◀ ▶ navigation and counter can stay within this same subset —
+        // recomputed from live data on the paper page, not a frozen ID list.
+        const qs = buildFilterQuery();
+        window.location.href = `paper.html?id=${p.id}${qs ? '&' + qs : ''}`;
       }
     });
     tbody.appendChild(tr);
   });
 
   renderPagination(papers.length);
+}
+
+// Builds the current search text + status filter as a query string (e.g.
+// "q=SignCLIP&status=flagged"), omitting params that are at their default so
+// an unfiltered view keeps a clean URL. Empty string when unfiltered.
+function buildFilterQuery() {
+  const params = new URLSearchParams();
+  const q = document.getElementById('search-input').value;
+  if (q) params.set('q', q);
+  if (activeFilter !== 'all') params.set('status', activeFilter);
+  return params.toString();
+}
+
+// Keeps the address bar in sync with the current filter, without adding a
+// history entry per keystroke — makes the current view bookmarkable/
+// shareable, and is what the paper detail page's Back link reads to return
+// here with the same filter still applied.
+function syncURL() {
+  const qs = buildFilterQuery();
+  history.replaceState(null, '', window.location.pathname + (qs ? '?' + qs : ''));
 }
 
 function renderPagination(total) {
@@ -114,6 +138,8 @@ function applyFilters(resetPage = true) {
     return matchesSearch && matchesFilter;
   });
   renderTable(filtered);
+  syncURL();
+  document.getElementById('search-clear-btn').classList.toggle('hidden', q === '');
 
   const countEl = document.getElementById('results-count');
   const isFiltered = q !== '' || activeFilter !== 'all';
@@ -139,10 +165,28 @@ function updateReviewNextBtn() {
 async function init() {
   allPapers = await loadPapers();
   renderStats(allPapers);
-  renderTable(allPapers);
   updateReviewNextBtn();
 
+  // Restore search/filter from the URL (e.g. a bookmarked or shared link, or
+  // the Back link from a paper opened via a filtered row).
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('q')) document.getElementById('search-input').value = urlParams.get('q');
+  const validStatuses = new Set([...document.querySelectorAll('.filter-btn')].map(b => b.dataset.status));
+  const statusParam = urlParams.get('status');
+  if (statusParam && validStatuses.has(statusParam)) {
+    activeFilter = statusParam;
+    document.querySelectorAll('.filter-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.status === activeFilter);
+    });
+  }
+
   document.getElementById('search-input').addEventListener('input', applyFilters);
+  document.getElementById('search-clear-btn').addEventListener('click', () => {
+    const input = document.getElementById('search-input');
+    input.value = '';
+    applyFilters();
+    input.focus();
+  });
 
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -152,6 +196,8 @@ async function init() {
       applyFilters();
     });
   });
+
+  applyFilters(); // renders (and syncs the URL for) the restored or default filter
 
   document.getElementById('page-prev').addEventListener('click', () => {
     currentPage--;

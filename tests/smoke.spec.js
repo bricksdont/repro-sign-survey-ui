@@ -66,6 +66,19 @@ test.describe('Review overview page', () => {
     await page.locator('.paper-row').first().click();
     await expect(page).toHaveURL(/paper\.html\?id=/);
   });
+
+  test('the search clear button appears while typing and resets the search on click', async ({ page }) => {
+    await page.goto('/review-index.html');
+    await expect(page.locator('#search-clear-btn')).toBeHidden();
+    await page.fill('#search-input', 'SignCLIP');
+    await expect(page.locator('#search-clear-btn')).toBeVisible();
+    await expect(page).toHaveURL(/\?q=SignCLIP/);
+
+    await page.click('#search-clear-btn');
+    await expect(page.locator('#search-input')).toHaveValue('');
+    await expect(page.locator('#search-clear-btn')).toBeHidden();
+    await expect(page).not.toHaveURL(/q=/);
+  });
 });
 
 test.describe('Review detail page', () => {
@@ -309,6 +322,87 @@ test.describe('Review detail page', () => {
     await page.click('.back-link');
     await expect(page).toHaveURL(/review-index\.html/);
   });
+
+  test('Copy Link copies a plain ?id= link, stripping the active nav filter (#75)', async ({ page, context }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.goto('/review-index.html');
+    await page.fill('#search-input', 'SignCLIP');
+    await expect(page.locator('.paper-row')).toHaveCount(1);
+    await page.locator('.paper-row').first().click();
+    await expect(page).toHaveURL(/paper\.html\?id=.*q=SignCLIP/);
+
+    await page.click('#copy-link-btn');
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toMatch(/paper\.html\?id=[^&]+$/);
+  });
+
+  test('clicking a filtered row carries the filter into the URL and constrains ◀ ▶ to that subset (#75)', async ({ page }) => {
+    await page.goto('/review-index.html');
+    await page.fill('#search-input', 'SignCLIP');
+    await expect(page.locator('.paper-row')).toHaveCount(1);
+    await page.locator('.paper-row').first().click();
+    await expect(page).toHaveURL(/paper\.html\?id=.*q=SignCLIP/);
+    await expect(page.locator('#paper-counter')).toHaveText('1 / 1');
+    await expect(page.locator('#prev-paper')).toBeDisabled();
+    await expect(page.locator('#next-paper')).toBeDisabled();
+  });
+
+  test('clicking an unfiltered row navigates the full collection (#75)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get(
+      'http://localhost:8090/api/collections/papers/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const { totalItems } = await res.json();
+
+    await page.goto('/review-index.html');
+    await page.locator('.paper-row').first().click();
+    await expect(page).toHaveURL(/paper\.html\?id=[^&]+$/); // no q=/status= appended
+    await expect(page.locator('#paper-counter')).toContainText(`/ ${totalItems}`);
+  });
+
+  test('the Back link from a filtered paper restores the same search/filter on review-index.html (#75)', async ({ page }) => {
+    await page.goto('/review-index.html');
+    await page.fill('#search-input', 'SignCLIP');
+    await expect(page.locator('.paper-row')).toHaveCount(1);
+    await page.locator('.paper-row').first().click();
+    await expect(page).toHaveURL(/paper\.html\?id=/);
+
+    await page.click('.back-link');
+    await expect(page).toHaveURL(/review-index\.html\?q=SignCLIP/);
+    await expect(page.locator('#search-input')).toHaveValue('SignCLIP');
+    await expect(page.locator('.paper-row')).toHaveCount(1);
+  });
+
+  test('direct navigation to paper.html (no filter params) uses the full collection (#75)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get(
+      'http://localhost:8090/api/collections/papers/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const { totalItems } = await res.json();
+
+    await page.goto('/paper.html?id=emnlp-2024-518');
+    await expect(page.locator('#paper-counter')).toContainText(`/ ${totalItems}`);
+    await expect(page.locator('.back-link')).toHaveAttribute('href', 'review-index.html');
+  });
+
+  test('a filter that does not match the loaded paper self-heals to the full collection (#75)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get(
+      'http://localhost:8090/api/collections/papers/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const { totalItems } = await res.json();
+
+    await page.goto('/paper.html?id=emnlp-2024-518&q=zzz-no-match-zzz');
+    await expect(page.locator('#paper-counter')).toContainText(`/ ${totalItems}`);
+    await expect(page).toHaveURL(/paper\.html\?id=[^&]+$/); // stale q= dropped after self-heal
+    await expect(page.locator('.back-link')).toHaveAttribute('href', 'review-index.html');
+  });
 });
 
 test.describe('Check overview page', () => {
@@ -325,6 +419,19 @@ test.describe('Check overview page', () => {
     await page.goto('/check-index.html');
     await page.locator('.paper-row').first().click();
     await expect(page).toHaveURL(/paper-check\.html\?id=/);
+  });
+
+  test('the search clear button appears while typing and resets the search on click', async ({ page }) => {
+    await page.goto('/check-index.html');
+    await expect(page.locator('#search-clear-btn')).toBeHidden();
+    await page.fill('#search-input', 'arxiv-2303-10782');
+    await expect(page.locator('#search-clear-btn')).toBeVisible();
+    await expect(page).toHaveURL(/\?q=arxiv-2303-10782/);
+
+    await page.click('#search-clear-btn');
+    await expect(page.locator('#search-input')).toHaveValue('');
+    await expect(page.locator('#search-clear-btn')).toBeHidden();
+    await expect(page).not.toHaveURL(/q=/);
   });
 });
 
@@ -344,6 +451,72 @@ test.describe('Check detail page', () => {
     await page.goto('/paper-check.html?id=arxiv-2303-10782');
     await page.click('.back-link');
     await expect(page).toHaveURL(/check-index\.html/);
+  });
+
+  test('Copy Link copies a plain ?id= link, stripping the active nav filter (#75)', async ({ page, context }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.goto('/check-index.html');
+    await page.fill('#search-input', 'arxiv-2303-10782');
+    await expect(page.locator('.paper-row')).toHaveCount(1);
+    await page.locator('.paper-row').first().click();
+    await expect(page).toHaveURL(/paper-check\.html\?id=.*q=arxiv-2303-10782/);
+
+    await page.click('#copy-link-btn');
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toMatch(/paper-check\.html\?id=[^&]+$/);
+  });
+
+  test('clicking a filtered row carries the filter into the URL and constrains ◀ ▶ to that subset (#75)', async ({ page }) => {
+    await page.goto('/check-index.html');
+    await page.fill('#search-input', 'arxiv-2303-10782');
+    await expect(page.locator('.paper-row')).toHaveCount(1);
+    await page.locator('.paper-row').first().click();
+    await expect(page).toHaveURL(/paper-check\.html\?id=.*q=arxiv-2303-10782/);
+    await expect(page.locator('#paper-counter')).toHaveText('1 / 1');
+    await expect(page.locator('#prev-paper')).toBeDisabled();
+    await expect(page.locator('#next-paper')).toBeDisabled();
+  });
+
+  test('clicking an unfiltered row navigates the full collection (#75)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get(
+      'http://localhost:8090/api/collections/check_papers/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const { totalItems } = await res.json();
+
+    await page.goto('/check-index.html');
+    await page.locator('.paper-row').first().click();
+    await expect(page).toHaveURL(/paper-check\.html\?id=[^&]+$/); // no q=/status= appended
+    await expect(page.locator('#paper-counter')).toContainText(`/ ${totalItems}`);
+  });
+
+  test('the Back link from a filtered paper restores the same search/filter on check-index.html (#75)', async ({ page }) => {
+    await page.goto('/check-index.html');
+    await page.fill('#search-input', 'arxiv-2303-10782');
+    await expect(page.locator('.paper-row')).toHaveCount(1);
+    await page.locator('.paper-row').first().click();
+    await expect(page).toHaveURL(/paper-check\.html\?id=/);
+
+    await page.click('.back-link');
+    await expect(page).toHaveURL(/check-index\.html\?q=arxiv-2303-10782/);
+    await expect(page.locator('#search-input')).toHaveValue('arxiv-2303-10782');
+    await expect(page.locator('.paper-row')).toHaveCount(1);
+  });
+
+  test('direct navigation to paper-check.html (no filter params) uses the full collection (#75)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get(
+      'http://localhost:8090/api/collections/check_papers/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const { totalItems } = await res.json();
+
+    await page.goto('/paper-check.html?id=arxiv-2303-10782');
+    await expect(page.locator('#paper-counter')).toContainText(`/ ${totalItems}`);
+    await expect(page.locator('.back-link')).toHaveAttribute('href', 'check-index.html');
   });
 
   test('clearing a flag also clears its reason (#63)', async ({ page }) => {

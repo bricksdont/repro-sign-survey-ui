@@ -60,7 +60,7 @@ A landing page routes annotators to either task. Each task has its own overview 
 - Computed entirely client-side from the `papers` collection — no backend aggregation endpoint, no charting library
 
 **Shared features:**
-- Paper navigation (◀ ▶); each paper has a stable URL with a one-click Copy link button
+- Paper navigation (◀ ▶); each paper has a stable URL with a one-click Copy Link button. Opening a paper from a filtered/searched overview list carries that filter into the URL (`?q=`/`?status=`), keeping ◀ ▶ within that subset while browsing; a bare link always navigates the full collection. Copy Link always copies the plain `?id=` link, stripping any active filter — a shared link stays simple. Returning to the overview (e.g. via Back) restores the same search/filter, which also has a one-click × clear button
 - Saves to a shared PocketBase backend — changes are immediately visible to all annotators
 - Edit locking: only one annotator can edit a paper at a time; others see a read-only notice
 - Auth: login with email/password or "Sign in with Slack" (OAuth2); token stored in `localStorage` with a 24-hour expiry, shared across tabs so copied paper links open without re-login
