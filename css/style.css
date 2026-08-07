@@ -1072,8 +1072,15 @@ hr.field-divider {
 .info-popup {
   position: absolute;
   bottom: 130%;
-  left: 50%;
-  transform: translateX(-50%);
+  /* Anchored from the icon's left edge, extending rightward, rather than
+     centered — .meta-panel's overflow-y: auto implicitly computes
+     overflow-x as auto too (per the CSS Overflow spec, setting one axis
+     to a non-visible value applies to both), which clips a centered popup
+     against the panel's own left edge for any field label near it — most
+     of them, since labels sit near the top-left of the form. Anchoring
+     left keeps the popup within the panel instead of needing to escape
+     past its edge in the first place. */
+  left: 0;
   width: 240px;
   background: #fff;
   border: 1px solid #d0d0d0;
@@ -1103,8 +1110,6 @@ hr.field-divider {
 }
 
 .finalize-tooltip-wrap .info-popup {
-  left: 0;
-  transform: none;
   width: 260px;
 }
 
