@@ -116,6 +116,12 @@ test.describe('Review detail page', () => {
     await page.fill('#input-venue', 'AUTOSAVE-TEST-VENUE');
     await page.locator('#input-venue').press('Enter');
     await expect(page.locator('#save-indicator')).toContainText('Saved', { timeout: 5000 });
+    // "Saved ✓" should stay on screen rather than auto-hiding after a couple
+    // of seconds — wait past the old 2s auto-hide window and confirm it's
+    // still visible.
+    await page.waitForTimeout(2500);
+    await expect(page.locator('#save-indicator')).toContainText('Saved');
+    await expect(page.locator('#save-indicator')).toBeVisible();
 
     const checkRes = await page.request.get(
       `http://localhost:8090/api/collections/papers/records/${record.id}`,

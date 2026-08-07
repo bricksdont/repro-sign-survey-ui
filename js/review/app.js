@@ -572,7 +572,6 @@ function setSaveIndicator(state) {
   } else if (state === 'saved') {
     el.textContent = 'Saved ✓';
     el.classList.add('state-saved');
-    setTimeout(() => el.classList.add('hidden'), 2000);
   } else if (state === 'error') {
     el.textContent = 'Save failed — will retry on next change';
     el.classList.add('state-error');
