@@ -915,7 +915,7 @@ test.describe('Review Stats page', () => {
 
   test('clickable Top Datasets/Metrics labels are visually distinct from non-clickable ones', async ({ page }) => {
     await page.goto('/stats.html');
-    await page.waitForSelector('#top-datasets .stat-bar-row, #top-finalizers .stat-bar-row', { timeout: 10000 });
+    await page.waitForSelector('#top-datasets .stat-bar-row, #top-reviewers .stat-bar-row', { timeout: 10000 });
 
     const linkLabelCount = await page.locator('#top-datasets a.stat-bar-label').count();
     test.skip(linkLabelCount === 0, 'No datasets in Top Datasets — skipping');
@@ -929,9 +929,9 @@ test.describe('Review Stats page', () => {
     // place in the dashboard, same as the "Used in Papers" links.
     await expect(link).toHaveAttribute('target', '_blank');
 
-    const plainLabelCount = await page.locator('#top-finalizers .stat-bar-label').count();
+    const plainLabelCount = await page.locator('#top-reviewers .stat-bar-label').count();
     if (plainLabelCount > 0) {
-      const plainColor = await page.locator('#top-finalizers .stat-bar-label').first().evaluate(el => getComputedStyle(el).color);
+      const plainColor = await page.locator('#top-reviewers .stat-bar-label').first().evaluate(el => getComputedStyle(el).color);
       expect(plainColor).not.toBe(linkColor);
     }
   });

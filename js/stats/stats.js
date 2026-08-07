@@ -190,12 +190,15 @@ async function init() {
   renderSummary(papers);
   renderStatusBreakdown(papers);
 
-  const finalizerCounts = tally(
-    papers.filter(p => p.status === 'final'),
-    p => p.finalized_by
-  );
-  renderBarSection('top-finalizers', sortedEntries(finalizerCounts), {
-    emptyMessage: 'No finalized papers yet.',
+  // Counts every status-change entry (Finalize, Flag, Reject, Clear/Revert)
+  // per person, not just papers.finalized_by — that only credited Finalize,
+  // leaving flag/reject work (equally real reviewing effort) uncredited.
+  // status_history already records {by, before, after, when} for each
+  // transition (see persistPaper()), so this needs no backend changes.
+  const allStatusChanges = papers.flatMap(p => Array.isArray(p.status_history) ? p.status_history : []);
+  const reviewerCounts = tally(allStatusChanges, entry => entry.by);
+  renderBarSection('top-reviewers', sortedEntries(reviewerCounts), {
+    emptyMessage: 'No status changes recorded yet.',
   });
 
   const datasetNameById = new Map();
