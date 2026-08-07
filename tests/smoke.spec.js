@@ -798,6 +798,27 @@ test.describe('Review Stats page', () => {
     await expect(page.locator('a[href="index.html"]')).toBeVisible();
   });
 
+  test('the availability badge does not misalign the bar tracks in Top Datasets', async ({ page }) => {
+    await page.goto('/stats.html');
+    await page.waitForSelector('#top-datasets .stat-bar-row', { timeout: 10000 });
+
+    const badgeCount = await page.locator('#top-datasets .avail-badge').count();
+    test.skip(badgeCount < 2, 'Fewer than 2 datasets with an availability badge — skipping');
+
+    // Force mismatched badge text ("Available" vs the wider "Not available")
+    // directly in the DOM, independent of whatever the live data currently
+    // has, so the test exercises the fixed-width badge slot regardless of
+    // which values happen to be in the backend right now.
+    await page.evaluate(() => {
+      const badges = document.querySelectorAll('#top-datasets .avail-badge');
+      badges[0].textContent = 'Available';
+      badges[1].textContent = 'Not available';
+    });
+
+    const trackXs = await page.$$eval('#top-datasets .stat-bar-track', els => els.map(el => el.getBoundingClientRect().x));
+    expect(new Set(trackXs).size).toBe(1);
+  });
+
   test('reachable from the landing page', async ({ page }) => {
     await page.goto('/');
     await page.click('a[href="stats.html"]');

@@ -338,8 +338,8 @@ a.stat-bar-label:hover {
   text-decoration: underline;
 }
 
-.stat-bar-row .avail-badge {
-  flex: 0 0 auto;
+.stat-bar-badge-slot {
+  flex: 0 0 100px;
 }
 
 .stat-bar-track {

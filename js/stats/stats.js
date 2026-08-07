@@ -34,10 +34,18 @@ function sortedEntries(counts) {
 
 function availabilityBadge(available) {
   if (available !== 'yes' && available !== 'no') return null;
+  // "Available"/"Not available" render at different natural widths, which
+  // otherwise pushes the bar track's left edge by a different amount per
+  // row. Wrapping in a fixed-width slot reserves the same horizontal space
+  // for every row regardless of which text the badge holds, so all the
+  // bars start at the same x position.
+  const slot = document.createElement('span');
+  slot.className = 'stat-bar-badge-slot';
   const badge = document.createElement('span');
   badge.className = `avail-badge avail-${available}`;
   badge.textContent = available === 'yes' ? 'Available' : 'Not available';
-  return badge;
+  slot.appendChild(badge);
+  return slot;
 }
 
 function renderBarSection(containerId, entries, { emptyMessage, topN = 10, linkFn, badgeFn, color = '#4a90d9' } = {}) {
