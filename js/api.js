@@ -10,7 +10,11 @@ const PB_URL = (() => {
     : 'https://repro-sign-survey-backend.fly.dev';
 })();
 
-const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+// Matches the backend's actual PocketBase authToken.duration (432000s = 5
+// days on the users collection) — previously 24h, which discarded still-
+// valid sessions early and forced a relogin on nearly every once-a-day visit
+// since this window doesn't slide with activity, only resets on login.
+const SESSION_TTL_MS = 5 * 24 * 60 * 60 * 1000; // 5 days
 
 function getToken() {
   const token  = localStorage.getItem('pb_token');
