@@ -4,6 +4,7 @@ let record = null; // null = new record
 let urlChips = [];
 let isReadOnly = false;
 let heartbeatInterval = null;
+let isDirty = false; // true once a field has changed since load/last save — drives the leave-page guard
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 
@@ -98,6 +99,7 @@ function renderUrlChips() {
     rm.addEventListener('click', () => {
       if (isReadOnly) return;
       urlChips.splice(i, 1); renderUrlChips();
+      markDirty();
     });
     chip.appendChild(rm);
     container.appendChild(chip);
@@ -108,9 +110,15 @@ function addUrlChip() {
   if (isReadOnly) return;
   const input = document.getElementById('url-input');
   const val = input.value.trim();
-  if (val && !urlChips.includes(val)) { urlChips.push(val); renderUrlChips(); }
+  if (val && !urlChips.includes(val)) { urlChips.push(val); renderUrlChips(); markDirty(); }
   input.value = '';
   input.focus();
+}
+
+// ── Unsaved-changes guard ────────────────────────────────────────────────
+
+function markDirty() {
+  isDirty = true;
 }
 
 // ── Save ───────────────────────────────────────────────────────────────────
@@ -150,6 +158,7 @@ async function save() {
 
   saveBtn.disabled = false;
   if (ok) {
+    isDirty = false;
     document.getElementById('breadcrumb-name').textContent = name;
     document.title = `REPRO-SIGN Survey Tool — ${name}`;
     const confirm = document.getElementById('save-confirm');
@@ -236,10 +245,23 @@ function wireEvents() {
   document.getElementById('field-name').addEventListener('keydown', e => {
     if (e.key === 'Enter') save();
   });
+
+  ['field-name', 'field-comments'].forEach(id => {
+    document.getElementById(id).addEventListener('input', markDirty);
+  });
 }
 
-window.addEventListener('beforeunload', () => {
-  if (!record || isReadOnly) return;
+window.addEventListener('beforeunload', e => {
+  if (isDirty && !isReadOnly) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+
+  // Don't release the lock (or stop the heartbeat that keeps it alive) while
+  // there are unsaved changes — the user may cancel the prompt above and
+  // keep editing. If they leave anyway, the lock is left to expire via the
+  // existing 30-minute inactivity rule rather than being released early.
+  if (!record || isReadOnly || isDirty) return;
   stopHeartbeat();
   fetch(`${PB_URL}/api/collections/metrics/records/${record.id}`, {
     method: 'PATCH', keepalive: true,

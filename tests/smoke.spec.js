@@ -596,6 +596,40 @@ test.describe('Metric detail page', () => {
     await page.waitForSelector('.used-in-papers-row, .used-in-papers-empty', { timeout: 8000 });
     await expect(page.locator('#used-in-papers-section')).toBeVisible();
   });
+
+  test('editing a field triggers the unsaved-changes guard; saving clears it', async ({ page }) => {
+    async function firesGuard() {
+      return page.evaluate(() => {
+        const evt = new Event('beforeunload', { cancelable: true });
+        window.dispatchEvent(evt);
+        return evt.defaultPrevented;
+      });
+    }
+
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get('http://localhost:8090/api/collections/metrics/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } });
+    const record = (await res.json()).items[0];
+    test.skip(!record, 'No metrics in backend — skipping');
+
+    await page.goto(`/metric.html?id=${record.id}`);
+    await expect(page.locator('#field-name')).toBeVisible();
+    expect(await firesGuard()).toBe(false);
+
+    await page.fill('#field-comments', 'UNSAVED-GUARD-TEST');
+    expect(await firesGuard()).toBe(true);
+
+    await page.click('#save-btn');
+    await expect(page.locator('#save-confirm')).toBeVisible();
+    expect(await firesGuard()).toBe(false);
+
+    await page.request.patch( // restore — leave no permanent side effects
+      `http://localhost:8090/api/collections/metrics/records/${record.id}`,
+      { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        data: { comments: record.comments || '' } }
+    );
+  });
 });
 
 test.describe('Datasets overview page', () => {
@@ -635,6 +669,60 @@ test.describe('Dataset detail page', () => {
     await expect(page).toHaveURL(/dataset\.html\?id=/);
     await page.waitForSelector('.used-in-papers-row, .used-in-papers-empty', { timeout: 8000 });
     await expect(page.locator('#used-in-papers-section')).toBeVisible();
+  });
+
+  test('editing a field triggers the unsaved-changes guard; saving clears it', async ({ page }) => {
+    async function firesGuard() {
+      return page.evaluate(() => {
+        const evt = new Event('beforeunload', { cancelable: true });
+        window.dispatchEvent(evt);
+        return evt.defaultPrevented;
+      });
+    }
+
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get('http://localhost:8090/api/collections/datasets/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } });
+    const record = (await res.json()).items[0];
+    test.skip(!record, 'No datasets in backend — skipping');
+
+    await page.goto(`/dataset.html?id=${record.id}`);
+    await expect(page.locator('#field-name')).toBeVisible();
+    expect(await firesGuard()).toBe(false);
+
+    await page.fill('#field-comments', 'UNSAVED-GUARD-TEST');
+    expect(await firesGuard()).toBe(true);
+
+    await page.click('#save-btn');
+    await expect(page.locator('#save-confirm')).toBeVisible();
+    expect(await firesGuard()).toBe(false);
+
+    await page.request.patch( // restore — leave no permanent side effects
+      `http://localhost:8090/api/collections/datasets/records/${record.id}`,
+      { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        data: { comments: record.comments || '' } }
+    );
+  });
+
+  test('a new (unsaved) dataset also triggers the guard while being typed into', async ({ page }) => {
+    await page.goto('/dataset.html');
+    await expect(page.locator('#field-name')).toBeVisible();
+
+    let prevented = await page.evaluate(() => {
+      const evt = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(evt);
+      return evt.defaultPrevented;
+    });
+    expect(prevented).toBe(false);
+
+    await page.fill('#field-name', 'Unsaved Guard Test Dataset');
+    prevented = await page.evaluate(() => {
+      const evt = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(evt);
+      return evt.defaultPrevented;
+    });
+    expect(prevented).toBe(true);
   });
 });
 
