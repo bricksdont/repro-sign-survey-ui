@@ -637,6 +637,7 @@ const REQUIRED_FIELD_LABELS = {
   main_experiment_has_ranking: 'Ranking',
   copied_scores:               'Copied Baseline Scores',
   includes_human_evaluation:   'Human Evaluation',
+  what_to_reproduce:           'What to Reproduce',
   compute_requirements:        'Compute Requirements',
   textual_conclusion:          'Textual Conclusion',
   potential_ethical_concerns:  'Ethical Concerns',
