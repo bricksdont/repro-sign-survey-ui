@@ -798,21 +798,28 @@ test.describe('Review Stats page', () => {
     await expect(page.locator('a[href="index.html"]')).toBeVisible();
   });
 
-  test('the availability badge does not misalign the bar tracks in Top Datasets', async ({ page }) => {
+  test('the availability badge does not misalign the bar tracks in Top Datasets, even for unanswered availability', async ({ page }) => {
     await page.goto('/stats.html');
     await page.waitForSelector('#top-datasets .stat-bar-row', { timeout: 10000 });
 
-    const badgeCount = await page.locator('#top-datasets .avail-badge').count();
-    test.skip(badgeCount < 2, 'Fewer than 2 datasets with an availability badge — skipping');
+    const rowCount = await page.locator('#top-datasets .stat-bar-row').count();
+    test.skip(rowCount < 2, 'Fewer than 2 datasets in Top Datasets — skipping');
 
-    // Force mismatched badge text ("Available" vs the wider "Not available")
-    // directly in the DOM, independent of whatever the live data currently
-    // has, so the test exercises the fixed-width badge slot regardless of
-    // which values happen to be in the backend right now.
+    // Every row must reserve a fixed-width badge slot, whether or not that
+    // slot actually holds a badge — a dataset's availability can be
+    // unanswered, and omitting the slot entirely for that row would
+    // collapse its reserved space, pushing its bar track left of the rows
+    // that do have a badge.
+    await expect(page.locator('#top-datasets .stat-bar-badge-slot')).toHaveCount(rowCount);
+
+    // Force one row to have no badge at all (unanswered availability) and
+    // another to hold the widest badge text, directly in the DOM —
+    // independent of whatever the live data currently has — to exercise
+    // both ends of the fixed-width slot regardless of current backend state.
     await page.evaluate(() => {
-      const badges = document.querySelectorAll('#top-datasets .avail-badge');
-      badges[0].textContent = 'Available';
-      badges[1].textContent = 'Not available';
+      const slots = document.querySelectorAll('#top-datasets .stat-bar-badge-slot');
+      slots[0].innerHTML = '';
+      slots[1].innerHTML = '<span class="avail-badge avail-no">Not available</span>';
     });
 
     const trackXs = await page.$$eval('#top-datasets .stat-bar-track', els => els.map(el => el.getBoundingClientRect().x));

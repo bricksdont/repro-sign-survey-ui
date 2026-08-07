@@ -33,18 +33,20 @@ function sortedEntries(counts) {
 // ── Rendering ────────────────────────────────────────────────────────────
 
 function availabilityBadge(available) {
-  if (available !== 'yes' && available !== 'no') return null;
-  // "Available"/"Not available" render at different natural widths, which
-  // otherwise pushes the bar track's left edge by a different amount per
-  // row. Wrapping in a fixed-width slot reserves the same horizontal space
-  // for every row regardless of which text the badge holds, so all the
-  // bars start at the same x position.
+  // Always return the fixed-width slot — even when a dataset has no
+  // available yet/no badge to show (unanswered) — so every row in the
+  // section reserves the same horizontal space and the bar tracks stay
+  // left-aligned. Only the pill inside it is conditional; omitting the slot
+  // itself for an unanswered row would collapse that row's reserved space,
+  // pushing its track back to the left of the ones that do have a badge.
   const slot = document.createElement('span');
   slot.className = 'stat-bar-badge-slot';
-  const badge = document.createElement('span');
-  badge.className = `avail-badge avail-${available}`;
-  badge.textContent = available === 'yes' ? 'Available' : 'Not available';
-  slot.appendChild(badge);
+  if (available === 'yes' || available === 'no') {
+    const badge = document.createElement('span');
+    badge.className = `avail-badge avail-${available}`;
+    badge.textContent = available === 'yes' ? 'Available' : 'Not available';
+    slot.appendChild(badge);
+  }
   return slot;
 }
 
