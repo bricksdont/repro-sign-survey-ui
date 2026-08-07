@@ -244,10 +244,14 @@ function setTextField(field, value) {
   const input   = document.getElementById('input-'   + field);
   const editBtn = document.getElementById('edit-'    + field);
 
+  // Elements are reused across papers (no page reload on ◀ ▶/Save & Next),
+  // so a stale value from a previous paper must always be cleared — not
+  // just overwritten when the new paper happens to have one.
+  input.value = value || '';
+
   if (value) {
     display.textContent = value;
     display.classList.remove('hidden');
-    input.value = value;
     input.classList.add('hidden');
     editBtn.classList.remove('hidden');
   } else {
