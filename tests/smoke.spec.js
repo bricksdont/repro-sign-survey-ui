@@ -134,6 +134,25 @@ test.describe('Review detail page', () => {
     );
   });
 
+  test('a network failure during autosave shows "Save failed" instead of hanging on "Saving…" forever', async ({ page }) => {
+    await page.goto('/paper.html?id=emnlp-2024-518');
+    await expect(page.locator('#display-title')).toBeVisible();
+
+    // Simulate the backend being unreachable (e.g. stopped) — abort every
+    // PATCH with a connection-level failure, exactly like a real
+    // ECONNREFUSED looks to fetch().
+    await page.route('**/api/collections/papers/records/**', route => {
+      if (route.request().method() === 'PATCH') route.abort('connectionrefused');
+      else route.continue();
+    });
+
+    if (await page.locator('#edit-venue').isVisible()) await page.click('#edit-venue');
+    await page.fill('#input-venue', 'NETWORK-FAILURE-TEST');
+    await page.locator('#input-venue').press('Enter');
+
+    await expect(page.locator('#save-indicator')).toContainText('failed', { timeout: 5000 });
+  });
+
   test('Finalize is disabled until all required fields are filled, then marks paper as Final', async ({ page }) => {
     await page.goto('/login.html');
     const token = await page.evaluate(() => localStorage.getItem('pb_token'));
