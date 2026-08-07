@@ -140,6 +140,42 @@ test.describe('Review detail page', () => {
     );
   });
 
+  test('a second autosave shows "Saving…" for a perceivable moment, not just a flash', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const listRes = await page.request.get(
+      'http://localhost:8090/api/collections/papers/records?filter=(paper_id="emnlp-2024-518")',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const record = (await listRes.json()).items[0];
+    test.skip(!record, 'Fixture paper not found — skipping');
+    const originalVenue = record.venue || '';
+
+    await page.goto('/paper.html?id=emnlp-2024-518');
+    await expect(page.locator('#display-title')).toBeVisible();
+    if (await page.locator('#edit-venue').isVisible()) await page.click('#edit-venue');
+    await page.fill('#input-venue', 'SAVING-INDICATOR-TEST-1');
+    await page.locator('#input-venue').press('Enter');
+    await expect(page.locator('#save-indicator')).toContainText('Saved', { timeout: 5000 });
+
+    // A second edit while "Saved ✓" is already showing (unchanged since it no
+    // longer auto-hides) must still visibly cycle back through "Saving…" —
+    // not stay stuck on "Saved ✓" the whole time.
+    await page.click('#edit-venue');
+    await page.fill('#input-venue', 'SAVING-INDICATOR-TEST-2');
+    await page.locator('#input-venue').press('Enter');
+    await expect(page.locator('#save-indicator')).toContainText('Saving', { timeout: 2000 });
+    await expect(page.locator('#save-indicator')).toContainText('Saved', { timeout: 5000 });
+
+    await page.request.patch( // restore — leave no permanent side effects
+      `http://localhost:8090/api/collections/papers/records/${record.id}`,
+      {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        data: { venue: originalVenue },
+      }
+    );
+  });
+
   test('Finalize is disabled until all required fields are filled, then marks paper as Final', async ({ page }) => {
     await page.goto('/login.html');
     const token = await page.evaluate(() => localStorage.getItem('pb_token'));

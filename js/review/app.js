@@ -594,12 +594,27 @@ async function flushAutoSave() {
   await runAutoSave();
 }
 
+// Enforces a minimum-visible time for "Saving…" — against a fast/local
+// backend a persistPaper() call can resolve in a handful of milliseconds,
+// which made the indicator flash too briefly to actually notice the
+// "Saving…" → "Saved ✓" transition. Shared by autosave and Finalize, since
+// both drive the same indicator through the same pattern.
+const MIN_SAVING_INDICATOR_MS = 500;
+
+async function persistWithIndicator(index, extra = {}) {
+  setSaveIndicator('saving');
+  const startedAt = Date.now();
+  const result = await persistPaper(index, extra);
+  const remaining = MIN_SAVING_INDICATOR_MS - (Date.now() - startedAt);
+  if (remaining > 0) await new Promise(resolve => setTimeout(resolve, remaining));
+  setSaveIndicator(result.ok ? 'saved' : 'error');
+  return result;
+}
+
 async function runAutoSave() {
   if (isReadOnly) { autoSavePending = false; return; }
   autoSavePending = false;
-  setSaveIndicator('saving');
-  const { ok } = await persistPaper(currentIndex, {});
-  setSaveIndicator(ok ? 'saved' : 'error');
+  await persistWithIndicator(currentIndex, {});
 }
 
 // Called on every field mutation: keeps the Finalize button's enabled state
@@ -667,11 +682,9 @@ async function finalizeCurrent() {
 
   clearTimeout(autoSaveTimer);
   autoSavePending = false;
-  setSaveIndicator('saving');
-  const { ok } = await persistPaper(currentIndex, { status: 'final', finalized_by: getEmail() || '' });
+  await persistWithIndicator(currentIndex, { status: 'final', finalized_by: getEmail() || '' });
   const updated = papers[currentIndex];
   updateStatusBadge(updated.status, updated.rejection_reason || updated.flag_reason, updated.finalized_by);
-  setSaveIndicator(ok ? 'saved' : 'error');
 }
 
 async function finalizeAndNext() {
