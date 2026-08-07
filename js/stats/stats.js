@@ -33,11 +33,21 @@ function sortedEntries(counts) {
 // ── Rendering ────────────────────────────────────────────────────────────
 
 function availabilityBadge(available) {
-  if (available !== 'yes' && available !== 'no') return null;
-  const badge = document.createElement('span');
-  badge.className = `avail-badge avail-${available}`;
-  badge.textContent = available === 'yes' ? 'Available' : 'Not available';
-  return badge;
+  // Always return the fixed-width slot — even when a dataset has no
+  // available yet/no badge to show (unanswered) — so every row in the
+  // section reserves the same horizontal space and the bar tracks stay
+  // left-aligned. Only the pill inside it is conditional; omitting the slot
+  // itself for an unanswered row would collapse that row's reserved space,
+  // pushing its track back to the left of the ones that do have a badge.
+  const slot = document.createElement('span');
+  slot.className = 'stat-bar-badge-slot';
+  if (available === 'yes' || available === 'no') {
+    const badge = document.createElement('span');
+    badge.className = `avail-badge avail-${available}`;
+    badge.textContent = available === 'yes' ? 'Available' : 'Not available';
+    slot.appendChild(badge);
+  }
+  return slot;
 }
 
 function renderBarSection(containerId, entries, { emptyMessage, topN = 10, linkFn, badgeFn, color = '#4a90d9' } = {}) {
@@ -61,7 +71,13 @@ function renderBarSection(containerId, entries, { emptyMessage, topN = 10, linkF
     labelEl.className = 'stat-bar-label';
     labelEl.textContent = label;
     labelEl.title = label;
-    if (href) labelEl.href = href;
+    if (href) {
+      labelEl.href = href;
+      // Opens in a new tab, same as the "Used in Papers" links — clicking
+      // away from stats.html shouldn't lose your place in the dashboard.
+      labelEl.target = '_blank';
+      labelEl.rel = 'noopener noreferrer';
+    }
 
     const track = document.createElement('div');
     track.className = 'stat-bar-track';
