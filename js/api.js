@@ -33,9 +33,33 @@ function requireAuth() {
     window.location.href = `login.html?next=${encodeURIComponent(window.location.href)}`;
 }
 
+const REQUEST_TIMEOUT_MS = 10000; // catches both an unreachable backend (fetch rejects immediately) and one that hangs without responding
+
+// fetch() only rejects on network-level failures (backend unreachable, DNS
+// failure) — it does NOT reject on HTTP error statuses, those still resolve
+// normally with res.ok = false. Wrapping every request in this lets pbGet/
+// pbPatch convert that rejection into a normal failure their callers already
+// know how to handle, instead of an uncaught promise rejection that silently
+// aborts whatever was awaiting it (e.g. leaving an autosave indicator stuck
+// on "Saving…" forever).
+async function fetchWithTimeout(url, options = {}) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 async function pbGet(path) {
-  const res = await fetch(PB_URL + path,
-    { headers: { Authorization: `Bearer ${getToken()}` } });
+  let res;
+  try {
+    res = await fetchWithTimeout(PB_URL + path,
+      { headers: { Authorization: `Bearer ${getToken()}` } });
+  } catch (err) {
+    throw new Error(`GET ${path} → ${err.name === 'AbortError' ? 'timed out' : 'network error'}`);
+  }
   if (res.status === 401) { logout(); requireAuth(); return null; }
   if (!res.ok) throw new Error(`GET ${path} → ${res.status}`);
   return res.json();
@@ -58,14 +82,19 @@ async function pbGetAll(collection, extraParams = '') {
 }
 
 async function pbPatch(path, body) {
-  const res = await fetch(PB_URL + path, {
-    method: 'PATCH',
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
+  let res;
+  try {
+    res = await fetchWithTimeout(PB_URL + path, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (err) {
+    return { ok: false, status: 0, data: null };
+  }
   return { ok: res.ok, status: res.status, data: res.ok ? await res.json() : null };
 }
 
