@@ -798,6 +798,29 @@ test.describe('Review Stats page', () => {
     await expect(page.locator('a[href="index.html"]')).toBeVisible();
   });
 
+  test('clickable Top Datasets/Metrics labels are visually distinct from non-clickable ones', async ({ page }) => {
+    await page.goto('/stats.html');
+    await page.waitForSelector('#top-datasets .stat-bar-row, #top-finalizers .stat-bar-row', { timeout: 10000 });
+
+    const linkLabelCount = await page.locator('#top-datasets a.stat-bar-label').count();
+    test.skip(linkLabelCount === 0, 'No datasets in Top Datasets — skipping');
+
+    const link = page.locator('#top-datasets a.stat-bar-label').first();
+    const linkColor = await link.evaluate(el => getComputedStyle(el).color);
+    // Same accent blue as .review-link, so a link at rest is visually
+    // distinct from a plain (non-clickable) label — not just on hover.
+    expect(linkColor).toBe('rgb(74, 144, 217)');
+    // Opens in a new tab so clicking away from stats.html doesn't lose your
+    // place in the dashboard, same as the "Used in Papers" links.
+    await expect(link).toHaveAttribute('target', '_blank');
+
+    const plainLabelCount = await page.locator('#top-finalizers .stat-bar-label').count();
+    if (plainLabelCount > 0) {
+      const plainColor = await page.locator('#top-finalizers .stat-bar-label').first().evaluate(el => getComputedStyle(el).color);
+      expect(plainColor).not.toBe(linkColor);
+    }
+  });
+
   test('the availability badge does not misalign the bar tracks in Top Datasets, even for unanswered availability', async ({ page }) => {
     await page.goto('/stats.html');
     await page.waitForSelector('#top-datasets .stat-bar-row', { timeout: 10000 });

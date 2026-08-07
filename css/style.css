@@ -333,8 +333,14 @@ body {
   white-space: nowrap;
 }
 
-a.stat-bar-label:hover {
+/* Only rows with a real link (top datasets/metrics) get this — plain
+   non-clickable labels (e.g. top finalizers) keep the neutral color above,
+   matching .review-link's established "this is a link" color convention. */
+a.stat-bar-label {
   color: #4a90d9;
+}
+
+a.stat-bar-label:hover {
   text-decoration: underline;
 }
 

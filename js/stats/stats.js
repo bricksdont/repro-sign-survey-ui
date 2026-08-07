@@ -71,7 +71,13 @@ function renderBarSection(containerId, entries, { emptyMessage, topN = 10, linkF
     labelEl.className = 'stat-bar-label';
     labelEl.textContent = label;
     labelEl.title = label;
-    if (href) labelEl.href = href;
+    if (href) {
+      labelEl.href = href;
+      // Opens in a new tab, same as the "Used in Papers" links — clicking
+      // away from stats.html shouldn't lose your place in the dashboard.
+      labelEl.target = '_blank';
+      labelEl.rel = 'noopener noreferrer';
+    }
 
     const track = document.createElement('div');
     track.className = 'stat-bar-track';
