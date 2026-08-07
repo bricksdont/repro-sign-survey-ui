@@ -268,6 +268,7 @@ function populateForm(p) {
 
   document.getElementById('input-what-to-reproduce').value    = p.what_to_reproduce    || '';
   document.getElementById('input-textual-conclusion').value   = p.textual_conclusion   || '';
+  document.getElementById('input-comments').value             = p.comments             || '';
 
   computeRequirementsNA = p.compute_requirements === 'N/A';
   document.getElementById('input-compute-requirements').value = computeRequirementsNA ? '' : (p.compute_requirements || '');
@@ -488,6 +489,7 @@ function collectFormState() {
     compute_requirements: computeRequirementsNA ? 'N/A' : document.getElementById('input-compute-requirements').value.trim(),
     textual_conclusion:   document.getElementById('input-textual-conclusion').value.trim(),
     potential_ethical_concerns: ethicalConcernsChecked ? ethicalConcernsChecked.value : '',
+    comments: document.getElementById('input-comments').value.trim(),
   };
 }
 
@@ -516,6 +518,7 @@ function buildPatchPayload(state, p, extra = {}) {
     compute_requirements:        state.compute_requirements || '',
     textual_conclusion:          state.textual_conclusion   || '',
     potential_ethical_concerns: state.potential_ethical_concerns || '',
+    comments: state.comments || '',
     ...extra,
   };
 }
@@ -644,10 +647,21 @@ const REQUIRED_FIELD_LABELS = {
 };
 
 function getMissingFields(state) {
-  return Object.keys(REQUIRED_FIELD_LABELS).filter(key => {
+  const missing = Object.keys(REQUIRED_FIELD_LABELS).filter(key => {
     const value = state[key];
     return !value || value.length === 0;
   }).map(key => REQUIRED_FIELD_LABELS[key]);
+
+  // "custom" is the placeholder dataset for a paper whose dataset has no
+  // name (e.g. collected in-house, unpublished) — see the Datasets field's
+  // info tooltip. Selecting it without elaborating in Comments defeats the
+  // point, so Comments becomes required in that one case only.
+  const usesCustomDataset = datasets.some(d => d.name.trim().toLowerCase() === 'custom');
+  if (usesCustomDataset && !state.comments) {
+    missing.push('Comments (required for "custom" dataset)');
+  }
+
+  return missing;
 }
 
 function updateFinalizeButtonState() {
@@ -1179,6 +1193,7 @@ function wireEvents() {
   });
   document.getElementById('input-what-to-reproduce').addEventListener('input', onFieldChanged);
   document.getElementById('input-textual-conclusion').addEventListener('input', onFieldChanged);
+  document.getElementById('input-comments').addEventListener('input', onFieldChanged);
   ['peer-reviewed', 'has-ranking', 'copied-scores', 'human-evaluation', 'ethical-concerns'].forEach(name => {
     document.querySelectorAll(`input[name="${name}"]`).forEach(radio => {
       radio.addEventListener('change', onFieldChanged);
