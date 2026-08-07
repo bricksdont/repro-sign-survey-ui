@@ -647,10 +647,21 @@ const REQUIRED_FIELD_LABELS = {
 };
 
 function getMissingFields(state) {
-  return Object.keys(REQUIRED_FIELD_LABELS).filter(key => {
+  const missing = Object.keys(REQUIRED_FIELD_LABELS).filter(key => {
     const value = state[key];
     return !value || value.length === 0;
   }).map(key => REQUIRED_FIELD_LABELS[key]);
+
+  // "custom" is the placeholder dataset for a paper whose dataset has no
+  // name (e.g. collected in-house, unpublished) — see the Datasets field's
+  // info tooltip. Selecting it without elaborating in Comments defeats the
+  // point, so Comments becomes required in that one case only.
+  const usesCustomDataset = datasets.some(d => d.name.trim().toLowerCase() === 'custom');
+  if (usesCustomDataset && !state.comments) {
+    missing.push('Comments (required for "custom" dataset)');
+  }
+
+  return missing;
 }
 
 function updateFinalizeButtonState() {

@@ -303,6 +303,87 @@ test.describe('Review detail page', () => {
     });
   });
 
+  test('a "custom" dataset requires Comments to be filled in before Finalize', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+
+    const papersRes = await page.request.get(
+      'http://localhost:8090/api/collections/papers/records?filter=(paper_id="emnlp-2024-518")',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const record = (await papersRes.json()).items[0];
+    test.skip(!record, 'Fixture paper not found — skipping');
+
+    const metricsRes = await page.request.get('http://localhost:8090/api/collections/metrics/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } });
+    const metricId = (await metricsRes.json()).items[0]?.id;
+    test.skip(!metricId, 'No metrics in backend — skipping');
+
+    async function patchPaper(data) {
+      await page.request.patch(
+        `http://localhost:8090/api/collections/papers/records/${record.id}`,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, data }
+      );
+    }
+
+    await patchPaper({
+      status: 'needs_review',
+      title: record.title || 'Test Paper',
+      year: record.year || 2024,
+      peer_reviewed: 'yes',
+      code_repos: 'N/A',
+      datasets: [], // no dataset yet — will add "custom" via the UI below
+      metrics: [metricId],
+      area_of_slp: ['Translation'],
+      main_experiment_has_ranking: 'yes',
+      copied_scores: 'no',
+      includes_human_evaluation: 'no',
+      what_to_reproduce: 'Table 3.',
+      compute_requirements: 'N/A',
+      textual_conclusion: 'Test conclusion.',
+      potential_ethical_concerns: 'no',
+      comments: '',
+      finalized_by: '',
+    });
+
+    await page.goto('/paper.html?id=emnlp-2024-518');
+    await expect(page.locator('#status-badge')).toContainText('Needs Review');
+    await expect(page.locator('.field-group:has(#datasets-container) .info-popup')).toContainText('add "custom" as the dataset');
+
+    await page.fill('#dataset-input', 'custom');
+    await page.waitForTimeout(200);
+    const addNewOption = page.locator('#dataset-suggestions .suggestion-add-new');
+    if (await addNewOption.count() > 0) await addNewOption.click();
+    else await page.locator('#dataset-suggestions .suggestion-item', { hasText: 'custom' }).first().click();
+    await expect(page.locator('#datasets-container .chip')).toHaveCount(1);
+
+    await expect(page.locator('#finalize-btn')).toBeDisabled();
+    await expect(page.locator('#finalize-tooltip')).toContainText('Comments');
+
+    await page.fill('#input-comments', 'Authors collected unpublished data in-house.');
+    await expect(page.locator('#finalize-btn')).toBeEnabled();
+
+    await patchPaper({ // restore — leave no permanent side effects
+      status:                      record.status || 'needs_review',
+      title:                       record.title,
+      year:                        record.year,
+      peer_reviewed:               record.peer_reviewed || '',
+      code_repos:                  record.code_repos || [],
+      datasets:                    record.datasets || [],
+      metrics:                     record.metrics || [],
+      area_of_slp:                 record.area_of_slp || [],
+      main_experiment_has_ranking: record.main_experiment_has_ranking || '',
+      copied_scores:               record.copied_scores || '',
+      includes_human_evaluation:   record.includes_human_evaluation || '',
+      what_to_reproduce:           record.what_to_reproduce || '',
+      compute_requirements:        record.compute_requirements || '',
+      textual_conclusion:          record.textual_conclusion || '',
+      potential_ethical_concerns:  record.potential_ethical_concerns || '',
+      comments:                    record.comments || '',
+      finalized_by:                record.finalized_by || '',
+    });
+  });
+
   test('Status History logs flag/clear transitions, newest first', async ({ page }) => {
     await page.goto('/login.html');
     const token = await page.evaluate(() => localStorage.getItem('pb_token'));
