@@ -303,7 +303,7 @@ test.describe('Review detail page', () => {
     });
   });
 
-  test('a "custom" dataset requires Comments to be filled in before Finalize', async ({ page }) => {
+  test('"Create unnamed dataset" adds a distinctly-named chip and does not require Comments (#92)', async ({ page }) => {
     await page.goto('/login.html');
     const token = await page.evaluate(() => localStorage.getItem('pb_token'));
 
@@ -332,7 +332,7 @@ test.describe('Review detail page', () => {
       year: record.year || 2024,
       peer_reviewed: 'yes',
       code_repos: 'N/A',
-      datasets: [], // no dataset yet — will add "custom" via the UI below
+      datasets: [], // no dataset yet — will create one via the UI below
       metrics: [metricId],
       area_of_slp: ['Translation'],
       main_experiment_has_ranking: 'yes',
@@ -348,20 +348,27 @@ test.describe('Review detail page', () => {
 
     await page.goto('/paper.html?id=emnlp-2024-518');
     await expect(page.locator('#status-badge')).toContainText('Needs Review');
-    await expect(page.locator('.field-group:has(#datasets-container) .info-popup')).toContainText('add "custom" as the dataset');
-
-    await page.fill('#dataset-input', 'custom');
-    await page.waitForTimeout(200);
-    const addNewOption = page.locator('#dataset-suggestions .suggestion-add-new');
-    if (await addNewOption.count() > 0) await addNewOption.click();
-    else await page.locator('#dataset-suggestions .suggestion-item', { hasText: 'custom' }).first().click();
-    await expect(page.locator('#datasets-container .chip')).toHaveCount(1);
-
+    await expect(page.locator('.field-group:has(#datasets-container) .info-popup'))
+      .toContainText('create an unnamed dataset');
     await expect(page.locator('#finalize-btn')).toBeDisabled();
-    await expect(page.locator('#finalize-tooltip')).toContainText('Comments');
+    await expect(page.locator('#finalize-tooltip')).toContainText('Datasets');
 
-    await page.fill('#input-comments', 'Authors collected unpublished data in-house.');
+    await page.click('#create-unnamed-dataset-btn');
+    await expect(page.locator('#datasets-container .chip')).toHaveCount(1);
+    const firstChipText = (await page.locator('#datasets-container .chip').first().textContent()).trim();
+    expect(firstChipText).toMatch(/^unnamed-/);
+
+    // Comments is never required — the old "custom" placeholder's
+    // conditional-required logic no longer exists.
     await expect(page.locator('#finalize-btn')).toBeEnabled();
+    await expect(page.locator('#input-comments')).toHaveValue('');
+
+    // A second click creates a distinct record — solves the original
+    // "custom" problem of every unnamed dataset collapsing into one entry.
+    await page.click('#create-unnamed-dataset-btn');
+    await expect(page.locator('#datasets-container .chip')).toHaveCount(2);
+    const chipTexts = (await page.locator('#datasets-container .chip').allTextContents()).map(t => t.trim());
+    expect(chipTexts[0]).not.toBe(chipTexts[1]);
 
     await patchPaper({ // restore — leave no permanent side effects
       status:                      record.status || 'needs_review',
