@@ -855,6 +855,24 @@ a.stat-bar-label:hover {
   line-height: 1;
 }
 
+/* ── Plain text-link-style action button ── */
+
+.text-action-btn {
+  display: inline-block;
+  margin-top: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: #4a90d9;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.text-action-btn:hover {
+  text-decoration: underline;
+}
+
 /* ── Inline single-line field input (e.g. custom Area of SLP) ── */
 
 .field-input-inline {
