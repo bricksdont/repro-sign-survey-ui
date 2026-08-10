@@ -54,6 +54,13 @@ function renderTable(papers) {
   const start = (currentPage - 1) * PAGE_SIZE;
   const pageItems = papers.slice(start, start + PAGE_SIZE);
 
+  // Computed once per render pass (not per row) — used by both the "Check →"
+  // link's href and the row click handler below, so a click on either always
+  // produces the same URL. Previously only the click handler carried the
+  // filter, since it explicitly skips clicks on <a> elements — a click on
+  // the link itself fell through to its href, which never had the filter.
+  const qs = buildFilterQuery();
+
   pageItems.forEach(p => {
     const status = p.status || 'needs_check';
     const badgeClass = status === 'checked' ? 'status-final'
@@ -70,14 +77,13 @@ function renderTable(papers) {
       <td><span class="paper-id" title="${p.id}">${truncateId(p.id)}</span></td>
       <td class="paper-title">${p.title || '—'}</td>
       <td><span class="status-badge ${badgeClass}" title="${badgeTitle}">${badgeText}</span></td>
-      <td><a class="review-link" href="paper-check.html?id=${p.id}">Check &#8594;</a></td>
+      <td><a class="review-link" href="paper-check.html?id=${p.id}${qs ? '&' + qs : ''}">Check &#8594;</a></td>
     `;
     tr.addEventListener('click', e => {
       if (e.target.tagName !== 'A') {
         // Carries the active search/filter into paper-check.html's URL so
         // its ◀ ▶ navigation and counter can stay within this same subset —
         // recomputed from live data on the paper page, not a frozen ID list.
-        const qs = buildFilterQuery();
         window.location.href = `paper-check.html?id=${p.id}${qs ? '&' + qs : ''}`;
       }
     });
