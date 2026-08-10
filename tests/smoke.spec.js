@@ -525,6 +525,16 @@ test.describe('Review detail page', () => {
     await expect(page.locator('#next-paper')).toBeDisabled();
   });
 
+  test('clicking the explicit "Review →" link also carries the filter (#91)', async ({ page }) => {
+    await page.goto('/review-index.html');
+    await page.fill('#search-input', 'SignCLIP');
+    await expect(page.locator('.paper-row')).toHaveCount(1);
+    await expect(page.locator('.review-link').first()).toHaveAttribute('href', /q=SignCLIP/);
+    await page.locator('.review-link').first().click();
+    await expect(page).toHaveURL(/paper\.html\?id=.*q=SignCLIP/);
+    await expect(page.locator('#paper-counter')).toHaveText('1 / 1');
+  });
+
   test('clicking an unfiltered row navigates the full collection (#75)', async ({ page }) => {
     await page.goto('/login.html');
     const token = await page.evaluate(() => localStorage.getItem('pb_token'));
@@ -653,6 +663,16 @@ test.describe('Check detail page', () => {
     await expect(page.locator('#paper-counter')).toHaveText('1 / 1');
     await expect(page.locator('#prev-paper')).toBeDisabled();
     await expect(page.locator('#next-paper')).toBeDisabled();
+  });
+
+  test('clicking the explicit "Check →" link also carries the filter (#91)', async ({ page }) => {
+    await page.goto('/check-index.html');
+    await page.fill('#search-input', 'arxiv-2303-10782');
+    await expect(page.locator('.paper-row')).toHaveCount(1);
+    await expect(page.locator('.review-link').first()).toHaveAttribute('href', /q=arxiv-2303-10782/);
+    await page.locator('.review-link').first().click();
+    await expect(page).toHaveURL(/paper-check\.html\?id=.*q=arxiv-2303-10782/);
+    await expect(page.locator('#paper-counter')).toHaveText('1 / 1');
   });
 
   test('clicking an unfiltered row navigates the full collection (#75)', async ({ page }) => {
