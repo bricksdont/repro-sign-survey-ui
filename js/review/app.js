@@ -647,21 +647,10 @@ const REQUIRED_FIELD_LABELS = {
 };
 
 function getMissingFields(state) {
-  const missing = Object.keys(REQUIRED_FIELD_LABELS).filter(key => {
+  return Object.keys(REQUIRED_FIELD_LABELS).filter(key => {
     const value = state[key];
     return !value || value.length === 0;
   }).map(key => REQUIRED_FIELD_LABELS[key]);
-
-  // "custom" is the placeholder dataset for a paper whose dataset has no
-  // name (e.g. collected in-house, unpublished) — see the Datasets field's
-  // info tooltip. Selecting it without elaborating in Comments defeats the
-  // point, so Comments becomes required in that one case only.
-  const usesCustomDataset = datasets.some(d => d.name.trim().toLowerCase() === 'custom');
-  if (usesCustomDataset && !state.comments) {
-    missing.push('Comments (required for "custom" dataset)');
-  }
-
-  return missing;
 }
 
 function updateFinalizeButtonState() {
@@ -1041,6 +1030,31 @@ async function addDatasetChip(name) {
   input.dispatchEvent(new Event('input')); // re-run refresh to update dropdown in place
 }
 
+// Creates a dataset record with a distinct, auto-generated name
+// ("unnamed-<record id>") for a paper whose dataset genuinely has no name
+// (e.g. collected in-house, unpublished) — see the Datasets field's info
+// tooltip. Unlike the earlier "custom" placeholder (issue #92), each click
+// creates its own distinguishable record, so multiple unnamed datasets
+// don't collapse into one shared, indistinguishable entry — annotators
+// click through to the new chip's dataset.html page to add whatever detail
+// is available. The record starts with a temporary unique name (the real
+// name, incorporating the record's id, isn't known until after creation)
+// and is immediately renamed.
+async function createUnnamedDataset() {
+  const tempName = `unnamed-pending-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+  const created = await createDataset(tempName);
+  if (!created) return;
+
+  const finalName = `unnamed-${created.id}`;
+  const { ok } = await pbPatch(`/api/collections/datasets/records/${created.id}`, { name: finalName });
+  const dataset = { id: created.id, name: ok ? finalName : created.name };
+
+  allDatasets.push(dataset);
+  datasets.push(dataset);
+  renderTags('datasets', datasets);
+  onFieldChanged();
+}
+
 function initDatasetAutocomplete() {
   const input    = document.getElementById('dataset-input');
   const dropdown = document.getElementById('dataset-suggestions');
@@ -1205,6 +1219,7 @@ function wireEvents() {
   });
   document.getElementById('add-dataset-btn').addEventListener('click', () =>
     addDatasetChip(document.getElementById('dataset-input').value.trim()));
+  document.getElementById('create-unnamed-dataset-btn').addEventListener('click', createUnnamedDataset);
   document.getElementById('add-metric-btn').addEventListener('click', () =>
     addMetricChip(document.getElementById('metric-input').value.trim()));
   document.getElementById('dataset-input').addEventListener('keydown', e => {
