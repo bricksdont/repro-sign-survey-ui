@@ -565,6 +565,39 @@ a.stat-bar-label:hover {
   white-space: nowrap;
 }
 
+/* Dataset Confirmation Tracker table: under the default table-layout:auto,
+   a column's width is set by its single widest cell across ALL rows — so
+   one paper with many/long dataset chips blew up the Datasets column (and
+   squeezed Title) even on rows with just one short chip. table-layout:fixed
+   plus explicit widths on every column except Title caps that column and
+   lets Title claim the rest, regardless of how wide any one row's content
+   is. Scoped to this table only — other .papers-table pages (Reviewing,
+   Checking, Datasets, Metrics) don't have this unbounded-width column and
+   shouldn't have their layout changed. */
+.dataset-confirmation-table {
+  table-layout: fixed;
+}
+
+.dataset-confirmation-table .col-paper-id {
+  width: 180px;
+}
+
+.dataset-confirmation-table .col-datasets {
+  width: 220px;
+}
+
+.dataset-confirmation-table .col-action {
+  width: 90px;
+}
+
+/* A single very long dataset name would otherwise still stretch its own
+   chip past the column's fixed width instead of wrapping. */
+.dataset-confirmation-table .chip {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
 /* ── Metadata panel header ── */
 
 .meta-header {
