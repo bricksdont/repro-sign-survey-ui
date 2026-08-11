@@ -596,6 +596,21 @@ a.stat-bar-label:hover {
   max-width: 100%;
   white-space: normal;
   overflow-wrap: break-word;
+  /* Flex items default to min-width: auto, which floors their shrink size
+     at their content's natural (unwrapped) width — overriding max-width
+     and overflow-wrap for a name with no spaces/hyphens to break at (e.g.
+     a bare URL), so the text spilled out past the chip's rounded
+     background instead of wrapping. min-width: 0 removes that floor. This
+     is needed at both flex levels: .chip is itself a flex item of
+     .chip-container, and its .chip-detail-link child is a flex item of
+     .chip (inline-flex gets blockified to flex once .chip is a flex
+     item). A name that DOES have a space/hyphen already wrapped fine
+     without this, since it had a natural break point to shrink to. */
+  min-width: 0;
+}
+
+.dataset-confirmation-table .chip-detail-link {
+  min-width: 0;
 }
 
 /* ── Metadata panel header ── */
