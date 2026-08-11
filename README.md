@@ -12,7 +12,7 @@ A landing page routes annotators to either task. Each task has its own overview 
 
 ## Features
 
-- Landing page with task cards routing to Reviewing, Checking, the Datasets catalogue, the Metrics catalogue, the Review Stats dashboard, and Ready for Reproduction
+- Landing page with task cards routing to Reviewing, Checking, the Datasets catalogue, the Metrics catalogue, and the Review Stats dashboard
 - Version badge (`v<version>`) in the corner of the landing page, linking to the matching GitHub release
 - Breadcrumb navigation (`Home → Reviewing` / `Home → Checking` / `Home → Datasets` / `Home → Metrics`) on all task pages
 
@@ -59,7 +59,7 @@ A landing page routes annotators to either task. Each task has its own overview 
 - A compact Yes/No/N-A/Unanswered table for Peer-Reviewed, Ranking, Copied Baseline Scores, Human Evaluation, and Ethical Concerns
 - Computed entirely client-side from the `papers` collection — no backend aggregation endpoint, no charting library
 
-**Ready for Reproduction** — a filtered list of papers ready to hand off to the reproduction team: finalized, with every dataset it uses marked available. Each row links to the paper's detail page in a new tab. Computed entirely client-side, same as Review Stats.
+**Ready for Reproduction** (`ready-index.html`, internal/unlisted — no landing-page card for now) — a filtered list of papers ready to hand off to the reproduction team: finalized, with every dataset it uses marked available. Each row links to the paper's detail page in a new tab. Computed entirely client-side, same as Review Stats.
 
 **Shared features:**
 - Paper navigation (◀ ▶); each paper has a stable URL with a one-click Copy Link button. Opening a paper from a filtered/searched overview list carries that filter into the URL (`?q=`/`?status=`), keeping ◀ ▶ within that subset while browsing; a bare link always navigates the full collection. Copy Link always copies the plain `?id=` link, stripping any active filter — a shared link stays simple. Returning to the overview (e.g. via Back) restores the same search/filter, which also has a one-click × clear button

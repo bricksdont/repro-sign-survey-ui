@@ -24,17 +24,21 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe('Landing page', () => {
-  test('shows all six task cards', async ({ page }) => {
+  test('shows all five task cards', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('.task-card')).toHaveCount(6);
-    await expect(page.locator('.task-card:visible')).toHaveCount(6);
+    await expect(page.locator('.task-card')).toHaveCount(5);
+    await expect(page.locator('.task-card:visible')).toHaveCount(5);
     await expect(page.locator('a[href="review-index.html"]')).toBeVisible();
     await expect(page.locator('a[href="check-index.html"]')).toBeVisible();
     await expect(page.locator('a[href="datasets-index.html"]')).toBeVisible();
     await expect(page.locator('a[href="metrics-index.html"]')).toBeVisible();
     await expect(page.locator('a[href="stats.html"]')).toBeVisible();
-    await expect(page.locator('a[href="ready-index.html"]')).toBeVisible();
     await expect(page.locator('.task-card-disabled')).toHaveCount(0);
+  });
+
+  test('does not link to Ready for Reproduction — internal/unlisted page for now', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('a[href="ready-index.html"]')).toHaveCount(0);
   });
 });
 
@@ -1000,10 +1004,10 @@ test.describe('Review Stats page', () => {
 });
 
 test.describe('Ready for Reproduction page', () => {
-  test('renders the table structure and is reachable from the landing page', async ({ page }) => {
-    await page.goto('/');
-    await page.click('a[href="ready-index.html"]');
-    await expect(page).toHaveURL(/ready-index\.html/);
+  // Internal/unlisted for now (#90) — no landing-page card, but the page
+  // itself is fully functional via a direct link.
+  test('renders the table structure via direct navigation', async ({ page }) => {
+    await page.goto('/ready-index.html');
     await expect(page.locator('#stats-row')).toBeVisible();
     await expect(page.locator('table.papers-table')).toBeVisible();
   });
