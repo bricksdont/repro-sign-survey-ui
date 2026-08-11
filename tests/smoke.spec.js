@@ -35,6 +35,11 @@ test.describe('Landing page', () => {
     await expect(page.locator('a[href="stats.html"]')).toBeVisible();
     await expect(page.locator('.task-card-disabled')).toHaveCount(0);
   });
+
+  test('does not link to Ready for Reproduction — internal/unlisted page for now', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('a[href="ready-index.html"]')).toHaveCount(0);
+  });
 });
 
 test.describe('Review overview page', () => {
@@ -995,5 +1000,61 @@ test.describe('Review Stats page', () => {
     await page.goto('/');
     await page.click('a[href="stats.html"]');
     await expect(page).toHaveURL(/stats\.html/);
+  });
+});
+
+test.describe('Ready for Reproduction page', () => {
+  // Internal/unlisted for now (#90) — no landing-page card, but the page
+  // itself is fully functional via a direct link.
+  test('renders the table structure via direct navigation', async ({ page }) => {
+    await page.goto('/ready-index.html');
+    await expect(page.locator('#stats-row')).toBeVisible();
+    await expect(page.locator('table.papers-table')).toBeVisible();
+  });
+
+  test('lists a finalized paper only once all its datasets are available; Details opens paper.html in a new tab', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+
+    // Find an existing final paper with exactly one dataset, so flipping
+    // that one dataset's availability deterministically flips this paper's
+    // "ready" status either way, regardless of what else is in the backend.
+    const papersRes = await page.request.get(
+      'http://localhost:8090/api/collections/papers/records?filter=(status="final")&expand=datasets&perPage=200',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const candidate = (await papersRes.json()).items.find(p => (p.expand?.datasets || []).length === 1);
+    test.skip(!candidate, 'No finalized paper with exactly one dataset in the backend — skipping');
+    const dataset = candidate.expand.datasets[0];
+    const originalAvailable = dataset.available || '';
+
+    async function patchDataset(available) {
+      await page.request.patch(
+        `http://localhost:8090/api/collections/datasets/records/${dataset.id}`,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, data: { available } }
+      );
+    }
+
+    await patchDataset(''); // not (yet) available — should NOT appear
+    await page.goto('/ready-index.html');
+    await page.waitForSelector('.paper-row, .no-results', { timeout: 8000 });
+    await expect(page.locator('.paper-row', { hasText: dataset.name })).toHaveCount(0);
+
+    await patchDataset('yes'); // available — should appear
+    await page.goto('/ready-index.html');
+    await page.waitForSelector('.paper-row, .no-results', { timeout: 8000 });
+    const row = page.locator('.paper-row', { hasText: dataset.name });
+    await expect(row).toHaveCount(1);
+
+    const [newPage] = await Promise.all([
+      page.context().waitForEvent('page'),
+      row.locator('.col-action a').click(),
+    ]);
+    await newPage.waitForLoadState();
+    expect(newPage.url()).toContain(`paper.html?id=${candidate.paper_id}`);
+    expect(page.url()).toContain('ready-index.html'); // original tab unaffected
+    await newPage.close();
+
+    await patchDataset(originalAvailable); // restore — leave no permanent side effects
   });
 });
