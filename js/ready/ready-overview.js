@@ -2,6 +2,7 @@
 
 let allFinalPapers = [];
 let activeFilter = 'all';
+let currentFiltered = []; // whatever applyFilter() last rendered — the export's source
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 
@@ -48,6 +49,7 @@ async function init() {
   }
 
   wireFilters();
+  wireExport();
   applyFilter(); // renders (and syncs the URL for) the restored or default filter
 }
 
@@ -72,11 +74,42 @@ function syncURL() {
 }
 
 function applyFilter() {
-  const filtered = activeFilter === 'all' ? allFinalPapers
+  currentFiltered = activeFilter === 'all' ? allFinalPapers
     : allFinalPapers.filter(p => p.readiness === activeFilter);
-  renderTable(filtered);
+  renderTable(currentFiltered);
   renderStats();
   syncURL();
+}
+
+// ── Export ─────────────────────────────────────────────────────────────────
+
+// locked_by/locked_at are per-editor session bookkeeping, not paper data —
+// stripped from both the paper and (since datasets carry their own edit
+// lock too) each of its expanded datasets, so an exported file never leaks
+// who currently has a record open.
+function stripLockingFields(record) {
+  const { locked_by, locked_at, ...rest } = record;
+  return rest;
+}
+
+function wireExport() {
+  document.getElementById('export-json-btn').addEventListener('click', () => {
+    const data = currentFiltered.map(p => {
+      const paper = stripLockingFields(p);
+      if (paper.expand?.datasets) {
+        paper.expand = { ...paper.expand, datasets: paper.expand.datasets.map(stripLockingFields) };
+      }
+      return paper;
+    });
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ready-for-reproduction-${activeFilter}-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
 }
 
 function truncateId(id, maxLen = 20) {

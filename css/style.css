@@ -402,6 +402,10 @@ a.stat-bar-label:hover {
   flex-wrap: wrap;
 }
 
+.filter-bar-right {
+  margin-left: auto;
+}
+
 .search-input-wrapper {
   position: relative;
   flex: 1;

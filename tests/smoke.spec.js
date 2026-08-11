@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'fs';
 
 const TEST_EMAIL    = process.env.PB_TEST_EMAIL;
 const TEST_PASSWORD = process.env.PB_TEST_PASSWORD;
@@ -1033,6 +1034,44 @@ test.describe('Ready for Reproduction page', () => {
 
     await page.goto('/ready-index.html?readiness=ready');
     await expect(page.locator('.filter-btn.active')).toHaveText('Confirmed');
+  });
+
+  test('Download JSON exports the currently-filtered papers, with locking fields stripped', async ({ page }) => {
+    await page.goto('/ready-index.html');
+    await page.waitForSelector('.paper-row, .no-results', { timeout: 8000 });
+
+    const rowCount = await page.locator('.paper-row').count();
+    test.skip(rowCount === 0, 'No final papers in the backend — skipping');
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.click('#export-json-btn'),
+    ]);
+    expect(download.suggestedFilename()).toMatch(/^ready-for-reproduction-all-\d{4}-\d{2}-\d{2}\.json$/);
+
+    const path = await download.path();
+    const data = JSON.parse(readFileSync(path, 'utf8'));
+    expect(data).toHaveLength(rowCount);
+    for (const paper of data) {
+      expect(paper).not.toHaveProperty('locked_by');
+      expect(paper).not.toHaveProperty('locked_at');
+      for (const dataset of paper.expand?.datasets || []) {
+        expect(dataset).not.toHaveProperty('locked_by');
+        expect(dataset).not.toHaveProperty('locked_at');
+      }
+    }
+
+    // Filtering to "Confirmed" narrows the export to just that subset.
+    await page.click('.filter-btn[data-readiness="ready"]');
+    const confirmedCount = await page.locator('.paper-row').count();
+    const [download2] = await Promise.all([
+      page.waitForEvent('download'),
+      page.click('#export-json-btn'),
+    ]);
+    expect(download2.suggestedFilename()).toMatch(/^ready-for-reproduction-ready-\d{4}-\d{2}-\d{2}\.json$/);
+    const data2 = JSON.parse(readFileSync(await download2.path(), 'utf8'));
+    expect(data2).toHaveLength(confirmedCount);
+    expect(data2.every(p => p.readiness === 'ready')).toBe(true);
   });
 
   test('lists every final paper regardless of dataset availability, and the readiness filters partition them correctly', async ({ page }) => {
