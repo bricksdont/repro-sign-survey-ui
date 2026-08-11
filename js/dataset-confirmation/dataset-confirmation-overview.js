@@ -6,19 +6,18 @@ let currentFiltered = []; // whatever applyFilter() last rendered — the export
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 
-// "Confirmed" (readiness: 'ready') = every dataset the paper uses has a
-// definitive, uniform availability answer — all confirmed available, or all
-// confirmed unavailable. A mix of yes/no, or any dataset still unanswered,
-// is "Unconfirmed" ('not_ready'): that's the set of papers someone still
-// needs to chase down dataset availability for. Finalize already requires
-// ≥1 dataset, so an empty list here shouldn't be reachable — the length
-// check is just defensive, since [].every(...) is vacuously true for both
-// yes and no.
-function computeReadiness(datasets) {
-  if (datasets.length === 0) return 'not_ready';
+// "Confirmed" = every dataset the paper uses has a definitive, uniform
+// availability answer — all confirmed available, or all confirmed
+// unavailable. A mix of yes/no, or any dataset still unanswered, is
+// "not_confirmed": that's the set of papers someone still needs to chase
+// down dataset availability for. Finalize already requires ≥1 dataset, so
+// an empty list here shouldn't be reachable — the length check is just
+// defensive, since [].every(...) is vacuously true for both yes and no.
+function computeConfirmation(datasets) {
+  if (datasets.length === 0) return 'not_confirmed';
   const allYes = datasets.every(d => d.available === 'yes');
   const allNo = datasets.every(d => d.available === 'no');
-  return (allYes || allNo) ? 'ready' : 'not_ready';
+  return (allYes || allNo) ? 'confirmed' : 'not_confirmed';
 }
 
 async function init() {
@@ -34,17 +33,17 @@ async function init() {
 
   allFinalPapers = papers
     .filter(p => p.status === 'final')
-    .map(p => ({ ...p, readiness: computeReadiness(p.expand?.datasets || []) }));
+    .map(p => ({ ...p, confirmation: computeConfirmation(p.expand?.datasets || []) }));
 
   // Restore the filter from the URL (e.g. a bookmarked or shared link),
   // same pattern as review-index.html/check-index.html (#75).
   const urlParams = new URLSearchParams(window.location.search);
-  const validReadiness = new Set([...document.querySelectorAll('.filter-btn')].map(b => b.dataset.readiness));
-  const readinessParam = urlParams.get('readiness');
-  if (readinessParam && validReadiness.has(readinessParam)) {
-    activeFilter = readinessParam;
+  const validConfirmation = new Set([...document.querySelectorAll('.filter-btn')].map(b => b.dataset.confirmation));
+  const confirmationParam = urlParams.get('confirmation');
+  if (confirmationParam && validConfirmation.has(confirmationParam)) {
+    activeFilter = confirmationParam;
     document.querySelectorAll('.filter-btn').forEach(b => {
-      b.classList.toggle('active', b.dataset.readiness === activeFilter);
+      b.classList.toggle('active', b.dataset.confirmation === activeFilter);
     });
   }
 
@@ -58,7 +57,7 @@ function wireFilters() {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      activeFilter = btn.dataset.readiness;
+      activeFilter = btn.dataset.confirmation;
       applyFilter();
     });
   });
@@ -68,14 +67,14 @@ function wireFilters() {
 // history entry per click — makes the current view bookmarkable/shareable.
 function syncURL() {
   const params = new URLSearchParams();
-  if (activeFilter !== 'all') params.set('readiness', activeFilter);
+  if (activeFilter !== 'all') params.set('confirmation', activeFilter);
   const qs = params.toString();
   history.replaceState(null, '', window.location.pathname + (qs ? '?' + qs : ''));
 }
 
 function applyFilter() {
   currentFiltered = activeFilter === 'all' ? allFinalPapers
-    : allFinalPapers.filter(p => p.readiness === activeFilter);
+    : allFinalPapers.filter(p => p.confirmation === activeFilter);
   renderTable(currentFiltered);
   renderStats();
   syncURL();
@@ -106,7 +105,7 @@ function wireExport() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `ready-for-reproduction-${activeFilter}-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `dataset-confirmation-${activeFilter}-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
   });
@@ -128,8 +127,8 @@ function escapeHtml(str) {
 
 const EMPTY_MESSAGES = {
   all: 'No final papers yet.',
-  ready: 'No papers with confirmed dataset availability yet.',
-  not_ready: 'No papers with unconfirmed dataset availability — nothing left to chase down.',
+  confirmed: 'No papers with confirmed dataset availability yet.',
+  not_confirmed: 'No papers with unconfirmed dataset availability — nothing left to chase down.',
 };
 
 function renderTable(papers) {
@@ -175,7 +174,7 @@ function renderTable(papers) {
 
 function renderStats() {
   const total = allFinalPapers.length;
-  const confirmed = allFinalPapers.filter(p => p.readiness === 'ready').length;
+  const confirmed = allFinalPapers.filter(p => p.confirmation === 'confirmed').length;
   const unconfirmed = total - confirmed;
   document.getElementById('stats-row').textContent =
     `${total} final paper${total !== 1 ? 's' : ''} — ${confirmed} confirmed, ${unconfirmed} unconfirmed`;

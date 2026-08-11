@@ -1622,9 +1622,9 @@ hr.field-divider {
   color: #9b1c1c;
 }
 
-/* Dataset chip color variants — Ready for Reproduction table. Same palette
-   as .avail-yes/.avail-no above, plus a neutral gray for an unanswered
-   availability field. */
+/* Dataset chip color variants — Dataset Confirmation Tracker table. Same
+   palette as .avail-yes/.avail-no above, plus a neutral gray for an
+   unanswered availability field. */
 .chip-avail-yes {
   background: #d4edda;
   color: #1a6b30;

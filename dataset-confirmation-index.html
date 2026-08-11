@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>REPRO-SIGN Survey Tool — Ready for Reproduction</title>
+  <title>REPRO-SIGN Survey Tool — Dataset Confirmation Tracker</title>
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -13,7 +13,7 @@
       <nav class="breadcrumb">
         <a href="index.html" class="breadcrumb-link">Home</a>
         <span class="breadcrumb-sep">&#8594;</span>
-        <span class="breadcrumb-current">Ready for Reproduction</span>
+        <span class="breadcrumb-current">Dataset Confirmation Tracker</span>
       </nav>
       <div class="header-actions">
         <div class="account-menu">
@@ -31,11 +31,11 @@
 
     <div class="filter-bar">
       <div class="status-filters">
-        <button class="filter-btn active" data-readiness="all">All</button>
-        <button class="filter-btn" data-readiness="ready">Confirmed</button>
-        <button class="filter-btn" data-readiness="not_ready">Unconfirmed</button>
+        <button class="filter-btn active" data-confirmation="all">All</button>
+        <button class="filter-btn" data-confirmation="confirmed">Confirmed</button>
+        <button class="filter-btn" data-confirmation="not_confirmed">Unconfirmed</button>
       </div>
-      <button id="export-json-btn" class="btn-secondary filter-bar-right">&#8595; JSON</button>
+      <button id="export-json-btn" class="btn-secondary filter-bar-right">Download JSON</button>
     </div>
 
     <table class="papers-table">
@@ -52,6 +52,6 @@
   </div>
 
   <script src="js/api.js"></script>
-  <script src="js/ready/ready-overview.js"></script>
+  <script src="js/dataset-confirmation/dataset-confirmation-overview.js"></script>
 </body>
 </html>
