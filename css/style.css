@@ -686,6 +686,21 @@ a.stat-bar-label:hover {
   color: #a61c1c;
 }
 
+/* Ready for Reproduction readiness badge — "ready" means every dataset's
+   availability has been definitively determined (all yes, or all no); a
+   mix, or any still-unanswered dataset, is "not ready". Deliberately not
+   red like .chip-avail-no, since "not ready" isn't necessarily about
+   unavailable datasets — it can just mean unanswered/mixed. */
+.status-ready {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-not-ready {
+  background: #fef0d8;
+  color: #7a4200;
+}
+
 .llm-badge {
   display: inline-block;
   margin-left: 8px;

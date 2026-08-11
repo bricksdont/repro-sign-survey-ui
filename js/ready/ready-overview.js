@@ -1,8 +1,23 @@
 // ── State ──────────────────────────────────────────────────────────────────
 
-let readyPapers = [];
+let allFinalPapers = [];
+let activeFilter = 'all';
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────
+
+// "Ready" = every dataset the paper uses has a definitive, uniform
+// availability answer — all confirmed available, or all confirmed
+// unavailable. A mix of yes/no, or any dataset still unanswered, is
+// "not ready": that's the set of papers someone still needs to chase down
+// dataset availability for. Finalize already requires ≥1 dataset, so an
+// empty list here shouldn't be reachable — the length check is just
+// defensive, since [].every(...) is vacuously true for both yes and no.
+function computeReadiness(datasets) {
+  if (datasets.length === 0) return 'not_ready';
+  const allYes = datasets.every(d => d.available === 'yes');
+  const allNo = datasets.every(d => d.available === 'no');
+  return (allYes || allNo) ? 'ready' : 'not_ready';
+}
 
 async function init() {
   requireAuth();
@@ -15,17 +30,29 @@ async function init() {
     _pb_id: item.id,     // PocketBase opaque ID — unused here, kept for convention
   }));
 
-  // "Ready for reproduction" = finalized, with every dataset it uses marked
-  // available. Finalize already requires ≥1 dataset, so an empty list here
-  // shouldn't be reachable — the length check is just defensive, since
-  // [].every(...) is vacuously true and would otherwise wrongly qualify a
-  // paper with no datasets at all.
-  readyPapers = papers.filter(p => {
-    const datasets = p.expand?.datasets || [];
-    return p.status === 'final' && datasets.length > 0 && datasets.every(d => d.available === 'yes');
-  });
+  allFinalPapers = papers
+    .filter(p => p.status === 'final')
+    .map(p => ({ ...p, readiness: computeReadiness(p.expand?.datasets || []) }));
 
-  renderTable();
+  wireFilters();
+  applyFilter();
+}
+
+function wireFilters() {
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = btn.dataset.readiness;
+      applyFilter();
+    });
+  });
+}
+
+function applyFilter() {
+  const filtered = activeFilter === 'all' ? allFinalPapers
+    : allFinalPapers.filter(p => p.readiness === activeFilter);
+  renderTable(filtered);
   renderStats();
 }
 
@@ -43,18 +70,24 @@ function escapeHtml(str) {
 
 // ── Table ──────────────────────────────────────────────────────────────────
 
-function renderTable() {
+const EMPTY_MESSAGES = {
+  all: 'No final papers yet.',
+  ready: 'No ready papers yet.',
+  not_ready: 'No not-ready papers — nothing left to chase down.',
+};
+
+function renderTable(papers) {
   const tbody = document.getElementById('papers-tbody');
   tbody.innerHTML = '';
 
-  if (readyPapers.length === 0) {
+  if (papers.length === 0) {
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td colspan="4" class="no-results">No papers ready for reproduction yet.</td>';
+    tr.innerHTML = `<td colspan="5" class="no-results">${EMPTY_MESSAGES[activeFilter]}</td>`;
     tbody.appendChild(tr);
     return;
   }
 
-  readyPapers.forEach(p => {
+  papers.forEach(p => {
     const datasetChips = (p.expand?.datasets || []).map(d => {
       const availClass = d.available === 'yes' ? 'chip-avail-yes'
         : d.available === 'no' ? 'chip-avail-no'
@@ -64,11 +97,15 @@ function renderTable() {
       return `<span class="chip ${availClass}"><a href="dataset.html?id=${d.id}" class="chip-detail-link" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${escapeHtml(d.name)}</a></span>`;
     }).join('');
 
+    const readinessLabel = p.readiness === 'ready' ? 'Ready' : 'Not Ready';
+    const readinessClass = p.readiness === 'ready' ? 'status-ready' : 'status-not-ready';
+
     const tr = document.createElement('tr');
     tr.className = 'paper-row';
     tr.innerHTML = `
       <td><span class="paper-id" title="${escapeHtml(p.id)}">${truncateId(p.id)}</span></td>
       <td class="paper-title">${escapeHtml(p.title || '—')}</td>
+      <td><span class="status-badge ${readinessClass}">${readinessLabel}</span></td>
       <td><div class="chip-container">${datasetChips}</div></td>
       <td class="col-action"><a href="paper.html?id=${p.id}" class="review-link" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Details &#8594;</a></td>
     `;
@@ -85,9 +122,11 @@ function renderTable() {
 }
 
 function renderStats() {
-  const total = readyPapers.length;
+  const total = allFinalPapers.length;
+  const ready = allFinalPapers.filter(p => p.readiness === 'ready').length;
+  const notReady = total - ready;
   document.getElementById('stats-row').textContent =
-    `${total} paper${total !== 1 ? 's' : ''} ready for reproduction`;
+    `${total} final paper${total !== 1 ? 's' : ''} — ${ready} ready, ${notReady} not ready`;
 }
 
 // ── Account menu ───────────────────────────────────────────────────────────

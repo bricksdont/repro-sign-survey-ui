@@ -1006,19 +1006,21 @@ test.describe('Review Stats page', () => {
 test.describe('Ready for Reproduction page', () => {
   // Internal/unlisted for now (#90) — no landing-page card, but the page
   // itself is fully functional via a direct link.
-  test('renders the table structure via direct navigation', async ({ page }) => {
+  test('renders the table structure and readiness filter buttons via direct navigation', async ({ page }) => {
     await page.goto('/ready-index.html');
     await expect(page.locator('#stats-row')).toBeVisible();
     await expect(page.locator('table.papers-table')).toBeVisible();
+    await expect(page.locator('.filter-btn')).toHaveCount(3);
+    await expect(page.locator('.filter-btn.active')).toHaveText('All');
   });
 
-  test('lists a finalized paper only once all its datasets are available; Details opens paper.html in a new tab', async ({ page }) => {
+  test('lists every final paper regardless of dataset availability, and the readiness filters partition them correctly', async ({ page }) => {
     await page.goto('/login.html');
     const token = await page.evaluate(() => localStorage.getItem('pb_token'));
 
     // Find an existing final paper with exactly one dataset, so flipping
     // that one dataset's availability deterministically flips this paper's
-    // "ready" status either way, regardless of what else is in the backend.
+    // readiness either way, regardless of what else is in the backend.
     const papersRes = await page.request.get(
       'http://localhost:8090/api/collections/papers/records?filter=(status="final")&expand=datasets&perPage=200',
       { headers: { Authorization: `Bearer ${token}` } }
@@ -1035,20 +1037,43 @@ test.describe('Ready for Reproduction page', () => {
       );
     }
 
-    await patchDataset(''); // not (yet) available — should NOT appear
+    // Unanswered availability → still listed under "All" (unlike the old
+    // behavior, which hid it entirely) and "Not Ready", but not "Ready".
+    await patchDataset('');
     await page.goto('/ready-index.html');
     await page.waitForSelector('.paper-row, .no-results', { timeout: 8000 });
+    await expect(page.locator('.paper-row', { hasText: dataset.name })).toHaveCount(1);
+    await expect(page.locator('.paper-row', { hasText: dataset.name }).locator('.status-badge')).toHaveClass(/status-not-ready/);
+
+    await page.click('.filter-btn[data-readiness="ready"]');
     await expect(page.locator('.paper-row', { hasText: dataset.name })).toHaveCount(0);
 
-    await patchDataset('yes'); // available — should appear
+    await page.click('.filter-btn[data-readiness="not_ready"]');
+    await expect(page.locator('.paper-row', { hasText: dataset.name })).toHaveCount(1);
+
+    // All datasets confirmed available → "Ready", not "Not Ready".
+    await patchDataset('yes');
     await page.goto('/ready-index.html');
     await page.waitForSelector('.paper-row, .no-results', { timeout: 8000 });
+    await expect(page.locator('.paper-row', { hasText: dataset.name }).locator('.status-badge')).toHaveClass(/status-ready/);
+
+    await page.click('.filter-btn[data-readiness="not_ready"]');
+    await expect(page.locator('.paper-row', { hasText: dataset.name })).toHaveCount(0);
+
+    await page.click('.filter-btn[data-readiness="ready"]');
     const row = page.locator('.paper-row', { hasText: dataset.name });
     await expect(row).toHaveCount(1);
 
+    // All datasets confirmed UNAVAILABLE also counts as "Ready" — the
+    // investigation is settled either way, per the page's explicit spec.
+    await patchDataset('no');
+    await page.goto('/ready-index.html');
+    await page.waitForSelector('.paper-row, .no-results', { timeout: 8000 });
+    await expect(page.locator('.paper-row', { hasText: dataset.name }).locator('.status-badge')).toHaveClass(/status-ready/);
+
     const [newPage] = await Promise.all([
       page.context().waitForEvent('page'),
-      row.locator('.col-action a').click(),
+      page.locator('.paper-row', { hasText: dataset.name }).locator('.col-action a').click(),
     ]);
     await newPage.waitForLoadState();
     expect(newPage.url()).toContain(`paper.html?id=${candidate.paper_id}`);
@@ -1058,7 +1083,7 @@ test.describe('Ready for Reproduction page', () => {
     await patchDataset(originalAvailable); // restore — leave no permanent side effects
   });
 
-  test('dataset chip is colored by availability and its link opens dataset.html directly', async ({ page }) => {
+  test('dataset chip is colored by availability, its text is link-blue, and its link opens dataset.html directly', async ({ page }) => {
     await page.goto('/login.html');
     const token = await page.evaluate(() => localStorage.getItem('pb_token'));
 
@@ -1078,7 +1103,7 @@ test.describe('Ready for Reproduction page', () => {
       );
     }
 
-    await patchDataset('yes'); // must be available for the paper to appear at all
+    await patchDataset('yes');
     await page.goto('/ready-index.html');
     await page.waitForSelector('.paper-row, .no-results', { timeout: 8000 });
 
