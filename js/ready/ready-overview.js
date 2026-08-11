@@ -55,14 +55,21 @@ function renderTable() {
   }
 
   readyPapers.forEach(p => {
-    const datasetNames = (p.expand?.datasets || []).map(d => escapeHtml(d.name)).join(', ');
+    const datasetChips = (p.expand?.datasets || []).map(d => {
+      const availClass = d.available === 'yes' ? 'chip-avail-yes'
+        : d.available === 'no' ? 'chip-avail-no'
+        : 'chip-avail-unknown';
+      // stopPropagation so clicking a dataset chip opens dataset.html
+      // instead of also triggering the row's own paper.html click handler.
+      return `<span class="chip ${availClass}"><a href="dataset.html?id=${d.id}" class="chip-detail-link" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${escapeHtml(d.name)}</a></span>`;
+    }).join('');
 
     const tr = document.createElement('tr');
     tr.className = 'paper-row';
     tr.innerHTML = `
       <td><span class="paper-id" title="${escapeHtml(p.id)}">${truncateId(p.id)}</span></td>
       <td class="paper-title">${escapeHtml(p.title || '—')}</td>
-      <td>${datasetNames}</td>
+      <td><div class="chip-container">${datasetChips}</div></td>
       <td class="col-action"><a href="paper.html?id=${p.id}" class="review-link" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Details &#8594;</a></td>
     `;
     // Opens in a new tab, same as the explicit "Details →" link — this page

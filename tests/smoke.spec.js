@@ -1057,4 +1057,43 @@ test.describe('Ready for Reproduction page', () => {
 
     await patchDataset(originalAvailable); // restore — leave no permanent side effects
   });
+
+  test('dataset chip is colored by availability and its link opens dataset.html directly', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+
+    const papersRes = await page.request.get(
+      'http://localhost:8090/api/collections/papers/records?filter=(status="final")&expand=datasets&perPage=200',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const candidate = (await papersRes.json()).items.find(p => (p.expand?.datasets || []).length === 1);
+    test.skip(!candidate, 'No finalized paper with exactly one dataset in the backend — skipping');
+    const dataset = candidate.expand.datasets[0];
+    const originalAvailable = dataset.available || '';
+
+    async function patchDataset(available) {
+      await page.request.patch(
+        `http://localhost:8090/api/collections/datasets/records/${dataset.id}`,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, data: { available } }
+      );
+    }
+
+    await patchDataset('yes'); // must be available for the paper to appear at all
+    await page.goto('/ready-index.html');
+    await page.waitForSelector('.paper-row, .no-results', { timeout: 8000 });
+
+    const chip = page.locator('.paper-row', { hasText: dataset.name }).locator('.chip', { hasText: dataset.name });
+    await expect(chip).toHaveClass(/chip-avail-yes/);
+
+    const [newPage] = await Promise.all([
+      page.context().waitForEvent('page'),
+      chip.locator('a').click(),
+    ]);
+    await newPage.waitForLoadState();
+    expect(newPage.url()).toContain(`dataset.html?id=${dataset.id}`);
+    expect(page.url()).toContain('ready-index.html'); // clicking the chip didn't also trigger the row's own click handler
+    await newPage.close();
+
+    await patchDataset(originalAvailable); // restore — leave no permanent side effects
+  });
 });
