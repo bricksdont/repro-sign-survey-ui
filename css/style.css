@@ -1567,6 +1567,11 @@ hr.field-divider {
 .dataset-textarea {
   resize: vertical;
   font-family: inherit;
+  /* .field-input sets flex: 1 1 0%, which — inside .dataset-form-group's
+     column-direction flex layout — hard-pins the height to flex-basis: 0%
+     and silently overrides the inline height the resize handle sets on
+     drag, making the textarea appear un-resizable. */
+  flex: none;
 }
 
 .dataset-radio-group {
