@@ -1018,6 +1018,23 @@ test.describe('Ready for Reproduction page', () => {
     await expect(page.locator('.filter-btn.active')).toHaveText('All');
   });
 
+  test('the active readiness filter is reflected in the URL and restored on direct navigation (#75)', async ({ page }) => {
+    await page.goto('/ready-index.html');
+    await expect(page).toHaveURL(/ready-index\.html$/); // "All" (default) omitted from the URL
+
+    await page.click('.filter-btn[data-readiness="ready"]');
+    await expect(page).toHaveURL(/[?&]readiness=ready/);
+
+    await page.click('.filter-btn[data-readiness="not_ready"]');
+    await expect(page).toHaveURL(/[?&]readiness=not_ready/);
+
+    await page.click('.filter-btn[data-readiness="all"]');
+    await expect(page).toHaveURL(/ready-index\.html$/);
+
+    await page.goto('/ready-index.html?readiness=ready');
+    await expect(page.locator('.filter-btn.active')).toHaveText('Confirmed');
+  });
+
   test('lists every final paper regardless of dataset availability, and the readiness filters partition them correctly', async ({ page }) => {
     await page.goto('/login.html');
     const token = await page.evaluate(() => localStorage.getItem('pb_token'));

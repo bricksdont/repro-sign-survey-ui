@@ -35,8 +35,20 @@ async function init() {
     .filter(p => p.status === 'final')
     .map(p => ({ ...p, readiness: computeReadiness(p.expand?.datasets || []) }));
 
+  // Restore the filter from the URL (e.g. a bookmarked or shared link),
+  // same pattern as review-index.html/check-index.html (#75).
+  const urlParams = new URLSearchParams(window.location.search);
+  const validReadiness = new Set([...document.querySelectorAll('.filter-btn')].map(b => b.dataset.readiness));
+  const readinessParam = urlParams.get('readiness');
+  if (readinessParam && validReadiness.has(readinessParam)) {
+    activeFilter = readinessParam;
+    document.querySelectorAll('.filter-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.readiness === activeFilter);
+    });
+  }
+
   wireFilters();
-  applyFilter();
+  applyFilter(); // renders (and syncs the URL for) the restored or default filter
 }
 
 function wireFilters() {
@@ -50,11 +62,21 @@ function wireFilters() {
   });
 }
 
+// Keeps the address bar in sync with the current filter, without adding a
+// history entry per click — makes the current view bookmarkable/shareable.
+function syncURL() {
+  const params = new URLSearchParams();
+  if (activeFilter !== 'all') params.set('readiness', activeFilter);
+  const qs = params.toString();
+  history.replaceState(null, '', window.location.pathname + (qs ? '?' + qs : ''));
+}
+
 function applyFilter() {
   const filtered = activeFilter === 'all' ? allFinalPapers
     : allFinalPapers.filter(p => p.readiness === activeFilter);
   renderTable(filtered);
   renderStats();
+  syncURL();
 }
 
 function truncateId(id, maxLen = 20) {
