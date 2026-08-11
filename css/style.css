@@ -406,6 +406,17 @@ a.stat-bar-label:hover {
   margin-left: auto;
 }
 
+/* .btn-secondary's default padding/font-size makes it visibly taller than
+   the pill-shaped .filter-btn buttons next to it; match their box metrics
+   so both line up at the same height. Uses the .filter-bar descendant
+   selector (rather than just .filter-bar-right) for the extra specificity
+   needed to beat plain .btn-secondary, which is declared later in this
+   file and would otherwise win the cascade at equal specificity. */
+.filter-bar .btn-secondary {
+  padding: 5px 13px;
+  font-size: 12px;
+}
+
 .search-input-wrapper {
   position: relative;
   flex: 1;
