@@ -5,13 +5,14 @@ let activeFilter = 'all';
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 
-// "Ready" = every dataset the paper uses has a definitive, uniform
-// availability answer — all confirmed available, or all confirmed
-// unavailable. A mix of yes/no, or any dataset still unanswered, is
-// "not ready": that's the set of papers someone still needs to chase down
-// dataset availability for. Finalize already requires ≥1 dataset, so an
-// empty list here shouldn't be reachable — the length check is just
-// defensive, since [].every(...) is vacuously true for both yes and no.
+// "Confirmed" (readiness: 'ready') = every dataset the paper uses has a
+// definitive, uniform availability answer — all confirmed available, or all
+// confirmed unavailable. A mix of yes/no, or any dataset still unanswered,
+// is "Unconfirmed" ('not_ready'): that's the set of papers someone still
+// needs to chase down dataset availability for. Finalize already requires
+// ≥1 dataset, so an empty list here shouldn't be reachable — the length
+// check is just defensive, since [].every(...) is vacuously true for both
+// yes and no.
 function computeReadiness(datasets) {
   if (datasets.length === 0) return 'not_ready';
   const allYes = datasets.every(d => d.available === 'yes');
@@ -72,8 +73,8 @@ function escapeHtml(str) {
 
 const EMPTY_MESSAGES = {
   all: 'No final papers yet.',
-  ready: 'No ready papers yet.',
-  not_ready: 'No not-ready papers — nothing left to chase down.',
+  ready: 'No papers with confirmed dataset availability yet.',
+  not_ready: 'No papers with unconfirmed dataset availability — nothing left to chase down.',
 };
 
 function renderTable(papers) {
@@ -119,10 +120,10 @@ function renderTable(papers) {
 
 function renderStats() {
   const total = allFinalPapers.length;
-  const ready = allFinalPapers.filter(p => p.readiness === 'ready').length;
-  const notReady = total - ready;
+  const confirmed = allFinalPapers.filter(p => p.readiness === 'ready').length;
+  const unconfirmed = total - confirmed;
   document.getElementById('stats-row').textContent =
-    `${total} final paper${total !== 1 ? 's' : ''} — ${ready} ready, ${notReady} not ready`;
+    `${total} final paper${total !== 1 ? 's' : ''} — ${confirmed} confirmed, ${unconfirmed} unconfirmed`;
 }
 
 // ── Account menu ───────────────────────────────────────────────────────────
