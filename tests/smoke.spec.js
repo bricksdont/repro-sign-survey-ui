@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'fs';
 
 const TEST_EMAIL    = process.env.PB_TEST_EMAIL;
 const TEST_PASSWORD = process.env.PB_TEST_PASSWORD;
@@ -29,16 +30,16 @@ test.describe('Landing page', () => {
     await expect(page.locator('.task-card')).toHaveCount(5);
     await expect(page.locator('.task-card:visible')).toHaveCount(5);
     await expect(page.locator('a[href="review-index.html"]')).toBeVisible();
-    await expect(page.locator('a[href="check-index.html"]')).toBeVisible();
+    await expect(page.locator('a[href="stats.html"]')).toBeVisible();
     await expect(page.locator('a[href="datasets-index.html"]')).toBeVisible();
     await expect(page.locator('a[href="metrics-index.html"]')).toBeVisible();
-    await expect(page.locator('a[href="stats.html"]')).toBeVisible();
+    await expect(page.locator('a[href="dataset-confirmation-index.html"]')).toBeVisible();
     await expect(page.locator('.task-card-disabled')).toHaveCount(0);
   });
 
-  test('does not link to Ready for Reproduction — internal/unlisted page for now', async ({ page }) => {
+  test('does not link to Checking — internal/unlisted page for now', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('a[href="ready-index.html"]')).toHaveCount(0);
+    await expect(page.locator('a[href="check-index.html"]')).toHaveCount(0);
   });
 });
 
@@ -1003,22 +1004,83 @@ test.describe('Review Stats page', () => {
   });
 });
 
-test.describe('Ready for Reproduction page', () => {
-  // Internal/unlisted for now (#90) — no landing-page card, but the page
-  // itself is fully functional via a direct link.
-  test('renders the table structure via direct navigation', async ({ page }) => {
-    await page.goto('/ready-index.html');
-    await expect(page.locator('#stats-row')).toBeVisible();
-    await expect(page.locator('table.papers-table')).toBeVisible();
+test.describe('Dataset Confirmation Tracker page', () => {
+  test('reachable from the landing page', async ({ page }) => {
+    await page.goto('/');
+    await page.click('a[href="dataset-confirmation-index.html"]');
+    await expect(page).toHaveURL(/dataset-confirmation-index\.html/);
   });
 
-  test('lists a finalized paper only once all its datasets are available; Details opens paper.html in a new tab', async ({ page }) => {
+  test('renders the table structure and confirmation filter buttons via direct navigation', async ({ page }) => {
+    await page.goto('/dataset-confirmation-index.html');
+    await expect(page.locator('#stats-row')).toBeVisible();
+    await expect(page.locator('table.papers-table')).toBeVisible();
+    await expect(page.locator('.filter-btn')).toHaveCount(3);
+    await expect(page.locator('.filter-btn.active')).toHaveText('All');
+  });
+
+  test('the active confirmation filter is reflected in the URL and restored on direct navigation (#75)', async ({ page }) => {
+    await page.goto('/dataset-confirmation-index.html');
+    await expect(page).toHaveURL(/dataset-confirmation-index\.html$/); // "All" (default) omitted from the URL
+
+    await page.click('.filter-btn[data-confirmation="confirmed"]');
+    await expect(page).toHaveURL(/[?&]confirmation=confirmed/);
+
+    await page.click('.filter-btn[data-confirmation="not_confirmed"]');
+    await expect(page).toHaveURL(/[?&]confirmation=not_confirmed/);
+
+    await page.click('.filter-btn[data-confirmation="all"]');
+    await expect(page).toHaveURL(/dataset-confirmation-index\.html$/);
+
+    await page.goto('/dataset-confirmation-index.html?confirmation=confirmed');
+    await expect(page.locator('.filter-btn.active')).toHaveText('Confirmed');
+  });
+
+  test('Download JSON exports the currently-filtered papers, with locking fields stripped', async ({ page }) => {
+    await page.goto('/dataset-confirmation-index.html');
+    await page.waitForSelector('.paper-row, .no-results', { timeout: 8000 });
+
+    const rowCount = await page.locator('.paper-row').count();
+    test.skip(rowCount === 0, 'No final papers in the backend — skipping');
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.click('#export-json-btn'),
+    ]);
+    expect(download.suggestedFilename()).toMatch(/^dataset-confirmation-all-\d{4}-\d{2}-\d{2}\.json$/);
+
+    const path = await download.path();
+    const data = JSON.parse(readFileSync(path, 'utf8'));
+    expect(data).toHaveLength(rowCount);
+    for (const paper of data) {
+      expect(paper).not.toHaveProperty('locked_by');
+      expect(paper).not.toHaveProperty('locked_at');
+      for (const dataset of paper.expand?.datasets || []) {
+        expect(dataset).not.toHaveProperty('locked_by');
+        expect(dataset).not.toHaveProperty('locked_at');
+      }
+    }
+
+    // Filtering to "Confirmed" narrows the export to just that subset.
+    await page.click('.filter-btn[data-confirmation="confirmed"]');
+    const confirmedCount = await page.locator('.paper-row').count();
+    const [download2] = await Promise.all([
+      page.waitForEvent('download'),
+      page.click('#export-json-btn'),
+    ]);
+    expect(download2.suggestedFilename()).toMatch(/^dataset-confirmation-confirmed-\d{4}-\d{2}-\d{2}\.json$/);
+    const data2 = JSON.parse(readFileSync(await download2.path(), 'utf8'));
+    expect(data2).toHaveLength(confirmedCount);
+    expect(data2.every(p => p.confirmation === 'confirmed')).toBe(true);
+  });
+
+  test('lists every final paper regardless of dataset availability, and the confirmation filters partition them correctly', async ({ page }) => {
     await page.goto('/login.html');
     const token = await page.evaluate(() => localStorage.getItem('pb_token'));
 
     // Find an existing final paper with exactly one dataset, so flipping
     // that one dataset's availability deterministically flips this paper's
-    // "ready" status either way, regardless of what else is in the backend.
+    // confirmation status either way, regardless of what else is in the backend.
     const papersRes = await page.request.get(
       'http://localhost:8090/api/collections/papers/records?filter=(status="final")&expand=datasets&perPage=200',
       { headers: { Authorization: `Bearer ${token}` } }
@@ -1035,24 +1097,90 @@ test.describe('Ready for Reproduction page', () => {
       );
     }
 
-    await patchDataset(''); // not (yet) available — should NOT appear
-    await page.goto('/ready-index.html');
+    // Unanswered availability → still listed under "All" (unlike the old
+    // behavior, which hid it entirely) and "Unconfirmed", but not "Confirmed".
+    await patchDataset('');
+    await page.goto('/dataset-confirmation-index.html');
     await page.waitForSelector('.paper-row, .no-results', { timeout: 8000 });
+    await expect(page.locator('.paper-row', { hasText: dataset.name })).toHaveCount(1);
+
+    await page.click('.filter-btn[data-confirmation="confirmed"]');
     await expect(page.locator('.paper-row', { hasText: dataset.name })).toHaveCount(0);
 
-    await patchDataset('yes'); // available — should appear
-    await page.goto('/ready-index.html');
+    await page.click('.filter-btn[data-confirmation="not_confirmed"]');
+    await expect(page.locator('.paper-row', { hasText: dataset.name })).toHaveCount(1);
+
+    // All datasets confirmed available → "Confirmed", not "Unconfirmed".
+    await patchDataset('yes');
+    await page.goto('/dataset-confirmation-index.html');
     await page.waitForSelector('.paper-row, .no-results', { timeout: 8000 });
+
+    await page.click('.filter-btn[data-confirmation="not_confirmed"]');
+    await expect(page.locator('.paper-row', { hasText: dataset.name })).toHaveCount(0);
+
+    await page.click('.filter-btn[data-confirmation="confirmed"]');
     const row = page.locator('.paper-row', { hasText: dataset.name });
     await expect(row).toHaveCount(1);
 
+    // All datasets confirmed UNAVAILABLE also counts as "Confirmed" — the
+    // investigation is settled either way, per the page's explicit spec.
+    await patchDataset('no');
+    await page.goto('/dataset-confirmation-index.html');
+    await page.waitForSelector('.paper-row, .no-results', { timeout: 8000 });
+    await page.click('.filter-btn[data-confirmation="confirmed"]');
+    await expect(page.locator('.paper-row', { hasText: dataset.name })).toHaveCount(1);
+
     const [newPage] = await Promise.all([
       page.context().waitForEvent('page'),
-      row.locator('.col-action a').click(),
+      page.locator('.paper-row', { hasText: dataset.name }).locator('.col-action a').click(),
     ]);
     await newPage.waitForLoadState();
     expect(newPage.url()).toContain(`paper.html?id=${candidate.paper_id}`);
-    expect(page.url()).toContain('ready-index.html'); // original tab unaffected
+    expect(page.url()).toContain('dataset-confirmation-index.html'); // original tab unaffected
+    await newPage.close();
+
+    await patchDataset(originalAvailable); // restore — leave no permanent side effects
+  });
+
+  test('dataset chip is colored by availability, its text is link-blue, and its link opens dataset.html directly', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+
+    const papersRes = await page.request.get(
+      'http://localhost:8090/api/collections/papers/records?filter=(status="final")&expand=datasets&perPage=200',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const candidate = (await papersRes.json()).items.find(p => (p.expand?.datasets || []).length === 1);
+    test.skip(!candidate, 'No finalized paper with exactly one dataset in the backend — skipping');
+    const dataset = candidate.expand.datasets[0];
+    const originalAvailable = dataset.available || '';
+
+    async function patchDataset(available) {
+      await page.request.patch(
+        `http://localhost:8090/api/collections/datasets/records/${dataset.id}`,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, data: { available } }
+      );
+    }
+
+    await patchDataset('yes');
+    await page.goto('/dataset-confirmation-index.html');
+    await page.waitForSelector('.paper-row, .no-results', { timeout: 8000 });
+
+    const chip = page.locator('.paper-row', { hasText: dataset.name }).locator('.chip', { hasText: dataset.name });
+    await expect(chip).toHaveClass(/chip-avail-yes/);
+
+    // Same accent blue as .review-link/.stat-bar-label, so the chip still
+    // reads as clickable regardless of its green/red/gray availability color.
+    const linkColor = await chip.locator('a').evaluate(el => getComputedStyle(el).color);
+    expect(linkColor).toBe('rgb(74, 144, 217)');
+
+    const [newPage] = await Promise.all([
+      page.context().waitForEvent('page'),
+      chip.locator('a').click(),
+    ]);
+    await newPage.waitForLoadState();
+    expect(newPage.url()).toContain(`dataset.html?id=${dataset.id}`);
+    expect(page.url()).toContain('dataset-confirmation-index.html'); // clicking the chip didn't also trigger the row's own click handler
     await newPage.close();
 
     await patchDataset(originalAvailable); // restore — leave no permanent side effects

@@ -402,6 +402,21 @@ a.stat-bar-label:hover {
   flex-wrap: wrap;
 }
 
+.filter-bar-right {
+  margin-left: auto;
+}
+
+/* .btn-secondary's default padding/font-size makes it visibly taller than
+   the pill-shaped .filter-btn buttons next to it; match their box metrics
+   so both line up at the same height. Uses the .filter-bar descendant
+   selector (rather than just .filter-bar-right) for the extra specificity
+   needed to beat plain .btn-secondary, which is declared later in this
+   file and would otherwise win the cascade at equal specificity. */
+.filter-bar .btn-secondary {
+  padding: 5px 13px;
+  font-size: 12px;
+}
+
 .search-input-wrapper {
   position: relative;
   flex: 1;
@@ -1605,6 +1620,33 @@ hr.field-divider {
 .avail-no {
   background: #fde8e8;
   color: #9b1c1c;
+}
+
+/* Dataset chip color variants — Dataset Confirmation Tracker table. Same
+   palette as .avail-yes/.avail-no above, plus a neutral gray for an
+   unanswered availability field. */
+.chip-avail-yes {
+  background: #d4edda;
+  color: #1a6b30;
+}
+
+.chip-avail-no {
+  background: #fde8e8;
+  color: #9b1c1c;
+}
+
+.chip-avail-unknown {
+  background: #eee;
+  color: #666;
+}
+
+/* .chip-detail-link defaults to color: inherit (matching the availability
+   color above); override to the standard link-blue here so the chip still
+   visibly reads as clickable regardless of its availability color. */
+.chip-avail-yes .chip-detail-link,
+.chip-avail-no .chip-detail-link,
+.chip-avail-unknown .chip-detail-link {
+  color: #4a90d9;
 }
 
 .dataset-url-cell {
