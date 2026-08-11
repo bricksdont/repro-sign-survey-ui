@@ -1038,12 +1038,11 @@ test.describe('Ready for Reproduction page', () => {
     }
 
     // Unanswered availability → still listed under "All" (unlike the old
-    // behavior, which hid it entirely) and "Not Ready", but not "Ready".
+    // behavior, which hid it entirely) and "…unconfirmed", but not "…confirmed".
     await patchDataset('');
     await page.goto('/ready-index.html');
     await page.waitForSelector('.paper-row, .no-results', { timeout: 8000 });
     await expect(page.locator('.paper-row', { hasText: dataset.name })).toHaveCount(1);
-    await expect(page.locator('.paper-row', { hasText: dataset.name }).locator('.status-badge')).toHaveClass(/status-not-ready/);
 
     await page.click('.filter-btn[data-readiness="ready"]');
     await expect(page.locator('.paper-row', { hasText: dataset.name })).toHaveCount(0);
@@ -1051,11 +1050,10 @@ test.describe('Ready for Reproduction page', () => {
     await page.click('.filter-btn[data-readiness="not_ready"]');
     await expect(page.locator('.paper-row', { hasText: dataset.name })).toHaveCount(1);
 
-    // All datasets confirmed available → "Ready", not "Not Ready".
+    // All datasets confirmed available → "…confirmed", not "…unconfirmed".
     await patchDataset('yes');
     await page.goto('/ready-index.html');
     await page.waitForSelector('.paper-row, .no-results', { timeout: 8000 });
-    await expect(page.locator('.paper-row', { hasText: dataset.name }).locator('.status-badge')).toHaveClass(/status-ready/);
 
     await page.click('.filter-btn[data-readiness="not_ready"]');
     await expect(page.locator('.paper-row', { hasText: dataset.name })).toHaveCount(0);
@@ -1064,12 +1062,13 @@ test.describe('Ready for Reproduction page', () => {
     const row = page.locator('.paper-row', { hasText: dataset.name });
     await expect(row).toHaveCount(1);
 
-    // All datasets confirmed UNAVAILABLE also counts as "Ready" — the
+    // All datasets confirmed UNAVAILABLE also counts as "confirmed" — the
     // investigation is settled either way, per the page's explicit spec.
     await patchDataset('no');
     await page.goto('/ready-index.html');
     await page.waitForSelector('.paper-row, .no-results', { timeout: 8000 });
-    await expect(page.locator('.paper-row', { hasText: dataset.name }).locator('.status-badge')).toHaveClass(/status-ready/);
+    await page.click('.filter-btn[data-readiness="ready"]');
+    await expect(page.locator('.paper-row', { hasText: dataset.name })).toHaveCount(1);
 
     const [newPage] = await Promise.all([
       page.context().waitForEvent('page'),

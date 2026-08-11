@@ -82,7 +82,7 @@ function renderTable(papers) {
 
   if (papers.length === 0) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="5" class="no-results">${EMPTY_MESSAGES[activeFilter]}</td>`;
+    tr.innerHTML = `<td colspan="4" class="no-results">${EMPTY_MESSAGES[activeFilter]}</td>`;
     tbody.appendChild(tr);
     return;
   }
@@ -97,15 +97,11 @@ function renderTable(papers) {
       return `<span class="chip ${availClass}"><a href="dataset.html?id=${d.id}" class="chip-detail-link" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${escapeHtml(d.name)}</a></span>`;
     }).join('');
 
-    const readinessLabel = p.readiness === 'ready' ? 'Ready' : 'Not Ready';
-    const readinessClass = p.readiness === 'ready' ? 'status-ready' : 'status-not-ready';
-
     const tr = document.createElement('tr');
     tr.className = 'paper-row';
     tr.innerHTML = `
       <td><span class="paper-id" title="${escapeHtml(p.id)}">${truncateId(p.id)}</span></td>
       <td class="paper-title">${escapeHtml(p.title || '—')}</td>
-      <td><span class="status-badge ${readinessClass}">${readinessLabel}</span></td>
       <td><div class="chip-container">${datasetChips}</div></td>
       <td class="col-action"><a href="paper.html?id=${p.id}" class="review-link" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Details &#8594;</a></td>
     `;
