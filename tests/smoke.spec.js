@@ -1085,6 +1085,11 @@ test.describe('Ready for Reproduction page', () => {
     const chip = page.locator('.paper-row', { hasText: dataset.name }).locator('.chip', { hasText: dataset.name });
     await expect(chip).toHaveClass(/chip-avail-yes/);
 
+    // Same accent blue as .review-link/.stat-bar-label, so the chip still
+    // reads as clickable regardless of its green/red/gray availability color.
+    const linkColor = await chip.locator('a').evaluate(el => getComputedStyle(el).color);
+    expect(linkColor).toBe('rgb(74, 144, 217)');
+
     const [newPage] = await Promise.all([
       page.context().waitForEvent('page'),
       chip.locator('a').click(),

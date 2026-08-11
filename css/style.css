@@ -1625,6 +1625,15 @@ hr.field-divider {
   color: #666;
 }
 
+/* .chip-detail-link defaults to color: inherit (matching the availability
+   color above); override to the standard link-blue here so the chip still
+   visibly reads as clickable regardless of its availability color. */
+.chip-avail-yes .chip-detail-link,
+.chip-avail-no .chip-detail-link,
+.chip-avail-unknown .chip-detail-link {
+  color: #4a90d9;
+}
+
 .dataset-url-cell {
   max-width: 280px;
   overflow: hidden;
