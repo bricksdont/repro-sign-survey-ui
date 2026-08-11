@@ -155,9 +155,9 @@ function renderTable(papers) {
     const tr = document.createElement('tr');
     tr.className = 'paper-row';
     tr.innerHTML = `
-      <td><span class="paper-id" title="${escapeHtml(p.id)}">${truncateId(p.id)}</span></td>
+      <td class="col-paper-id"><span class="paper-id" title="${escapeHtml(p.id)}">${truncateId(p.id)}</span></td>
       <td class="paper-title">${escapeHtml(p.title || '—')}</td>
-      <td><div class="chip-container">${datasetChips}</div></td>
+      <td class="col-datasets"><div class="chip-container">${datasetChips}</div></td>
       <td class="col-action"><a href="paper.html?id=${p.id}" class="review-link" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Details &#8594;</a></td>
     `;
     // Opens in a new tab, same as the explicit "Details →" link — this page
