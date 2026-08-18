@@ -13,6 +13,7 @@ let code_repos = [];
 let codeReposNA = false;           // "confirmed no code repositories"
 let computeRequirementsNA = false; // "confirmed not specified in paper"
 let areaOfSlp = [];  // [string] for the current paper — not a backend collection
+let subAreaOfSlp = []; // [string] for the current paper — not a backend collection
 let isReadOnly = false;
 let heartbeatInterval = null;
 let autoSaveTimer = null;
@@ -36,6 +37,40 @@ const KNOWN_SLP_AREAS = [
   'Retrieval',
   'Avatar systems',
 ];
+
+// Sub-area of SLP (issue #101): suggestions depend on the paper's current
+// Area of SLP selection — shown only when Area of SLP includes the exact
+// (case-insensitive) area name "Recognition" or "Translation". Like
+// KNOWN_SLP_AREAS, not backed by a collection and not a fixed enum
+// server-side, so any typed value can still be added as a chip even when
+// the suggestion pool below is empty (e.g. Area of SLP has neither
+// Recognition nor Translation, or nothing at all).
+const RECOGNITION_SUB_AREAS = [
+  'Isolated fingerspelling images',
+  'Isolated fingerspelling videos',
+  'Continuous fingerspelling videos',
+  'Isolated signing videos',
+  'Continuous signing videos',
+];
+const TRANSLATION_SUB_AREAS = [
+  'Gloss-to-text',
+  'Text-to-gloss',
+  'Video-to-text',
+  'Text-to-video',
+  'Pose-to-text',
+  'Text-to-pose',
+];
+
+// Recomputed on demand (not cached) so it always reflects the live Area of
+// SLP state, including edits made after Sub-area chips already exist —
+// existing Sub-area chips are never retroactively removed when Area of SLP
+// changes, only the suggestion pool for newly-typed values changes.
+function computeSubAreaSuggestionPool() {
+  let pool = [];
+  if (areaOfSlp.some(a => a.toLowerCase() === 'recognition')) pool = pool.concat(RECOGNITION_SUB_AREAS);
+  if (areaOfSlp.some(a => a.toLowerCase() === 'translation')) pool = pool.concat(TRANSLATION_SUB_AREAS);
+  return pool;
+}
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 
@@ -256,6 +291,9 @@ function populateForm(p) {
   areaOfSlp = Array.isArray(p.area_of_slp) ? [...p.area_of_slp] : [];
   renderTags('area_of_slp', areaOfSlp);
 
+  subAreaOfSlp = Array.isArray(p.sub_area_of_slp) ? [...p.sub_area_of_slp] : [];
+  renderTags('sub_area_of_slp', subAreaOfSlp);
+
   document.querySelectorAll('input[name="has-ranking"]').forEach(r => {
     r.checked = r.value === p.main_experiment_has_ranking;
   });
@@ -346,6 +384,7 @@ function finishEditing(field) {
 function renderTags(type, items) {
   const containerId = type === 'code_repos'  ? 'code-repos-container'
     : type === 'area_of_slp' ? 'area-of-slp-container'
+    : type === 'sub_area_of_slp' ? 'sub-area-of-slp-container'
     : type + '-container';
   const container = document.getElementById(containerId);
   container.innerHTML = '';
@@ -393,6 +432,7 @@ function addTag(type) {
   const inputId = type === 'datasets' ? 'dataset-input'
     : type === 'metrics'   ? 'metric-input'
     : type === 'area_of_slp' ? 'area-of-slp-input'
+    : type === 'sub_area_of_slp' ? 'sub-area-of-slp-input'
     : 'code-repo-input';
   const input = document.getElementById(inputId);
   const value = input.value.trim();
@@ -401,6 +441,7 @@ function addTag(type) {
   const list = type === 'datasets' ? datasets
     : type === 'metrics'   ? metrics
     : type === 'area_of_slp' ? areaOfSlp
+    : type === 'sub_area_of_slp' ? subAreaOfSlp
     : code_repos;
   if (!list.includes(value)) {
     list.push(value);
@@ -416,6 +457,7 @@ function removeTag(type, index) {
   const list = type === 'datasets' ? datasets
     : type === 'metrics'   ? metrics
     : type === 'area_of_slp' ? areaOfSlp
+    : type === 'sub_area_of_slp' ? subAreaOfSlp
     : code_repos;
   list.splice(index, 1);
   renderTags(type, list);
@@ -482,6 +524,7 @@ function collectFormState() {
     datasets:   datasets.map(d => d.id),
     metrics:    metrics.map(m => m.id),
     area_of_slp: [...areaOfSlp],
+    sub_area_of_slp: [...subAreaOfSlp],
     main_experiment_has_ranking: rankingChecked     ? rankingChecked.value     : '',
     copied_scores:               copiedScoresChecked ? copiedScoresChecked.value : '',
     includes_human_evaluation:   humanEvalChecked   ? humanEvalChecked.value   : '',
@@ -511,6 +554,7 @@ function buildPatchPayload(state, p, extra = {}) {
     finalized_by:     p.finalized_by     || '',
     status_history:   p.status_history   || [],
     area_of_slp:                 state.area_of_slp || [],
+    sub_area_of_slp:             state.sub_area_of_slp || [],
     main_experiment_has_ranking: state.main_experiment_has_ranking || '',
     copied_scores:               state.copied_scores               || '',
     includes_human_evaluation:   state.includes_human_evaluation   || '',
@@ -1144,6 +1188,51 @@ function initAreaOfSlpAutocomplete() {
   input.addEventListener('blur', () => setTimeout(() => dropdown.classList.add('hidden'), 150));
 }
 
+// Suggestion pool depends on the paper's current Area of SLP selection (see
+// computeSubAreaSuggestionPool) — recomputed on every refresh() call, so it
+// stays in sync with Area of SLP even after the field has already loaded.
+// If the pool is empty (Area of SLP has neither Recognition nor
+// Translation, or is empty), the dropdown just offers no suggestions; the
+// field itself stays visible and still accepts free text either way, since
+// sub_area_of_slp has no fixed enum server-side.
+function initSubAreaOfSlpAutocomplete() {
+  const input    = document.getElementById('sub-area-of-slp-input');
+  const dropdown = document.getElementById('sub-area-of-slp-suggestions');
+
+  function refresh() {
+    const q  = input.value.trim();
+    const ql = q.toLowerCase();
+    const pool = computeSubAreaSuggestionPool();
+    const matches = pool.filter(a =>
+      !subAreaOfSlp.includes(a) && (q === '' || a.toLowerCase().startsWith(ql))
+    );
+
+    dropdown.innerHTML = '';
+    matches.forEach(a => {
+      const item = document.createElement('div');
+      item.className = 'suggestion-item';
+      item.textContent = a;
+      item.addEventListener('mousedown', e => {
+        e.preventDefault();
+        if (!subAreaOfSlp.includes(a)) {
+          subAreaOfSlp.push(a);
+          renderTags('sub_area_of_slp', subAreaOfSlp);
+          onFieldChanged();
+        }
+        input.value = '';
+        refresh();
+      });
+      dropdown.appendChild(item);
+    });
+
+    dropdown.classList.toggle('hidden', dropdown.children.length === 0);
+  }
+
+  input.addEventListener('focus', refresh);
+  input.addEventListener('input', refresh);
+  input.addEventListener('blur', () => setTimeout(() => dropdown.classList.add('hidden'), 150));
+}
+
 // ── Divider drag ──────────────────────────────────────────────────────────
 
 function initDivider() {
@@ -1216,6 +1305,10 @@ function wireEvents() {
   document.getElementById('add-area-of-slp-btn').addEventListener('click', () => addTag('area_of_slp'));
   document.getElementById('area-of-slp-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') addTag('area_of_slp');
+  });
+  document.getElementById('add-sub-area-of-slp-btn').addEventListener('click', () => addTag('sub_area_of_slp'));
+  document.getElementById('sub-area-of-slp-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addTag('sub_area_of_slp');
   });
   document.getElementById('add-dataset-btn').addEventListener('click', () =>
     addDatasetChip(document.getElementById('dataset-input').value.trim()));
@@ -1302,3 +1395,4 @@ initDivider();
 initDatasetAutocomplete();
 initMetricAutocomplete();
 initAreaOfSlpAutocomplete();
+initSubAreaOfSlpAutocomplete();

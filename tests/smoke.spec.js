@@ -397,6 +397,118 @@ test.describe('Review detail page', () => {
     });
   });
 
+  test('Sub-area of SLP suggestions depend on Area of SLP, and the field is optional (#101)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const listRes = await page.request.get(
+      'http://localhost:8090/api/collections/papers/records?filter=(paper_id="emnlp-2024-518")',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const record = (await listRes.json()).items[0];
+    test.skip(!record, 'Fixture paper not found — skipping');
+
+    async function patchPaper(data) {
+      await page.request.patch(
+        `http://localhost:8090/api/collections/papers/records/${record.id}`,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, data }
+      );
+    }
+
+    // Area of SLP = Recognition → only the recognition sub-areas are suggested.
+    await patchPaper({ area_of_slp: ['Recognition'], sub_area_of_slp: [] });
+    await page.goto('/paper.html?id=emnlp-2024-518');
+    await page.click('#sub-area-of-slp-input');
+    await expect(page.locator('#sub-area-of-slp-suggestions .suggestion-item')).toHaveText([
+      'Isolated fingerspelling images',
+      'Isolated fingerspelling videos',
+      'Continuous fingerspelling videos',
+      'Isolated signing videos',
+      'Continuous signing videos',
+    ]);
+
+    // Area of SLP = Translation → only the translation sub-areas are suggested.
+    await patchPaper({ area_of_slp: ['Translation'], sub_area_of_slp: [] });
+    await page.goto('/paper.html?id=emnlp-2024-518');
+    await page.click('#sub-area-of-slp-input');
+    await expect(page.locator('#sub-area-of-slp-suggestions .suggestion-item')).toHaveText([
+      'Gloss-to-text',
+      'Text-to-gloss',
+      'Video-to-text',
+      'Text-to-video',
+      'Pose-to-text',
+      'Text-to-pose',
+    ]);
+
+    // Area of SLP has neither → field stays visible with no suggestions, but
+    // still accepts free text (sub_area_of_slp has no fixed enum), which
+    // persists across a reload.
+    await patchPaper({ area_of_slp: ['Alignment'], sub_area_of_slp: [] });
+    await page.goto('/paper.html?id=emnlp-2024-518');
+    await expect(page.locator('#sub-area-of-slp-input')).toBeVisible();
+    await page.click('#sub-area-of-slp-input');
+    await expect(page.locator('#sub-area-of-slp-suggestions')).toBeHidden();
+    await page.fill('#sub-area-of-slp-input', 'Custom sub-area');
+    await page.click('#add-sub-area-of-slp-btn');
+    await expect(page.locator('#sub-area-of-slp-container .chip')).toHaveText(['Custom sub-area×']);
+    await page.waitForTimeout(1500); // let the debounced autosave fire
+    await page.reload();
+    await expect(page.locator('#sub-area-of-slp-container .chip')).toHaveText(['Custom sub-area×']);
+
+    // Optional for Finalize: enabled here despite sub_area_of_slp being
+    // empty, as long as every REQUIRED_FIELD_LABELS field is filled.
+    const [datasetsRes, metricsRes] = await Promise.all([
+      page.request.get('http://localhost:8090/api/collections/datasets/records?perPage=1',
+        { headers: { Authorization: `Bearer ${token}` } }),
+      page.request.get('http://localhost:8090/api/collections/metrics/records?perPage=1',
+        { headers: { Authorization: `Bearer ${token}` } }),
+    ]);
+    const datasetId = (await datasetsRes.json()).items[0]?.id;
+    const metricId  = (await metricsRes.json()).items[0]?.id;
+    test.skip(!datasetId || !metricId, 'No datasets/metrics in backend — skipping the Finalize part');
+
+    await patchPaper({
+      status: 'needs_review',
+      title: record.title || 'Test Paper',
+      year: record.year || 2024,
+      peer_reviewed: 'yes',
+      code_repos: 'N/A',
+      datasets: [datasetId],
+      metrics: [metricId],
+      area_of_slp: ['Translation'],
+      sub_area_of_slp: [], // deliberately empty
+      main_experiment_has_ranking: 'yes',
+      copied_scores: 'no',
+      includes_human_evaluation: 'no',
+      what_to_reproduce: 'Table 3.',
+      compute_requirements: 'N/A',
+      textual_conclusion: 'Test conclusion.',
+      potential_ethical_concerns: 'no',
+      finalized_by: '',
+    });
+    await page.goto('/paper.html?id=emnlp-2024-518');
+    await expect(page.locator('#finalize-btn')).toBeEnabled();
+
+    await patchPaper({ // restore — leave no permanent side effects
+      status:                      record.status || 'needs_review',
+      title:                       record.title,
+      year:                        record.year,
+      peer_reviewed:               record.peer_reviewed || '',
+      code_repos:                  record.code_repos || [],
+      datasets:                    record.datasets || [],
+      metrics:                     record.metrics || [],
+      area_of_slp:                 record.area_of_slp || [],
+      sub_area_of_slp:             record.sub_area_of_slp || [],
+      main_experiment_has_ranking: record.main_experiment_has_ranking || '',
+      copied_scores:               record.copied_scores || '',
+      includes_human_evaluation:   record.includes_human_evaluation || '',
+      what_to_reproduce:           record.what_to_reproduce || '',
+      compute_requirements:        record.compute_requirements || '',
+      textual_conclusion:          record.textual_conclusion || '',
+      potential_ethical_concerns:  record.potential_ethical_concerns || '',
+      finalized_by:                record.finalized_by || '',
+    });
+  });
+
   test('Status History logs flag/clear transitions, newest first', async ({ page }) => {
     await page.goto('/login.html');
     const token = await page.evaluate(() => localStorage.getItem('pb_token'));

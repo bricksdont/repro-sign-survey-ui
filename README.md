@@ -82,6 +82,7 @@ A landing page routes annotators to either task. Each task has its own overview 
 | Datasets | Multi-value tag list with autocomplete; chips link to the dataset detail page |
 | Metrics | Multi-value tag list with autocomplete; chips link to the metric detail page |
 | Area of SLP | Chip list with autocomplete from 12 fixed sub-areas (e.g. Translation, Recognition); any custom value also accepted |
+| Sub-area of SLP | Chip list, same pattern; autocomplete suggestions depend on Area of SLP (Recognition/Translation each unlock their own fixed list); optional, not required to Finalize |
 | Has Ranking | Yes / No radio (initially unanswered) |
 | Human Evaluation | Yes / No radio (initially unanswered) |
 | What to Reproduce | Free-text textarea |
