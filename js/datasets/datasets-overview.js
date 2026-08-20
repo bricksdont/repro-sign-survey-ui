@@ -201,12 +201,22 @@ function renderStats() {
   // yet) — covers both contacted_waiting and contacted_got_reply.
   const contacted = allDatasets.filter(d => !!d.correspondence).length;
   const gotReply = allDatasets.filter(d => d.correspondence === 'contacted_got_reply').length;
-  // .stat-num bolds just the number — same convention as review-index.html's
-  // stats row — so innerHTML is needed here instead of textContent.
-  const num = n => `<span class="stat-num">${n}</span>`;
+  // Each stat is wrapped in its own .stat span (number + label as ONE flex
+  // item) — same exact pattern as review-index.html's stats row. .stats-row
+  // is a flex container with `gap`, and flexbox wraps every contiguous run
+  // of inline content (including bare text) into its own anonymous flex
+  // item — without this wrapper, `gap` lands between the number and its
+  // own label too, not just between whole stat groups, which is why an
+  // earlier version of this row had a too-wide number/label gap.
+  const stat = (n, label) => `<span class="stat"><span class="stat-num">${n}</span> ${label}</span>`;
+  const sep = '<span class="stat-sep">·</span>';
   document.getElementById('stats-row').innerHTML =
-    `${num(total)} dataset${total !== 1 ? 's' : ''} · ${num(avail)} available · ${num(onModal)} on Modal · `
-    + `${num(usedInFinal)} used in a final paper · ${num(contacted)} contacted · ${num(gotReply)} got a reply`;
+    stat(total, `dataset${total !== 1 ? 's' : ''}`) + sep
+    + stat(avail, 'available') + sep
+    + stat(onModal, 'on Modal') + sep
+    + stat(usedInFinal, 'used in a final paper') + sep
+    + stat(contacted, 'contacted') + sep
+    + stat(gotReply, 'got a reply');
 }
 
 function escapeHtml(str) {

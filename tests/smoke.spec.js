@@ -974,8 +974,12 @@ test.describe('Datasets overview page', () => {
 
   test('stats row reports on-Modal, used-in-final, contacted, and got-reply counts alongside the totals, numbers bolded (#106)', async ({ page }) => {
     await page.goto('/datasets-index.html');
+    // Each stat (number + label) is one .stat span; spacing between stats
+    // comes purely from .stats-row's flex `gap`, not text characters — same
+    // as review-index.html's stats row — so there's no literal space
+    // around "·" in the flattened textContent.
     const statsText = await page.locator('#stats-row').textContent();
-    expect(statsText).toMatch(/^\d+ datasets? · \d+ available · \d+ on Modal · \d+ used in a final paper · \d+ contacted · \d+ got a reply$/);
+    expect(statsText).toMatch(/^\d+ datasets?·\d+ available·\d+ on Modal·\d+ used in a final paper·\d+ contacted·\d+ got a reply$/);
     await expect(page.locator('#stats-row .stat-num')).toHaveCount(6);
   });
 
