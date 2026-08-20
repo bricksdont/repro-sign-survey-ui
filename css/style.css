@@ -1772,6 +1772,18 @@ hr.field-divider {
   margin-top: 24px;
 }
 
+/* dataset.html only (#106) — its header row now spans the container's full
+   width (breadcrumb pushed left, ◀ ▶ nav + Account pushed right via
+   justify-content: space-between), while .detail-form's 560px cap left the
+   form and "Used in Papers" sitting flush-left with visible empty space to
+   their right — a visual width mismatch against the now-wider header.
+   Scoped via the .overview-detail-nav class on dataset.html's own
+   <div class="overview">, rather than changing .detail-form itself, since
+   metric.html shares that class and has no ◀ ▶ nav widening its header. */
+.overview-detail-nav .detail-form {
+  max-width: none;
+}
+
 .detail-footer {
   display: flex;
   align-items: center;
