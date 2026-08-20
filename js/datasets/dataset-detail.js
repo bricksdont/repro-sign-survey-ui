@@ -6,13 +6,61 @@ let isReadOnly = false;
 let heartbeatInterval = null;
 let isDirty = false; // true once a field has changed since load/last save — drives the leave-page guard
 
+// ?q=/?available=/?on_modal=/?correspondence=/?orphan=/?final= from the URL
+// — mirrors datasets-index.html's filter bar, carried through to the Back
+// link so returning there restores the same filtered view, and used below
+// to recompute the ◀ ▶ navigation subset.
+const NAV_FILTER_PARAMS = ['available', 'on_modal', 'correspondence', 'orphan', 'final'];
+let navQuery = '';
+let navFilters = {};
+let navOrder = []; // dataset IDs matching navQuery/navFilters, in datasets-index.html's order
+
+// Mirrors datasets-overview.js's FILTERS array/predicates exactly, so
+// navOrder reproduces the same filtered subset the dataset was opened from
+// — computed from live data rather than a frozen ID list, same approach as
+// paper.html's computeNavOrder() (issue #75).
+const FILTERS = [
+  {
+    param: 'available', default: 'all',
+    match: (d, v) => v === 'all' || (v === 'unanswered' ? !d.available : d.available === v),
+  },
+  {
+    param: 'on_modal', default: 'all',
+    match: (d, v) => v === 'all' || (v === 'unanswered' ? !d.on_modal : d.on_modal === v),
+  },
+  {
+    param: 'correspondence', default: 'all',
+    match: (d, v) => {
+      if (v === 'all') return true;
+      if (v === 'not_contacted') return !d.correspondence;
+      const backendValue = { got_reply: 'contacted_got_reply', waiting: 'contacted_waiting' }[v];
+      return d.correspondence === backendValue;
+    },
+  },
+  {
+    param: 'orphan', default: 'all',
+    match: (d, v) => v === 'all' || (v === 'only' ? d.paperCount === 0 : d.paperCount > 0),
+  },
+  {
+    param: 'final', default: 'all',
+    match: (d, v) => v === 'all' || d.hasFinalPaper,
+  },
+];
+
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 
 async function init() {
   requireAuth();
   wireAccountMenu();
 
-  const id = new URLSearchParams(window.location.search).get('id');
+  const urlParams = new URLSearchParams(window.location.search);
+  navQuery = urlParams.get('q') || '';
+  navFilters = {};
+  NAV_FILTER_PARAMS.forEach(p => { navFilters[p] = urlParams.get(p) || 'all'; });
+  updateBackLink();
+  computeNavOrder(); // not awaited — fills in ◀ ▶ / the counter once loaded, doesn't block the rest of the page
+
+  const id = urlParams.get('id');
   if (id) {
     record = await pbGet(`/api/collections/datasets/records/${id}`);
     if (!record) return;
@@ -22,7 +70,93 @@ async function init() {
   } else {
     document.getElementById('breadcrumb-name').textContent = 'New Dataset';
   }
+  updateDatasetNav();
   wireEvents();
+}
+
+// Recomputes navOrder from navQuery/navFilters using the exact same
+// predicate datasets-index.html's applyFilters() uses. Needs its own
+// pbGetAll('papers') to recompute paperCount/hasFinalPaper per dataset for
+// the Orphans/Final-paper filters — same cross-referencing approach as
+// datasets-overview.js and dataset.html's own "Used in Papers" section.
+async function computeNavOrder() {
+  const [datasets, papers] = await Promise.all([pbGetAll('datasets'), pbGetAll('papers')]);
+  const withCrossRefs = datasets.map(d => {
+    const usedBy = papers.filter(p => Array.isArray(p.datasets) && p.datasets.includes(d.id));
+    return { ...d, paperCount: usedBy.length, hasFinalPaper: usedBy.some(p => p.status === 'final') };
+  });
+
+  const ql = navQuery.toLowerCase();
+  navOrder = withCrossRefs.filter(d => {
+    const matchesSearch = !ql || d.name.toLowerCase().includes(ql);
+    const matchesFilters = FILTERS.every(f => f.match(d, navFilters[f.param]));
+    return matchesSearch && matchesFilters;
+  }).map(d => d.id);
+
+  updateDatasetNav();
+}
+
+function updateDatasetNav() {
+  const pos = record ? navOrder.indexOf(record.id) : -1;
+  document.getElementById('dataset-counter').textContent =
+    pos >= 0 ? `${pos + 1} / ${navOrder.length}` : '—';
+  document.getElementById('prev-dataset').disabled = pos <= 0;
+  document.getElementById('next-dataset').disabled = pos < 0 || pos >= navOrder.length - 1;
+}
+
+// Builds the ?id=&q=&available=&on_modal=&correspondence=&orphan=&final=
+// URL for a given dataset, carrying the current nav filter along (same
+// omit-at-default convention as buildFilterQuery() elsewhere).
+function buildDatasetUrl(id) {
+  const params = new URLSearchParams();
+  params.set('id', id);
+  if (navQuery) params.set('q', navQuery);
+  NAV_FILTER_PARAMS.forEach(p => {
+    if (navFilters[p] && navFilters[p] !== 'all') params.set(p, navFilters[p]);
+  });
+  return `dataset.html?${params.toString()}`;
+}
+
+// Unlike paper.html (which swaps records in-place, no full navigation),
+// dataset.html loads exactly one record per page — including its own edit
+// lock — so ◀ ▶ do a real navigation, reusing the existing lock-acquire/
+// release machinery rather than needing a parallel in-place-swap path.
+// Since that means no automatic beforeunload prompt fires until the
+// navigation actually happens, unsaved changes are handled explicitly here
+// first: a plain confirm() offers to save before continuing, matching how
+// the rest of this page has no custom dialog UI beyond native browser
+// prompts. Cancelling (or a save that fails) keeps the user on the page
+// rather than risking a silent discard.
+async function goToAdjacentDataset(offset) {
+  if (!record) return;
+  const pos = navOrder.indexOf(record.id);
+  const targetPos = pos + offset;
+  if (targetPos < 0 || targetPos >= navOrder.length) return;
+
+  if (isDirty) {
+    const shouldSave = confirm('You have unsaved changes. Save them before continuing?');
+    if (!shouldSave) return;
+    await save();
+    if (isDirty) return; // save failed (e.g. empty name, network error) — stay put
+  }
+
+  window.location.href = buildDatasetUrl(navOrder[targetPos]);
+}
+
+// Updates every link back to datasets-index.html — not just the explicit
+// "← Back" link, but also the "Datasets" breadcrumb crumb, which is a
+// second, separate <a href="datasets-index.html"> pointing at the same
+// place and would otherwise silently drop the filters.
+function updateBackLink() {
+  const params = new URLSearchParams();
+  if (navQuery) params.set('q', navQuery);
+  NAV_FILTER_PARAMS.forEach(p => {
+    if (navFilters[p] && navFilters[p] !== 'all') params.set(p, navFilters[p]);
+  });
+  const qs = params.toString();
+  const href = `datasets-index.html${qs ? '?' + qs : ''}`;
+  document.querySelector('.back-link').href = href;
+  document.getElementById('breadcrumb-datasets-link').href = href;
 }
 
 // ── Used in Papers ─────────────────────────────────────────────────────────
@@ -255,6 +389,8 @@ function wireAccountMenu() {
 
 function wireEvents() {
   document.getElementById('save-btn').addEventListener('click', save);
+  document.getElementById('prev-dataset').addEventListener('click', () => goToAdjacentDataset(-1));
+  document.getElementById('next-dataset').addEventListener('click', () => goToAdjacentDataset(1));
   document.getElementById('add-url-btn').addEventListener('click', addUrlChip);
   document.getElementById('url-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') addUrlChip();

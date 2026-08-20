@@ -8,21 +8,28 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div class="overview">
+  <div class="overview overview-detail-nav">
     <div class="overview-header">
       <nav class="breadcrumb">
         <a href="index.html" class="breadcrumb-link">Home</a>
         <span class="breadcrumb-sep">&#8594;</span>
-        <a href="datasets-index.html" class="breadcrumb-link">Datasets</a>
+        <a href="datasets-index.html" class="breadcrumb-link" id="breadcrumb-datasets-link">Datasets</a>
         <span class="breadcrumb-sep">&#8594;</span>
         <span class="breadcrumb-current" id="breadcrumb-name">&#8230;</span>
       </nav>
-      <div class="account-menu">
-        <button id="account-btn" class="btn-account">Account</button>
-        <div id="account-dropdown" class="account-dropdown hidden">
-          <div id="account-email" class="account-email"></div>
-          <hr class="account-divider">
-          <button id="logout-btn" class="btn-logout">Log out</button>
+      <div class="header-actions">
+        <div class="paper-nav">
+          <button id="prev-dataset" title="Previous dataset" disabled>&#9664;</button>
+          <span id="dataset-counter" class="dataset-counter">1 / 1</span>
+          <button id="next-dataset" title="Next dataset" disabled>&#9654;</button>
+        </div>
+        <div class="account-menu">
+          <button id="account-btn" class="btn-account">Account</button>
+          <div id="account-dropdown" class="account-dropdown hidden">
+            <div id="account-email" class="account-email"></div>
+            <hr class="account-divider">
+            <button id="logout-btn" class="btn-logout">Log out</button>
+          </div>
         </div>
       </div>
     </div>

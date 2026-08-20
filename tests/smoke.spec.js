@@ -971,6 +971,137 @@ test.describe('Datasets overview page', () => {
     await rows.first().click();
     await expect(page).toHaveURL(/dataset\.html\?id=/);
   });
+
+  test('stats row reports on-Modal, used-in-final, contacted, and got-reply counts alongside the totals, numbers bolded (#106)', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    // Each stat (number + label) is one .stat span; spacing between stats
+    // comes purely from .stats-row's flex `gap`, not text characters — same
+    // as review-index.html's stats row — so there's no literal space
+    // around "·" in the flattened textContent.
+    const statsText = await page.locator('#stats-row').textContent();
+    expect(statsText).toMatch(/^\d+ datasets?·\d+ available·\d+ on Modal·\d+ used in a final paper·\d+ contacted·\d+ got a reply$/);
+    await expect(page.locator('#stats-row .stat-num')).toHaveCount(6);
+  });
+
+  test('renders the filter bar with all controls (#106)', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    await expect(page.locator('#search-input')).toBeVisible();
+    await expect(page.locator('#filter-available')).toBeVisible();
+    await expect(page.locator('#filter-on-modal')).toBeVisible();
+    await expect(page.locator('#filter-correspondence')).toBeVisible();
+    await expect(page.locator('#filter-orphan')).toBeVisible();
+    await expect(page.locator('#filter-final')).toBeVisible();
+    await expect(page.locator('#results-count')).toBeHidden(); // unfiltered by default
+  });
+
+  test('On Modal / Correspondence columns give visual confirmation that a filter is working (#106)', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    await expect(page.locator('thead th', { hasText: 'On Modal' })).toBeVisible();
+    await expect(page.locator('thead th', { hasText: 'Correspondence' })).toBeVisible();
+
+    await page.selectOption('#filter-correspondence', 'waiting');
+    const rows = page.locator('.paper-row');
+    const count = await rows.count();
+    test.skip(count === 0, 'No datasets with correspondence=contacted_waiting — skipping');
+
+    // Every row left after filtering should visibly show the same
+    // "Awaiting reply" badge the filter selected — that visible match is
+    // the whole point of the columns.
+    const rowCount = await rows.count();
+    for (let i = 0; i < rowCount; i++) {
+      await expect(rows.nth(i).locator('td').nth(4)).toContainText('Awaiting reply');
+    }
+  });
+
+  test('search filters live and shows the result count (#106)', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    const totalRows = await page.locator('.paper-row').count();
+    test.skip(totalRows === 0, 'No datasets in backend — skipping');
+
+    const name = await page.locator('.paper-row td strong').first().textContent();
+    const uniquePrefix = name.trim().slice(0, 5);
+    await page.fill('#search-input', uniquePrefix);
+    await expect(page.locator('#results-count')).toBeVisible();
+    await expect(page.locator('#results-count')).toContainText(`of ${totalRows} datasets`);
+    await expect(page).toHaveURL(new RegExp(`[?&]q=${uniquePrefix}`));
+
+    await page.click('#search-clear-btn');
+    await expect(page.locator('#results-count')).toBeHidden();
+    await expect(page).toHaveURL(/datasets-index\.html$/);
+  });
+
+  test('orphan and final-paper filters partition the dataset list (#106)', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    const totalRows = await page.locator('.paper-row').count();
+    test.skip(totalRows === 0, 'No datasets in backend — skipping');
+
+    await page.selectOption('#filter-orphan', 'only');
+    const orphanCount = await page.locator('.paper-row').count();
+    await page.selectOption('#filter-orphan', 'hide');
+    const nonOrphanCount = await page.locator('.paper-row').count();
+    expect(orphanCount + nonOrphanCount).toBe(totalRows);
+    await page.selectOption('#filter-orphan', 'all');
+
+    await page.selectOption('#filter-final', 'only');
+    const finalCount = await page.locator('.paper-row').count();
+    expect(finalCount).toBeLessThanOrEqual(totalRows);
+    await expect(page).toHaveURL(/[?&]final=only/);
+  });
+
+  test('a filter set away from "All" is visually highlighted; others stay neutral (#106)', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    await expect(page.locator('#filter-available')).not.toHaveClass(/active/);
+
+    await page.selectOption('#filter-available', 'yes');
+    await expect(page.locator('#filter-available')).toHaveClass(/active/);
+    await expect(page.locator('#filter-on-modal')).not.toHaveClass(/active/);
+    await expect(page.locator('#filter-correspondence')).not.toHaveClass(/active/);
+    await expect(page.locator('#filter-orphan')).not.toHaveClass(/active/);
+    await expect(page.locator('#filter-final')).not.toHaveClass(/active/);
+
+    await page.selectOption('#filter-available', 'all');
+    await expect(page.locator('#filter-available')).not.toHaveClass(/active/);
+  });
+
+  test('Clear filters resets search and all selects, and is disabled when nothing is active (#106)', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    await expect(page.locator('#clear-filters-btn')).toBeDisabled();
+
+    await page.fill('#search-input', 'PHOENIX');
+    await page.selectOption('#filter-available', 'yes');
+    await expect(page.locator('#clear-filters-btn')).toBeEnabled();
+
+    await page.click('#clear-filters-btn');
+    await expect(page.locator('#search-input')).toHaveValue('');
+    await expect(page.locator('#filter-available')).toHaveValue('all');
+    await expect(page.locator('#filter-available')).not.toHaveClass(/active/);
+    await expect(page.locator('#results-count')).toBeHidden();
+    await expect(page).toHaveURL(/datasets-index\.html$/);
+    await expect(page.locator('#clear-filters-btn')).toBeDisabled();
+  });
+
+  test('filters round-trip through Details -> dataset.html -> Back link and breadcrumb (#106)', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    await page.selectOption('#filter-available', 'yes');
+    const rows = page.locator('.paper-row');
+    const count = await rows.count();
+    test.skip(count === 0, 'No available datasets in backend — skipping');
+
+    await rows.first().locator('.col-action a').click();
+    await expect(page).toHaveURL(/dataset\.html\?id=.*[?&]available=yes/);
+
+    // Two separate links point back at datasets-index.html — the explicit
+    // "← Back" link and the "Datasets" breadcrumb crumb — both need the
+    // filter, or one of them silently drops it.
+    const backHref = await page.locator('.back-link').getAttribute('href');
+    const breadcrumbHref = await page.locator('#breadcrumb-datasets-link').getAttribute('href');
+    expect(backHref).toContain('available=yes');
+    expect(breadcrumbHref).toContain('available=yes');
+
+    await page.click('#breadcrumb-datasets-link');
+    await expect(page).toHaveURL(/datasets-index\.html\?available=yes/);
+    await expect(page.locator('#filter-available')).toHaveValue('yes');
+  });
 });
 
 test.describe('Dataset detail page', () => {
@@ -983,6 +1114,78 @@ test.describe('Dataset detail page', () => {
     await expect(page.locator('input[name="correspondence"]')).toHaveCount(3);
     await expect(page.locator('#save-btn')).toBeVisible();
     await expect(page.locator('.back-link')).toBeVisible();
+    // A new, unsaved dataset has no place in any nav order — both ◀ ▶ stay
+    // disabled and the counter shows a placeholder instead of "1 / N".
+    await expect(page.locator('#prev-dataset')).toBeDisabled();
+    await expect(page.locator('#next-dataset')).toBeDisabled();
+    await expect(page.locator('#dataset-counter')).toHaveText('—');
+  });
+
+  test('◀ ▶ steps through the filtered dataset selection from datasets-index.html (#106)', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    await page.selectOption('#filter-available', 'yes');
+    const rows = page.locator('.paper-row');
+    const rowCount = await rows.count();
+    test.skip(rowCount < 2, 'Fewer than 2 available datasets in backend — skipping');
+
+    await rows.first().locator('.col-action a').click();
+    await expect(page).toHaveURL(/dataset\.html\?id=.*[?&]available=yes/);
+    await page.waitForTimeout(400); // computeNavOrder()'s pbGetAll calls aren't awaited by init()
+
+    await expect(page.locator('#dataset-counter')).toHaveText(`1 / ${rowCount}`);
+    await expect(page.locator('#prev-dataset')).toBeDisabled();
+    await expect(page.locator('#next-dataset')).toBeEnabled();
+
+    await page.click('#next-dataset');
+    await page.waitForURL(/dataset\.html\?id=.*[?&]available=yes/);
+    await page.waitForTimeout(400);
+    await expect(page.locator('#dataset-counter')).toHaveText(`2 / ${rowCount}`);
+    await expect(page.locator('#prev-dataset')).toBeEnabled();
+
+    await page.click('#prev-dataset');
+    await page.waitForURL(/dataset\.html\?id=.*[?&]available=yes/);
+    await page.waitForTimeout(400);
+    await expect(page.locator('#dataset-counter')).toHaveText(`1 / ${rowCount}`);
+    await expect(page.locator('#prev-dataset')).toBeDisabled();
+  });
+
+  test('clicking ▶ with unsaved changes prompts to save; Cancel stays put, OK saves and continues (#106)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get('http://localhost:8090/api/collections/datasets/records?perPage=2',
+      { headers: { Authorization: `Bearer ${token}` } });
+    const items = (await res.json()).items;
+    test.skip(items.length < 2, 'Fewer than 2 datasets in backend — skipping');
+    const [record] = items;
+    const originalComments = record.comments || '';
+
+    await page.goto(`/dataset.html?id=${record.id}`);
+    await page.waitForTimeout(400);
+
+    // Cancel: stays on the same dataset, edit is preserved rather than lost.
+    await page.fill('#field-comments', originalComments + ' UNSAVED-NAV-TEST');
+    page.once('dialog', dialog => dialog.dismiss());
+    await page.click('#next-dataset');
+    await page.waitForTimeout(300);
+    await expect(page).toHaveURL(new RegExp(`id=${record.id}`));
+    await expect(page.locator('#field-comments')).toHaveValue(originalComments + ' UNSAVED-NAV-TEST');
+
+    // OK: saves the pending edit, then navigates.
+    page.once('dialog', dialog => dialog.accept());
+    await page.click('#next-dataset');
+    await page.waitForFunction(
+      oldId => new URLSearchParams(window.location.search).get('id') !== oldId,
+      record.id,
+      { timeout: 5000 }
+    );
+
+    const check = await page.request.get(`http://localhost:8090/api/collections/datasets/records/${record.id}`,
+      { headers: { Authorization: `Bearer ${token}` } });
+    expect((await check.json()).comments).toBe(originalComments + ' UNSAVED-NAV-TEST');
+
+    await page.request.patch(`http://localhost:8090/api/collections/datasets/records/${record.id}`, // restore
+      { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        data: { comments: originalComments } });
   });
 
   test('Stored on Modal.com / Correspondence radios persist and are optional (#104)', async ({ page }) => {
