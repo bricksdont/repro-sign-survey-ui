@@ -55,7 +55,10 @@
         </div>
       </div>
       <div class="dataset-form-group">
-        <label class="dataset-form-label">Stored on Modal.com</label>
+        <label class="dataset-form-label">
+          On Modal
+          <span class="info-wrap"><button type="button" class="info-btn" aria-label="Info">&#9432;</button><span class="info-popup">Whether this dataset is already stored on the compute platform Modal.com.</span></span>
+        </label>
         <div class="dataset-radio-group">
           <label><input type="radio" name="on_modal" value="yes"> Yes</label>
           <label><input type="radio" name="on_modal" value="no"> No</label>
@@ -63,11 +66,14 @@
         </div>
       </div>
       <div class="dataset-form-group">
-        <label class="dataset-form-label">Correspondence with Data Owners</label>
+        <label class="dataset-form-label">
+          Correspondence
+          <span class="info-wrap"><button type="button" class="info-btn" aria-label="Info">&#9432;</button><span class="info-popup">Status of reaching out to this dataset's original owners, e.g. about access or licensing.</span></span>
+        </label>
         <div class="dataset-radio-group">
-          <label><input type="radio" name="correspondence" value=""> Not contacted yet</label>
-          <label><input type="radio" name="correspondence" value="contacted_waiting"> Contacted, awaiting reply</label>
           <label><input type="radio" name="correspondence" value="contacted_got_reply"> Contacted, got reply</label>
+          <label><input type="radio" name="correspondence" value="contacted_waiting"> Contacted, awaiting reply</label>
+          <label><input type="radio" name="correspondence" value=""> Not contacted yet</label>
         </div>
       </div>
       <div class="dataset-form-group">
