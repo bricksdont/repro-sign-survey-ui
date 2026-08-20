@@ -979,8 +979,55 @@ test.describe('Dataset detail page', () => {
     await expect(page.locator('#field-name')).toBeVisible();
     await expect(page.locator('#field-license')).toBeVisible();
     await expect(page.locator('input[name="available"]')).toHaveCount(3);
+    await expect(page.locator('input[name="on_modal"]')).toHaveCount(3);
+    await expect(page.locator('input[name="correspondence"]')).toHaveCount(3);
     await expect(page.locator('#save-btn')).toBeVisible();
     await expect(page.locator('.back-link')).toBeVisible();
+  });
+
+  test('Stored on Modal.com / Correspondence radios persist and are optional (#104)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get('http://localhost:8090/api/collections/datasets/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } });
+    const record = (await res.json()).items[0];
+    test.skip(!record, 'No datasets in backend — skipping');
+
+    async function patchDataset(data) {
+      await page.request.patch(`http://localhost:8090/api/collections/datasets/records/${record.id}`,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, data });
+    }
+
+    // #104 depends on backend PR #57 (on_modal/correspondence fields on
+    // datasets), which was still unmerged when this test was written —
+    // detect whether the deployed schema actually has them yet and skip
+    // gracefully rather than fail against a backend that hasn't caught up.
+    await patchDataset({ on_modal: 'yes', correspondence: 'contacted_waiting' });
+    const check = await (await page.request.get(
+      `http://localhost:8090/api/collections/datasets/records/${record.id}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    )).json();
+    test.skip(check.on_modal !== 'yes', 'Backend does not have on_modal/correspondence fields yet — skipping (depends on backend PR #57)');
+
+    await patchDataset({ on_modal: '', correspondence: '' }); // reset before loading the UI
+
+    await page.goto(`/dataset.html?id=${record.id}`);
+    await expect(page.locator('input[name="on_modal"][value=""]')).toBeChecked();
+    await expect(page.locator('input[name="correspondence"][value=""]')).toBeChecked();
+
+    await page.check('input[name="on_modal"][value="yes"]');
+    await page.check('input[name="correspondence"][value="contacted_got_reply"]');
+    await page.click('#save-btn');
+    await expect(page.locator('#save-confirm')).toBeVisible();
+
+    await page.reload();
+    await expect(page.locator('input[name="on_modal"][value="yes"]')).toBeChecked();
+    await expect(page.locator('input[name="correspondence"][value="contacted_got_reply"]')).toBeChecked();
+
+    await patchDataset({ // restore — leave no permanent side effects
+      on_modal:       record.on_modal       || '',
+      correspondence: record.correspondence || '',
+    });
   });
 
   test('shows Used in Papers section for an existing dataset (#used-in-papers)', async ({ page }) => {
