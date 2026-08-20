@@ -443,6 +443,23 @@ a.stat-bar-label:hover {
   color: #bbb;
 }
 
+.filter-select {
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: #333;
+  background: #fff;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.filter-select:focus {
+  border-color: #4a90d9;
+  box-shadow: 0 0 0 2px rgba(74, 144, 217, 0.15);
+}
+
 .search-clear-btn {
   position: absolute;
   top: 50%;

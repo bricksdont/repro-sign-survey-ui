@@ -30,6 +30,42 @@
 
     <div id="stats-row" class="stats-row"></div>
 
+    <div class="filter-bar">
+      <div class="search-input-wrapper">
+        <input type="text" id="search-input" class="search-input" placeholder="Search by name…">
+        <button id="search-clear-btn" class="search-clear-btn hidden" type="button" aria-label="Clear search">&times;</button>
+      </div>
+      <select id="filter-available" class="filter-select">
+        <option value="all">Availability: All</option>
+        <option value="yes">Available</option>
+        <option value="no">Not available</option>
+        <option value="unanswered">Unanswered</option>
+      </select>
+      <select id="filter-on-modal" class="filter-select">
+        <option value="all">On Modal: All</option>
+        <option value="yes">Yes</option>
+        <option value="no">No</option>
+        <option value="unanswered">Unanswered</option>
+      </select>
+      <select id="filter-correspondence" class="filter-select">
+        <option value="all">Correspondence: All</option>
+        <option value="got_reply">Got reply</option>
+        <option value="waiting">Awaiting reply</option>
+        <option value="not_contacted">Not contacted</option>
+      </select>
+      <select id="filter-orphan" class="filter-select">
+        <option value="all">Papers: All</option>
+        <option value="only">Orphaned only</option>
+        <option value="hide">Hide orphaned</option>
+      </select>
+      <select id="filter-final" class="filter-select">
+        <option value="all">Final paper: All</option>
+        <option value="only">Used in a Final paper</option>
+      </select>
+    </div>
+
+    <div id="results-count" class="results-count hidden"></div>
+
     <table class="papers-table">
       <thead>
         <tr>

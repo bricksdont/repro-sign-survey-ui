@@ -971,6 +971,69 @@ test.describe('Datasets overview page', () => {
     await rows.first().click();
     await expect(page).toHaveURL(/dataset\.html\?id=/);
   });
+
+  test('renders the filter bar with all controls (#106)', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    await expect(page.locator('#search-input')).toBeVisible();
+    await expect(page.locator('#filter-available')).toBeVisible();
+    await expect(page.locator('#filter-on-modal')).toBeVisible();
+    await expect(page.locator('#filter-correspondence')).toBeVisible();
+    await expect(page.locator('#filter-orphan')).toBeVisible();
+    await expect(page.locator('#filter-final')).toBeVisible();
+    await expect(page.locator('#results-count')).toBeHidden(); // unfiltered by default
+  });
+
+  test('search filters live and shows the result count (#106)', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    const totalRows = await page.locator('.paper-row').count();
+    test.skip(totalRows === 0, 'No datasets in backend — skipping');
+
+    const name = await page.locator('.paper-row td strong').first().textContent();
+    const uniquePrefix = name.trim().slice(0, 5);
+    await page.fill('#search-input', uniquePrefix);
+    await expect(page.locator('#results-count')).toBeVisible();
+    await expect(page.locator('#results-count')).toContainText(`of ${totalRows} datasets`);
+    await expect(page).toHaveURL(new RegExp(`[?&]q=${uniquePrefix}`));
+
+    await page.click('#search-clear-btn');
+    await expect(page.locator('#results-count')).toBeHidden();
+    await expect(page).toHaveURL(/datasets-index\.html$/);
+  });
+
+  test('orphan and final-paper filters partition the dataset list (#106)', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    const totalRows = await page.locator('.paper-row').count();
+    test.skip(totalRows === 0, 'No datasets in backend — skipping');
+
+    await page.selectOption('#filter-orphan', 'only');
+    const orphanCount = await page.locator('.paper-row').count();
+    await page.selectOption('#filter-orphan', 'hide');
+    const nonOrphanCount = await page.locator('.paper-row').count();
+    expect(orphanCount + nonOrphanCount).toBe(totalRows);
+    await page.selectOption('#filter-orphan', 'all');
+
+    await page.selectOption('#filter-final', 'only');
+    const finalCount = await page.locator('.paper-row').count();
+    expect(finalCount).toBeLessThanOrEqual(totalRows);
+    await expect(page).toHaveURL(/[?&]final=only/);
+  });
+
+  test('filters round-trip through Details -> dataset.html -> Back link (#106)', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    await page.selectOption('#filter-available', 'yes');
+    const rows = page.locator('.paper-row');
+    const count = await rows.count();
+    test.skip(count === 0, 'No available datasets in backend — skipping');
+
+    await rows.first().locator('.col-action a').click();
+    await expect(page).toHaveURL(/dataset\.html\?id=.*[?&]available=yes/);
+
+    const backHref = await page.locator('.back-link').getAttribute('href');
+    expect(backHref).toContain('available=yes');
+    await page.click('.back-link');
+    await expect(page).toHaveURL(/datasets-index\.html\?available=yes/);
+    await expect(page.locator('#filter-available')).toHaveValue('yes');
+  });
 });
 
 test.describe('Dataset detail page', () => {

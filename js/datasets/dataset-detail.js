@@ -6,13 +6,26 @@ let isReadOnly = false;
 let heartbeatInterval = null;
 let isDirty = false; // true once a field has changed since load/last save — drives the leave-page guard
 
+// ?q=/?available=/?on_modal=/?correspondence=/?orphan=/?final= from the URL
+// — mirrors datasets-index.html's filter bar, carried through to the Back
+// link so returning there restores the same filtered view.
+const NAV_FILTER_PARAMS = ['available', 'on_modal', 'correspondence', 'orphan', 'final'];
+let navQuery = '';
+let navFilters = {};
+
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 
 async function init() {
   requireAuth();
   wireAccountMenu();
 
-  const id = new URLSearchParams(window.location.search).get('id');
+  const urlParams = new URLSearchParams(window.location.search);
+  navQuery = urlParams.get('q') || '';
+  navFilters = {};
+  NAV_FILTER_PARAMS.forEach(p => { navFilters[p] = urlParams.get(p) || 'all'; });
+  updateBackLink();
+
+  const id = urlParams.get('id');
   if (id) {
     record = await pbGet(`/api/collections/datasets/records/${id}`);
     if (!record) return;
@@ -23,6 +36,16 @@ async function init() {
     document.getElementById('breadcrumb-name').textContent = 'New Dataset';
   }
   wireEvents();
+}
+
+function updateBackLink() {
+  const params = new URLSearchParams();
+  if (navQuery) params.set('q', navQuery);
+  NAV_FILTER_PARAMS.forEach(p => {
+    if (navFilters[p] && navFilters[p] !== 'all') params.set(p, navFilters[p]);
+  });
+  const qs = params.toString();
+  document.querySelector('.back-link').href = `datasets-index.html${qs ? '?' + qs : ''}`;
 }
 
 // ── Used in Papers ─────────────────────────────────────────────────────────
