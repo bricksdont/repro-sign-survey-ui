@@ -86,6 +86,12 @@ function populateForm(r) {
   document.querySelectorAll('input[name="available"]').forEach(radio => {
     radio.checked = radio.value === (r.available || '');
   });
+  document.querySelectorAll('input[name="on_modal"]').forEach(radio => {
+    radio.checked = radio.value === (r.on_modal || '');
+  });
+  document.querySelectorAll('input[name="correspondence"]').forEach(radio => {
+    radio.checked = radio.value === (r.correspondence || '');
+  });
 }
 
 function renderUrlChips() {
@@ -134,10 +140,12 @@ async function save() {
 
   const payload = {
     name,
-    license:   document.getElementById('field-license').value.trim(),
-    url:       [...urlChips],
-    available: document.querySelector('input[name="available"]:checked')?.value || '',
-    comments:  document.getElementById('field-comments').value.trim(),
+    license:        document.getElementById('field-license').value.trim(),
+    url:            [...urlChips],
+    available:      document.querySelector('input[name="available"]:checked')?.value || '',
+    on_modal:       document.querySelector('input[name="on_modal"]:checked')?.value || '',
+    correspondence: document.querySelector('input[name="correspondence"]:checked')?.value || '',
+    comments:       document.getElementById('field-comments').value.trim(),
   };
 
   const saveBtn = document.getElementById('save-btn');
@@ -220,6 +228,8 @@ function setReadOnly(ro) {
     document.getElementById(id).disabled = ro;
   });
   document.querySelectorAll('input[name="available"]').forEach(r => r.disabled = ro);
+  document.querySelectorAll('input[name="on_modal"]').forEach(r => r.disabled = ro);
+  document.querySelectorAll('input[name="correspondence"]').forEach(r => r.disabled = ro);
   document.getElementById('add-url-btn').disabled = ro;
   document.getElementById('save-btn').disabled    = ro;
 }
@@ -257,6 +267,12 @@ function wireEvents() {
     document.getElementById(id).addEventListener('input', markDirty);
   });
   document.querySelectorAll('input[name="available"]').forEach(radio => {
+    radio.addEventListener('change', markDirty);
+  });
+  document.querySelectorAll('input[name="on_modal"]').forEach(radio => {
+    radio.addEventListener('change', markDirty);
+  });
+  document.querySelectorAll('input[name="correspondence"]').forEach(radio => {
     radio.addEventListener('change', markDirty);
   });
 }
