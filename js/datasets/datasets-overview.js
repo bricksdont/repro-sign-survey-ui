@@ -73,6 +73,11 @@ function wireFilterEvents() {
   FILTERS.forEach(f => {
     document.getElementById(f.elementId).addEventListener('change', applyFilters);
   });
+  document.getElementById('clear-filters-btn').addEventListener('click', () => {
+    document.getElementById('search-input').value = '';
+    FILTERS.forEach(f => { document.getElementById(f.elementId).value = f.default; });
+    applyFilters();
+  });
 }
 
 // ── Filtering ──────────────────────────────────────────────────────────────
@@ -125,6 +130,7 @@ function applyFilters() {
   } else {
     countEl.classList.add('hidden');
   }
+  document.getElementById('clear-filters-btn').disabled = !isFiltered;
 }
 
 // ── Table ──────────────────────────────────────────────────────────────────
@@ -136,8 +142,8 @@ function renderTable(datasets) {
   if (datasets.length === 0) {
     const tr = document.createElement('tr');
     tr.innerHTML = allDatasets.length === 0
-      ? '<td colspan="5" class="no-results">No datasets yet. <a href="dataset.html">Add the first one.</a></td>'
-      : '<td colspan="5" class="no-results">No datasets match your search/filters.</td>';
+      ? '<td colspan="7" class="no-results">No datasets yet. <a href="dataset.html">Add the first one.</a></td>'
+      : '<td colspan="7" class="no-results">No datasets match your search/filters.</td>';
     tbody.appendChild(tr);
     return;
   }
@@ -152,12 +158,6 @@ function renderTable(datasets) {
     tr.className = 'paper-row';
     tr.style.cursor = 'pointer';
 
-    const available = d.available === 'yes'
-      ? '<span class="avail-badge avail-yes">Yes</span>'
-      : d.available === 'no'
-      ? '<span class="avail-badge avail-no">No</span>'
-      : '—';
-
     const urls = Array.isArray(d.url) ? d.url : (d.url ? [d.url] : []);
     const urlCell = urls.length > 0
       ? `<a href="${escapeHtml(urls[0])}" target="_blank" rel="noopener noreferrer" class="dataset-url-link" onclick="event.stopPropagation()">${escapeHtml(urls[0])}</a>`
@@ -166,7 +166,9 @@ function renderTable(datasets) {
     tr.innerHTML = `
       <td><strong>${escapeHtml(d.name)}</strong></td>
       <td>${escapeHtml(d.license || '—')}</td>
-      <td>${available}</td>
+      <td>${yesNoBadge(d.available)}</td>
+      <td>${yesNoBadge(d.on_modal)}</td>
+      <td>${correspondenceBadge(d.correspondence)}</td>
       <td class="dataset-url-cell">${urlCell}</td>
       <td class="col-action"><a href="dataset.html?id=${d.id}${qs ? '&' + qs : ''}" class="review-link" onclick="event.stopPropagation()">Details &#8594;</a></td>
     `;
@@ -175,6 +177,19 @@ function renderTable(datasets) {
     });
     tbody.appendChild(tr);
   });
+}
+
+// Shared by Available and On Modal — both are yes/no/"" (unanswered).
+function yesNoBadge(value) {
+  return value === 'yes' ? '<span class="avail-badge avail-yes">Yes</span>'
+    : value === 'no' ? '<span class="avail-badge avail-no">No</span>'
+    : '—';
+}
+
+function correspondenceBadge(value) {
+  return value === 'contacted_got_reply' ? '<span class="avail-badge avail-yes">Got reply</span>'
+    : value === 'contacted_waiting' ? '<span class="avail-badge avail-waiting">Awaiting reply</span>'
+    : '—';
 }
 
 function renderStats() {

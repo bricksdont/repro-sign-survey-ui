@@ -208,6 +208,16 @@ body {
   padding: 0 24px;
 }
 
+/* Datasets overview only (#106) — the filter bar (search + 5 selects) needs
+   more room than the shared 860px column to fit comfortably in one row, and
+   the wider table has two more badge columns (On Modal, Correspondence) to
+   fit alongside Name/License/Available/URL. Scoped to this one page rather
+   than widening .overview globally, which every other overview/detail page
+   also uses and hasn't asked to be wider. */
+.overview-wide {
+  max-width: 1400px;
+}
+
 .overview-header {
   display: flex;
   align-items: center;
@@ -1694,6 +1704,13 @@ hr.field-divider {
 .avail-no {
   background: #fde8e8;
   color: #9b1c1c;
+}
+
+/* Correspondence's middle state — not yet/not-quite either "yes" (green) or
+   "no" (red), same amber used for .status-flagged elsewhere. */
+.avail-waiting {
+  background: #fef0d8;
+  color: #7a4200;
 }
 
 /* Dataset chip color variants — Dataset Confirmation Tracker table. Same

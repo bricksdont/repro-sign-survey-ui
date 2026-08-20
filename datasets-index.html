@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div class="overview">
+  <div class="overview overview-wide">
     <div class="overview-header">
       <nav class="breadcrumb">
         <a href="index.html" class="breadcrumb-link">Home</a>
@@ -54,7 +54,7 @@
         <option value="not_contacted">Not contacted</option>
       </select>
       <select id="filter-orphan" class="filter-select">
-        <option value="all">Papers: All</option>
+        <option value="all">Orphans: All</option>
         <option value="only">Orphaned only</option>
         <option value="hide">Hide orphaned</option>
       </select>
@@ -62,6 +62,7 @@
         <option value="all">Final paper: All</option>
         <option value="only">Used in a Final paper</option>
       </select>
+      <button id="clear-filters-btn" class="btn-secondary filter-bar-right">Clear filters</button>
     </div>
 
     <div id="results-count" class="results-count hidden"></div>
@@ -72,6 +73,8 @@
           <th>Name</th>
           <th>License</th>
           <th>Available</th>
+          <th>On Modal</th>
+          <th>Correspondence</th>
           <th>URL</th>
           <th class="col-action"></th>
         </tr>

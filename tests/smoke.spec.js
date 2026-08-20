@@ -983,6 +983,25 @@ test.describe('Datasets overview page', () => {
     await expect(page.locator('#results-count')).toBeHidden(); // unfiltered by default
   });
 
+  test('On Modal / Correspondence columns give visual confirmation that a filter is working (#106)', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    await expect(page.locator('thead th', { hasText: 'On Modal' })).toBeVisible();
+    await expect(page.locator('thead th', { hasText: 'Correspondence' })).toBeVisible();
+
+    await page.selectOption('#filter-correspondence', 'waiting');
+    const rows = page.locator('.paper-row');
+    const count = await rows.count();
+    test.skip(count === 0, 'No datasets with correspondence=contacted_waiting — skipping');
+
+    // Every row left after filtering should visibly show the same
+    // "Awaiting reply" badge the filter selected — that visible match is
+    // the whole point of the columns.
+    const rowCount = await rows.count();
+    for (let i = 0; i < rowCount; i++) {
+      await expect(rows.nth(i).locator('td').nth(4)).toContainText('Awaiting reply');
+    }
+  });
+
   test('search filters live and shows the result count (#106)', async ({ page }) => {
     await page.goto('/datasets-index.html');
     const totalRows = await page.locator('.paper-row').count();
@@ -1031,6 +1050,23 @@ test.describe('Datasets overview page', () => {
 
     await page.selectOption('#filter-available', 'all');
     await expect(page.locator('#filter-available')).not.toHaveClass(/active/);
+  });
+
+  test('Clear filters resets search and all selects, and is disabled when nothing is active (#106)', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    await expect(page.locator('#clear-filters-btn')).toBeDisabled();
+
+    await page.fill('#search-input', 'PHOENIX');
+    await page.selectOption('#filter-available', 'yes');
+    await expect(page.locator('#clear-filters-btn')).toBeEnabled();
+
+    await page.click('#clear-filters-btn');
+    await expect(page.locator('#search-input')).toHaveValue('');
+    await expect(page.locator('#filter-available')).toHaveValue('all');
+    await expect(page.locator('#filter-available')).not.toHaveClass(/active/);
+    await expect(page.locator('#results-count')).toBeHidden();
+    await expect(page).toHaveURL(/datasets-index\.html$/);
+    await expect(page.locator('#clear-filters-btn')).toBeDisabled();
   });
 
   test('filters round-trip through Details -> dataset.html -> Back link and breadcrumb (#106)', async ({ page }) => {
