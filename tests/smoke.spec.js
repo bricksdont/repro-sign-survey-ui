@@ -1103,6 +1103,78 @@ test.describe('Dataset detail page', () => {
     await expect(page.locator('input[name="correspondence"]')).toHaveCount(3);
     await expect(page.locator('#save-btn')).toBeVisible();
     await expect(page.locator('.back-link')).toBeVisible();
+    // A new, unsaved dataset has no place in any nav order — both ◀ ▶ stay
+    // disabled and the counter shows a placeholder instead of "1 / N".
+    await expect(page.locator('#prev-dataset')).toBeDisabled();
+    await expect(page.locator('#next-dataset')).toBeDisabled();
+    await expect(page.locator('#dataset-counter')).toHaveText('—');
+  });
+
+  test('◀ ▶ steps through the filtered dataset selection from datasets-index.html (#106)', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    await page.selectOption('#filter-available', 'yes');
+    const rows = page.locator('.paper-row');
+    const rowCount = await rows.count();
+    test.skip(rowCount < 2, 'Fewer than 2 available datasets in backend — skipping');
+
+    await rows.first().locator('.col-action a').click();
+    await expect(page).toHaveURL(/dataset\.html\?id=.*[?&]available=yes/);
+    await page.waitForTimeout(400); // computeNavOrder()'s pbGetAll calls aren't awaited by init()
+
+    await expect(page.locator('#dataset-counter')).toHaveText(`1 / ${rowCount}`);
+    await expect(page.locator('#prev-dataset')).toBeDisabled();
+    await expect(page.locator('#next-dataset')).toBeEnabled();
+
+    await page.click('#next-dataset');
+    await page.waitForURL(/dataset\.html\?id=.*[?&]available=yes/);
+    await page.waitForTimeout(400);
+    await expect(page.locator('#dataset-counter')).toHaveText(`2 / ${rowCount}`);
+    await expect(page.locator('#prev-dataset')).toBeEnabled();
+
+    await page.click('#prev-dataset');
+    await page.waitForURL(/dataset\.html\?id=.*[?&]available=yes/);
+    await page.waitForTimeout(400);
+    await expect(page.locator('#dataset-counter')).toHaveText(`1 / ${rowCount}`);
+    await expect(page.locator('#prev-dataset')).toBeDisabled();
+  });
+
+  test('clicking ▶ with unsaved changes prompts to save; Cancel stays put, OK saves and continues (#106)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get('http://localhost:8090/api/collections/datasets/records?perPage=2',
+      { headers: { Authorization: `Bearer ${token}` } });
+    const items = (await res.json()).items;
+    test.skip(items.length < 2, 'Fewer than 2 datasets in backend — skipping');
+    const [record] = items;
+    const originalComments = record.comments || '';
+
+    await page.goto(`/dataset.html?id=${record.id}`);
+    await page.waitForTimeout(400);
+
+    // Cancel: stays on the same dataset, edit is preserved rather than lost.
+    await page.fill('#field-comments', originalComments + ' UNSAVED-NAV-TEST');
+    page.once('dialog', dialog => dialog.dismiss());
+    await page.click('#next-dataset');
+    await page.waitForTimeout(300);
+    await expect(page).toHaveURL(new RegExp(`id=${record.id}`));
+    await expect(page.locator('#field-comments')).toHaveValue(originalComments + ' UNSAVED-NAV-TEST');
+
+    // OK: saves the pending edit, then navigates.
+    page.once('dialog', dialog => dialog.accept());
+    await page.click('#next-dataset');
+    await page.waitForFunction(
+      oldId => new URLSearchParams(window.location.search).get('id') !== oldId,
+      record.id,
+      { timeout: 5000 }
+    );
+
+    const check = await page.request.get(`http://localhost:8090/api/collections/datasets/records/${record.id}`,
+      { headers: { Authorization: `Bearer ${token}` } });
+    expect((await check.json()).comments).toBe(originalComments + ' UNSAVED-NAV-TEST');
+
+    await page.request.patch(`http://localhost:8090/api/collections/datasets/records/${record.id}`, // restore
+      { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        data: { comments: originalComments } });
   });
 
   test('Stored on Modal.com / Correspondence radios persist and are optional (#104)', async ({ page }) => {
