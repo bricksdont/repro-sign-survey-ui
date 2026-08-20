@@ -38,6 +38,10 @@ async function init() {
   wireEvents();
 }
 
+// Updates every link back to datasets-index.html — not just the explicit
+// "← Back" link, but also the "Datasets" breadcrumb crumb, which is a
+// second, separate <a href="datasets-index.html"> pointing at the same
+// place and would otherwise silently drop the filters.
 function updateBackLink() {
   const params = new URLSearchParams();
   if (navQuery) params.set('q', navQuery);
@@ -45,7 +49,9 @@ function updateBackLink() {
     if (navFilters[p] && navFilters[p] !== 'all') params.set(p, navFilters[p]);
   });
   const qs = params.toString();
-  document.querySelector('.back-link').href = `datasets-index.html${qs ? '?' + qs : ''}`;
+  const href = `datasets-index.html${qs ? '?' + qs : ''}`;
+  document.querySelector('.back-link').href = href;
+  document.getElementById('breadcrumb-datasets-link').href = href;
 }
 
 // ── Used in Papers ─────────────────────────────────────────────────────────

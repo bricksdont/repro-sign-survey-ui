@@ -1018,7 +1018,22 @@ test.describe('Datasets overview page', () => {
     await expect(page).toHaveURL(/[?&]final=only/);
   });
 
-  test('filters round-trip through Details -> dataset.html -> Back link (#106)', async ({ page }) => {
+  test('a filter set away from "All" is visually highlighted; others stay neutral (#106)', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    await expect(page.locator('#filter-available')).not.toHaveClass(/active/);
+
+    await page.selectOption('#filter-available', 'yes');
+    await expect(page.locator('#filter-available')).toHaveClass(/active/);
+    await expect(page.locator('#filter-on-modal')).not.toHaveClass(/active/);
+    await expect(page.locator('#filter-correspondence')).not.toHaveClass(/active/);
+    await expect(page.locator('#filter-orphan')).not.toHaveClass(/active/);
+    await expect(page.locator('#filter-final')).not.toHaveClass(/active/);
+
+    await page.selectOption('#filter-available', 'all');
+    await expect(page.locator('#filter-available')).not.toHaveClass(/active/);
+  });
+
+  test('filters round-trip through Details -> dataset.html -> Back link and breadcrumb (#106)', async ({ page }) => {
     await page.goto('/datasets-index.html');
     await page.selectOption('#filter-available', 'yes');
     const rows = page.locator('.paper-row');
@@ -1028,9 +1043,15 @@ test.describe('Datasets overview page', () => {
     await rows.first().locator('.col-action a').click();
     await expect(page).toHaveURL(/dataset\.html\?id=.*[?&]available=yes/);
 
+    // Two separate links point back at datasets-index.html — the explicit
+    // "← Back" link and the "Datasets" breadcrumb crumb — both need the
+    // filter, or one of them silently drops it.
     const backHref = await page.locator('.back-link').getAttribute('href');
+    const breadcrumbHref = await page.locator('#breadcrumb-datasets-link').getAttribute('href');
     expect(backHref).toContain('available=yes');
-    await page.click('.back-link');
+    expect(breadcrumbHref).toContain('available=yes');
+
+    await page.click('#breadcrumb-datasets-link');
     await expect(page).toHaveURL(/datasets-index\.html\?available=yes/);
     await expect(page.locator('#filter-available')).toHaveValue('yes');
   });

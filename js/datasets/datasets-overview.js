@@ -113,6 +113,9 @@ function applyFilters() {
   renderTable(filtered);
   syncURL();
   document.getElementById('search-clear-btn').classList.toggle('hidden', q === '');
+  FILTERS.forEach((f, i) => {
+    document.getElementById(f.elementId).classList.toggle('active', filterValues[i] !== f.default);
+  });
 
   const isFiltered = q !== '' || FILTERS.some((f, i) => filterValues[i] !== f.default);
   const countEl = document.getElementById('results-count');

@@ -452,12 +452,21 @@ a.stat-bar-label:hover {
   background: #fff;
   outline: none;
   cursor: pointer;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
 
 .filter-select:focus {
   border-color: #4a90d9;
   box-shadow: 0 0 0 2px rgba(74, 144, 217, 0.15);
+}
+
+/* Set apart from its "all" default, same accent blue as .filter-btn.active,
+   so it's obvious at a glance which of the (currently five) dropdowns are
+   actually narrowing the list. */
+.filter-select.active {
+  background: #4a90d9;
+  border-color: #4a90d9;
+  color: #fff;
 }
 
 .search-clear-btn {
