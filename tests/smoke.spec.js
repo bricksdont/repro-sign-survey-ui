@@ -972,6 +972,13 @@ test.describe('Datasets overview page', () => {
     await expect(page).toHaveURL(/dataset\.html\?id=/);
   });
 
+  test('stats row reports on-Modal, used-in-final, contacted, and got-reply counts alongside the totals, numbers bolded (#106)', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    const statsText = await page.locator('#stats-row').textContent();
+    expect(statsText).toMatch(/^\d+ datasets? · \d+ available · \d+ on Modal · \d+ used in a final paper · \d+ contacted · \d+ got a reply$/);
+    await expect(page.locator('#stats-row .stat-num')).toHaveCount(6);
+  });
+
   test('renders the filter bar with all controls (#106)', async ({ page }) => {
     await page.goto('/datasets-index.html');
     await expect(page.locator('#search-input')).toBeVisible();

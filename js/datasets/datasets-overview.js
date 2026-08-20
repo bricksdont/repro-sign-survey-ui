@@ -195,8 +195,18 @@ function correspondenceBadge(value) {
 function renderStats() {
   const total = allDatasets.length;
   const avail = allDatasets.filter(d => d.available === 'yes').length;
-  document.getElementById('stats-row').textContent =
-    `${total} dataset${total !== 1 ? 's' : ''} · ${avail} available`;
+  const onModal = allDatasets.filter(d => d.on_modal === 'yes').length;
+  const usedInFinal = allDatasets.filter(d => d.hasFinalPaper).length;
+  // "Contacted" = correspondence is anything other than "" (not contacted
+  // yet) — covers both contacted_waiting and contacted_got_reply.
+  const contacted = allDatasets.filter(d => !!d.correspondence).length;
+  const gotReply = allDatasets.filter(d => d.correspondence === 'contacted_got_reply').length;
+  // .stat-num bolds just the number — same convention as review-index.html's
+  // stats row — so innerHTML is needed here instead of textContent.
+  const num = n => `<span class="stat-num">${n}</span>`;
+  document.getElementById('stats-row').innerHTML =
+    `${num(total)} dataset${total !== 1 ? 's' : ''} · ${num(avail)} available · ${num(onModal)} on Modal · `
+    + `${num(usedInFinal)} used in a final paper · ${num(contacted)} contacted · ${num(gotReply)} got a reply`;
 }
 
 function escapeHtml(str) {
