@@ -8,6 +8,10 @@ let allDatasets = [];
 // this list generically, nothing else needs touching.
 const FILTERS = [
   {
+    param: 'assigned', elementId: 'filter-assigned', default: 'all',
+    match: (d, v) => v === 'all' || (!!getEmail() && Array.isArray(d.assignees) && d.assignees.includes(getEmail())),
+  },
+  {
     param: 'available', elementId: 'filter-available', default: 'all',
     match: (d, v) => v === 'all' || (v === 'unanswered' ? !d.available : d.available === v),
   },
@@ -142,8 +146,8 @@ function renderTable(datasets) {
   if (datasets.length === 0) {
     const tr = document.createElement('tr');
     tr.innerHTML = allDatasets.length === 0
-      ? '<td colspan="7" class="no-results">No datasets yet. <a href="dataset.html">Add the first one.</a></td>'
-      : '<td colspan="7" class="no-results">No datasets match your search/filters.</td>';
+      ? '<td colspan="8" class="no-results">No datasets yet. <a href="dataset.html">Add the first one.</a></td>'
+      : '<td colspan="8" class="no-results">No datasets match your search/filters.</td>';
     tbody.appendChild(tr);
     return;
   }
@@ -163,9 +167,16 @@ function renderTable(datasets) {
       ? `<a href="${escapeHtml(urls[0])}" target="_blank" rel="noopener noreferrer" class="dataset-url-link" onclick="event.stopPropagation()">${escapeHtml(urls[0])}</a>`
       : '—';
 
+    // Only the first assignee is shown here — the full list lives on the
+    // detail page's chip list; this column is just a compact glance.
+    const assigneesCell = Array.isArray(d.assignees) && d.assignees.length > 0
+      ? escapeHtml(d.assignees[0])
+      : '—';
+
     tr.innerHTML = `
       <td><strong>${escapeHtml(d.name)}</strong></td>
       <td>${escapeHtml(d.license || '—')}</td>
+      <td>${assigneesCell}</td>
       <td>${yesNoBadge(d.available)}</td>
       <td>${yesNoBadge(d.on_modal)}</td>
       <td>${correspondenceBadge(d.correspondence)}</td>

@@ -35,6 +35,10 @@
         <input type="text" id="search-input" class="search-input" placeholder="Search by name…">
         <button id="search-clear-btn" class="search-clear-btn hidden" type="button" aria-label="Clear search">&times;</button>
       </div>
+      <select id="filter-assigned" class="filter-select">
+        <option value="all">Assigned to: All</option>
+        <option value="mine">Only assigned to me</option>
+      </select>
       <select id="filter-available" class="filter-select">
         <option value="all">Availability: All</option>
         <option value="yes">Available</option>
@@ -72,6 +76,7 @@
         <tr>
           <th>Name</th>
           <th>License</th>
+          <th>Assignees</th>
           <th>Available</th>
           <th>On Modal</th>
           <th>Correspondence</th>

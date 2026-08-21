@@ -16,12 +16,13 @@ test.beforeEach(async ({ page }) => {
     { data: { identity: TEST_EMAIL, password: TEST_PASSWORD } }
   );
   const { token, record } = await res.json();
-  await page.evaluate(({ token, userId }) => {
+  await page.evaluate(({ token, userId, email }) => {
     const expiry = Date.now() + 24 * 60 * 60 * 1000;
     localStorage.setItem('pb_token', token);
     localStorage.setItem('pb_user_id', userId);
+    localStorage.setItem('pb_email', email);
     localStorage.setItem('pb_token_expiry', String(expiry));
-  }, { token, userId: record.id });
+  }, { token, userId: record.id, email: record.email });
 });
 
 test.describe('Landing page', () => {
@@ -986,6 +987,7 @@ test.describe('Datasets overview page', () => {
   test('renders the filter bar with all controls (#106)', async ({ page }) => {
     await page.goto('/datasets-index.html');
     await expect(page.locator('#search-input')).toBeVisible();
+    await expect(page.locator('#filter-assigned')).toBeVisible();
     await expect(page.locator('#filter-available')).toBeVisible();
     await expect(page.locator('#filter-on-modal')).toBeVisible();
     await expect(page.locator('#filter-correspondence')).toBeVisible();
@@ -1006,11 +1008,47 @@ test.describe('Datasets overview page', () => {
 
     // Every row left after filtering should visibly show the same
     // "Awaiting reply" badge the filter selected — that visible match is
-    // the whole point of the columns.
+    // the whole point of the columns. Column 5: Name(0)/License(1)/
+    // Assignees(2)/Available(3)/On Modal(4)/Correspondence(5).
     const rowCount = await rows.count();
     for (let i = 0; i < rowCount; i++) {
-      await expect(rows.nth(i).locator('td').nth(4)).toContainText('Awaiting reply');
+      await expect(rows.nth(i).locator('td').nth(5)).toContainText('Awaiting reply');
     }
+  });
+
+  test('Assignees column shows only the first assignee, and "Only assigned to me" filters to it (#108)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const myEmail = await page.evaluate(() => localStorage.getItem('pb_email'));
+    const res = await page.request.get('http://localhost:8090/api/collections/datasets/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } });
+    const record = (await res.json()).items[0];
+    test.skip(!record, 'No datasets in backend — skipping');
+    const originalAssignees = record.assignees || [];
+
+    async function patchDataset(data) {
+      await page.request.patch(`http://localhost:8090/api/collections/datasets/records/${record.id}`,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, data });
+    }
+    await patchDataset({ assignees: [myEmail, 'someone.else@example.com'] });
+
+    await page.goto('/datasets-index.html');
+    await expect(page.locator('thead th', { hasText: 'Assignees' })).toBeVisible();
+
+    // Only the first assignee is shown in the column, even though there are two.
+    const row = page.locator('.paper-row', { hasText: record.name });
+    await expect(row.locator('td').nth(2)).toHaveText(myEmail);
+
+    await page.selectOption('#filter-assigned', 'mine');
+    await expect(page).toHaveURL(/[?&]assigned=mine/);
+    const rows = page.locator('.paper-row');
+    const rowCount = await rows.count();
+    expect(rowCount).toBeGreaterThan(0);
+    for (let i = 0; i < rowCount; i++) {
+      await expect(rows.nth(i).locator('td').nth(2)).toHaveText(myEmail);
+    }
+
+    await patchDataset({ assignees: originalAssignees }); // restore
   });
 
   test('search filters live and shows the result count (#106)', async ({ page }) => {
@@ -1054,6 +1092,7 @@ test.describe('Datasets overview page', () => {
 
     await page.selectOption('#filter-available', 'yes');
     await expect(page.locator('#filter-available')).toHaveClass(/active/);
+    await expect(page.locator('#filter-assigned')).not.toHaveClass(/active/);
     await expect(page.locator('#filter-on-modal')).not.toHaveClass(/active/);
     await expect(page.locator('#filter-correspondence')).not.toHaveClass(/active/);
     await expect(page.locator('#filter-orphan')).not.toHaveClass(/active/);
@@ -1119,6 +1158,53 @@ test.describe('Dataset detail page', () => {
     await expect(page.locator('#prev-dataset')).toBeDisabled();
     await expect(page.locator('#next-dataset')).toBeDisabled();
     await expect(page.locator('#dataset-counter')).toHaveText('—');
+    // Assignees is empty by default, self-assign only (#108).
+    await expect(page.locator('#assignees-chips .chip')).toHaveCount(0);
+    await expect(page.locator('#assign-me-btn')).toHaveText('Assign myself');
+  });
+
+  test('Assign myself / Remove myself toggles the current user in assignees and persists (#108)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const myEmail = await page.evaluate(() => localStorage.getItem('pb_email'));
+    const res = await page.request.get('http://localhost:8090/api/collections/datasets/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } });
+    const record = (await res.json()).items[0];
+    test.skip(!record, 'No datasets in backend — skipping');
+    const originalAssignees = record.assignees || [];
+
+    async function patchDataset(data) {
+      await page.request.patch(`http://localhost:8090/api/collections/datasets/records/${record.id}`,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, data });
+    }
+    await patchDataset({ assignees: [] }); // start from a known, empty state
+
+    await page.goto(`/dataset.html?id=${record.id}`);
+    await expect(page.locator('#assignees-chips .chip')).toHaveCount(0);
+    await expect(page.locator('#assign-me-btn')).toHaveText('Assign myself');
+
+    await page.click('#assign-me-btn');
+    await expect(page.locator('#assign-me-btn')).toHaveText('Remove myself');
+    await expect(page.locator('#assignees-chips .chip')).toHaveText([myEmail]);
+
+    await page.click('#save-btn');
+    await expect(page.locator('#save-confirm')).toBeVisible();
+    const afterAssign = await page.request.get(`http://localhost:8090/api/collections/datasets/records/${record.id}`,
+      { headers: { Authorization: `Bearer ${token}` } });
+    expect((await afterAssign.json()).assignees).toEqual([myEmail]);
+
+    // Reload to confirm it's read back correctly, not just held in memory.
+    await page.reload();
+    await expect(page.locator('#assign-me-btn')).toHaveText('Remove myself');
+    await expect(page.locator('#assignees-chips .chip')).toHaveText([myEmail]);
+
+    await page.click('#assign-me-btn');
+    await expect(page.locator('#assign-me-btn')).toHaveText('Assign myself');
+    await expect(page.locator('#assignees-chips .chip')).toHaveCount(0);
+    await page.click('#save-btn');
+    await expect(page.locator('#save-confirm')).toBeVisible();
+
+    await patchDataset({ assignees: originalAssignees }); // restore
   });
 
   test('◀ ▶ steps through the filtered dataset selection from datasets-index.html (#106)', async ({ page }) => {

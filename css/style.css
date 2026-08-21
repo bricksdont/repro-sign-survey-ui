@@ -959,6 +959,7 @@ a.stat-bar-label:hover {
 
 .text-action-btn {
   display: inline-block;
+  align-self: flex-start;
   margin-top: 8px;
   background: none;
   border: none;
@@ -966,11 +967,18 @@ a.stat-bar-label:hover {
   color: #4a90d9;
   font-size: 13px;
   font-family: inherit;
+  text-align: left;
   cursor: pointer;
 }
 
 .text-action-btn:hover {
   text-decoration: underline;
+}
+
+.text-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  text-decoration: none;
 }
 
 /* ── Inline single-line field input (e.g. custom Area of SLP) ── */
