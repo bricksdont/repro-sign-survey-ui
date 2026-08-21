@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { readFileSync } from 'fs';
 
 const TEST_EMAIL    = process.env.PB_TEST_EMAIL;
 const TEST_PASSWORD = process.env.PB_TEST_PASSWORD;
@@ -34,7 +33,7 @@ test.describe('Landing page', () => {
     await expect(page.locator('a[href="stats.html"]')).toBeVisible();
     await expect(page.locator('a[href="datasets-index.html"]')).toBeVisible();
     await expect(page.locator('a[href="metrics-index.html"]')).toBeVisible();
-    await expect(page.locator('a[href="dataset-confirmation-index.html"]')).toBeVisible();
+    await expect(page.locator('a[href="reproduction-index.html"]')).toBeVisible();
     await expect(page.locator('.task-card-disabled')).toHaveCount(0);
   });
 
@@ -1452,185 +1451,171 @@ test.describe('Review Stats page', () => {
   });
 });
 
-test.describe('Dataset Confirmation Tracker page', () => {
+test.describe('Reproduction Tracker page', () => {
   test('reachable from the landing page', async ({ page }) => {
     await page.goto('/');
-    await page.click('a[href="dataset-confirmation-index.html"]');
-    await expect(page).toHaveURL(/dataset-confirmation-index\.html/);
+    await page.click('a[href="reproduction-index.html"]');
+    await expect(page).toHaveURL(/reproduction-index\.html/);
   });
 
-  test('renders the table structure and confirmation filter buttons via direct navigation', async ({ page }) => {
-    await page.goto('/dataset-confirmation-index.html');
+  test('renders the table structure and filter bar via direct navigation', async ({ page }) => {
+    await page.goto('/reproduction-index.html');
     await expect(page.locator('#stats-row')).toBeVisible();
     await expect(page.locator('table.papers-table')).toBeVisible();
-    await expect(page.locator('.filter-btn')).toHaveCount(3);
-    await expect(page.locator('.filter-btn.active')).toHaveText('All');
+    await expect(page.locator('#search-input')).toBeVisible();
+    await expect(page.locator('#filter-status')).toBeVisible();
+    await expect(page.locator('#filter-assigned')).toBeVisible();
+    await expect(page.locator('#filter-all-available')).toBeVisible();
+    await expect(page.locator('#filter-all-on-modal')).toBeVisible();
+    await expect(page.locator('#results-count')).toBeHidden(); // unfiltered by default
   });
 
-  test('the active confirmation filter is reflected in the URL and restored on direct navigation (#75)', async ({ page }) => {
-    await page.goto('/dataset-confirmation-index.html');
-    await expect(page).toHaveURL(/dataset-confirmation-index\.html$/); // "All" (default) omitted from the URL
+  test('filters are reflected in the URL, highlighted when active, and restored on direct navigation', async ({ page }) => {
+    await page.goto('/reproduction-index.html');
+    await expect(page).toHaveURL(/reproduction-index\.html$/); // "All" (default) omitted from the URL
+    await expect(page.locator('#filter-status')).not.toHaveClass(/active/);
 
-    await page.click('.filter-btn[data-confirmation="confirmed"]');
-    await expect(page).toHaveURL(/[?&]confirmation=confirmed/);
+    await page.selectOption('#filter-status', 'finished');
+    await expect(page).toHaveURL(/[?&]status=finished/);
+    await expect(page.locator('#filter-status')).toHaveClass(/active/);
 
-    await page.click('.filter-btn[data-confirmation="not_confirmed"]');
-    await expect(page).toHaveURL(/[?&]confirmation=not_confirmed/);
+    await page.selectOption('#filter-status', 'all');
+    await expect(page).toHaveURL(/reproduction-index\.html$/);
+    await expect(page.locator('#filter-status')).not.toHaveClass(/active/);
 
-    await page.click('.filter-btn[data-confirmation="all"]');
-    await expect(page).toHaveURL(/dataset-confirmation-index\.html$/);
-
-    await page.goto('/dataset-confirmation-index.html?confirmation=confirmed');
-    await expect(page.locator('.filter-btn.active')).toHaveText('Confirmed');
+    await page.goto('/reproduction-index.html?status=in_progress&assigned=mine');
+    await expect(page.locator('#filter-status')).toHaveValue('in_progress');
+    await expect(page.locator('#filter-assigned')).toHaveValue('mine');
   });
 
-  test('Download JSON exports the currently-filtered papers, with locking fields stripped', async ({ page }) => {
-    await page.goto('/dataset-confirmation-index.html');
-    await page.waitForSelector('.paper-row, .no-results', { timeout: 8000 });
+  test('row click and Details → both navigate to reproduction.html in the same tab, carrying the active filter', async ({ page }) => {
+    await page.goto('/reproduction-index.html');
+    const rows = page.locator('.paper-row');
+    const count = await rows.count();
+    test.skip(count === 0, 'No final papers in the backend — skipping');
 
-    const rowCount = await page.locator('.paper-row').count();
-    test.skip(rowCount === 0, 'No final papers in the backend — skipping');
-
-    const [download] = await Promise.all([
-      page.waitForEvent('download'),
-      page.click('#export-json-btn'),
-    ]);
-    expect(download.suggestedFilename()).toMatch(/^dataset-confirmation-all-\d{4}-\d{2}-\d{2}\.json$/);
-
-    const path = await download.path();
-    const data = JSON.parse(readFileSync(path, 'utf8'));
-    expect(data).toHaveLength(rowCount);
-    for (const paper of data) {
-      expect(paper).not.toHaveProperty('locked_by');
-      expect(paper).not.toHaveProperty('locked_at');
-      for (const dataset of paper.expand?.datasets || []) {
-        expect(dataset).not.toHaveProperty('locked_by');
-        expect(dataset).not.toHaveProperty('locked_at');
-      }
-    }
-
-    // Filtering to "Confirmed" narrows the export to just that subset.
-    await page.click('.filter-btn[data-confirmation="confirmed"]');
-    const confirmedCount = await page.locator('.paper-row').count();
-    const [download2] = await Promise.all([
-      page.waitForEvent('download'),
-      page.click('#export-json-btn'),
-    ]);
-    expect(download2.suggestedFilename()).toMatch(/^dataset-confirmation-confirmed-\d{4}-\d{2}-\d{2}\.json$/);
-    const data2 = JSON.parse(readFileSync(await download2.path(), 'utf8'));
-    expect(data2).toHaveLength(confirmedCount);
-    expect(data2.every(p => p.confirmation === 'confirmed')).toBe(true);
+    await rows.first().locator('.col-action a').click();
+    await expect(page).toHaveURL(/reproduction\.html\?paper=/);
   });
 
-  test('lists every final paper regardless of dataset availability, and the confirmation filters partition them correctly', async ({ page }) => {
+  test('detail page renders the read-only Paper block and the editable form', async ({ page }) => {
+    await page.goto('/reproduction-index.html');
+    const rows = page.locator('.paper-row');
+    const count = await rows.count();
+    test.skip(count === 0, 'No final papers in the backend — skipping');
+
+    await rows.first().click();
+    await expect(page).toHaveURL(/reproduction\.html\?paper=/);
+
+    await expect(page.locator('#info-paper-id')).not.toHaveText('');
+    await expect(page.locator('#info-paper-title')).not.toHaveText('');
+    await expect(page.locator('#info-reviewing-link')).toHaveAttribute('href', /paper\.html\?id=/);
+    await expect(page.locator('#info-reviewing-link')).toHaveAttribute('target', '_blank');
+    // Finalize already requires ≥1 dataset, so every final paper has at
+    // least one chip here.
+    await expect(page.locator('#info-datasets-chips .chip')).not.toHaveCount(0);
+
+    await expect(page.locator('input[name="repro_status"]')).toHaveCount(3);
+    await expect(page.locator('#assign-me-btn')).toBeVisible();
+    await expect(page.locator('#save-btn')).toBeVisible();
+    await expect(page.locator('.back-link')).toBeVisible();
+  });
+
+  test('assigning myself, setting status, and adding a URL creates a reproduction row and persists across reload (#110)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const myEmail = await page.evaluate(() => localStorage.getItem('pb_email'));
+
+    // Pick a final paper with no reproduction row yet, so this test exercises
+    // the lazy-create path without disturbing a real annotator's tracked entry.
+    const res = await page.request.get(
+      'http://localhost:8090/api/collections/papers/records?filter=(status="final")&expand=reproductions_via_paper&perPage=200',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const candidate = (await res.json()).items.find(p => !(p.expand?.reproductions_via_paper?.length));
+    test.skip(!candidate, 'No finalized paper without an existing reproduction row — skipping');
+
+    await page.goto(`/reproduction.html?paper=${candidate.id}`);
+    await expect(page.locator('#assignees-chips .chip')).toHaveCount(0);
+    await expect(page.locator('#assign-me-btn')).toHaveText('Assign myself');
+    await expect(page.locator('input[name="repro_status"][value=""]')).toBeChecked();
+
+    await page.click('#assign-me-btn');
+    await page.check('input[name="repro_status"][value="in_progress"]');
+    await page.fill('#url-input', 'https://example.com/repro-writeup');
+    await page.click('#add-url-btn');
+    await page.click('#save-btn');
+    await expect(page.locator('#save-confirm')).toBeVisible();
+
+    // reproductions.paper is unique, so at most one row can exist for this paper.
+    const reprosRes = await page.request.get(
+      `http://localhost:8090/api/collections/reproductions/records?filter=(paper="${candidate.id}")`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const reproItems = (await reprosRes.json()).items;
+    expect(reproItems).toHaveLength(1);
+    const reproId = reproItems[0].id;
+    expect(reproItems[0].assignees).toEqual([myEmail]);
+    expect(reproItems[0].status).toBe('in_progress');
+    expect(reproItems[0].url).toEqual(['https://example.com/repro-writeup']);
+
+    // Reload to confirm it's read back correctly, not just held in memory.
+    await page.reload();
+    await expect(page.locator('#assign-me-btn')).toHaveText('Remove myself');
+    await expect(page.locator('input[name="repro_status"][value="in_progress"]')).toBeChecked();
+    await expect(page.locator('#url-chips .chip')).toHaveCount(1);
+
+    // reproductions has no deleteRule (no API delete available to a normal
+    // user), so this row can't be removed — instead neutralize every field
+    // back to empty, which the app treats identically to "no reproduction
+    // row exists" (reproStatus/reproAssignees both fall back the same way
+    // either way), leaving no visible trace for real annotators.
+    await page.click('#assign-me-btn');
+    await page.check('input[name="repro_status"][value=""]');
+    await page.click('#url-chips .chip-remove');
+    await page.click('#save-btn');
+    await expect(page.locator('#save-confirm')).toBeVisible();
+
+    const afterCleanup = await page.request.get(
+      `http://localhost:8090/api/collections/reproductions/records/${reproId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const cleaned = await afterCleanup.json();
+    expect(cleaned.assignees).toEqual([]);
+    expect(cleaned.status).toBe('');
+    expect(cleaned.url).toEqual([]);
+  });
+
+  test('editing a reproduction never touches the paper\'s own review lock (#110, backend PR #62)', async ({ page }) => {
     await page.goto('/login.html');
     const token = await page.evaluate(() => localStorage.getItem('pb_token'));
 
-    // Find an existing final paper with exactly one dataset, so flipping
-    // that one dataset's availability deterministically flips this paper's
-    // confirmation status either way, regardless of what else is in the backend.
-    const papersRes = await page.request.get(
-      'http://localhost:8090/api/collections/papers/records?filter=(status="final")&expand=datasets&perPage=200',
+    const res = await page.request.get(
+      'http://localhost:8090/api/collections/papers/records?filter=(status="final")&perPage=1',
       { headers: { Authorization: `Bearer ${token}` } }
     );
-    const candidate = (await papersRes.json()).items.find(p => (p.expand?.datasets || []).length === 1);
-    test.skip(!candidate, 'No finalized paper with exactly one dataset in the backend — skipping');
-    const dataset = candidate.expand.datasets[0];
-    const originalAvailable = dataset.available || '';
+    const candidate = (await res.json()).items[0];
+    test.skip(!candidate, 'No finalized paper in the backend — skipping');
 
-    async function patchDataset(available) {
-      await page.request.patch(
-        `http://localhost:8090/api/collections/datasets/records/${dataset.id}`,
-        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, data: { available } }
-      );
-    }
+    const before = await page.request.get(`http://localhost:8090/api/collections/papers/records/${candidate.id}`,
+      { headers: { Authorization: `Bearer ${token}` } });
+    const beforeData = await before.json();
 
-    // Unanswered availability → still listed under "All" (unlike the old
-    // behavior, which hid it entirely) and "Unconfirmed", but not "Confirmed".
-    await patchDataset('');
-    await page.goto('/dataset-confirmation-index.html');
-    await page.waitForSelector('.paper-row, .no-results', { timeout: 8000 });
-    await expect(page.locator('.paper-row', { hasText: dataset.name })).toHaveCount(1);
+    await page.goto(`/reproduction.html?paper=${candidate.id}`);
+    await page.fill('#field-comments', 'independent-lock-regression-check');
+    await page.click('#save-btn');
+    await expect(page.locator('#save-confirm')).toBeVisible();
 
-    await page.click('.filter-btn[data-confirmation="confirmed"]');
-    await expect(page.locator('.paper-row', { hasText: dataset.name })).toHaveCount(0);
+    const after = await page.request.get(`http://localhost:8090/api/collections/papers/records/${candidate.id}`,
+      { headers: { Authorization: `Bearer ${token}` } });
+    const afterData = await after.json();
+    // reproductions has its own independent locked_by/locked_at (backend PR
+    // #62) — saving a reproduction must never write to the paper's own lock.
+    expect(afterData.locked_by).toBe(beforeData.locked_by);
+    expect(afterData.locked_at).toBe(beforeData.locked_at);
 
-    await page.click('.filter-btn[data-confirmation="not_confirmed"]');
-    await expect(page.locator('.paper-row', { hasText: dataset.name })).toHaveCount(1);
-
-    // All datasets confirmed available → "Confirmed", not "Unconfirmed".
-    await patchDataset('yes');
-    await page.goto('/dataset-confirmation-index.html');
-    await page.waitForSelector('.paper-row, .no-results', { timeout: 8000 });
-
-    await page.click('.filter-btn[data-confirmation="not_confirmed"]');
-    await expect(page.locator('.paper-row', { hasText: dataset.name })).toHaveCount(0);
-
-    await page.click('.filter-btn[data-confirmation="confirmed"]');
-    const row = page.locator('.paper-row', { hasText: dataset.name });
-    await expect(row).toHaveCount(1);
-
-    // All datasets confirmed UNAVAILABLE also counts as "Confirmed" — the
-    // investigation is settled either way, per the page's explicit spec.
-    await patchDataset('no');
-    await page.goto('/dataset-confirmation-index.html');
-    await page.waitForSelector('.paper-row, .no-results', { timeout: 8000 });
-    await page.click('.filter-btn[data-confirmation="confirmed"]');
-    await expect(page.locator('.paper-row', { hasText: dataset.name })).toHaveCount(1);
-
-    const [newPage] = await Promise.all([
-      page.context().waitForEvent('page'),
-      page.locator('.paper-row', { hasText: dataset.name }).locator('.col-action a').click(),
-    ]);
-    await newPage.waitForLoadState();
-    expect(newPage.url()).toContain(`paper.html?id=${candidate.paper_id}`);
-    expect(page.url()).toContain('dataset-confirmation-index.html'); // original tab unaffected
-    await newPage.close();
-
-    await patchDataset(originalAvailable); // restore — leave no permanent side effects
-  });
-
-  test('dataset chip is colored by availability, its text is link-blue, and its link opens dataset.html directly', async ({ page }) => {
-    await page.goto('/login.html');
-    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
-
-    const papersRes = await page.request.get(
-      'http://localhost:8090/api/collections/papers/records?filter=(status="final")&expand=datasets&perPage=200',
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    const candidate = (await papersRes.json()).items.find(p => (p.expand?.datasets || []).length === 1);
-    test.skip(!candidate, 'No finalized paper with exactly one dataset in the backend — skipping');
-    const dataset = candidate.expand.datasets[0];
-    const originalAvailable = dataset.available || '';
-
-    async function patchDataset(available) {
-      await page.request.patch(
-        `http://localhost:8090/api/collections/datasets/records/${dataset.id}`,
-        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, data: { available } }
-      );
-    }
-
-    await patchDataset('yes');
-    await page.goto('/dataset-confirmation-index.html');
-    await page.waitForSelector('.paper-row, .no-results', { timeout: 8000 });
-
-    const chip = page.locator('.paper-row', { hasText: dataset.name }).locator('.chip', { hasText: dataset.name });
-    await expect(chip).toHaveClass(/chip-avail-yes/);
-
-    // Same accent blue as .review-link/.stat-bar-label, so the chip still
-    // reads as clickable regardless of its green/red/gray availability color.
-    const linkColor = await chip.locator('a').evaluate(el => getComputedStyle(el).color);
-    expect(linkColor).toBe('rgb(74, 144, 217)');
-
-    const [newPage] = await Promise.all([
-      page.context().waitForEvent('page'),
-      chip.locator('a').click(),
-    ]);
-    await newPage.waitForLoadState();
-    expect(newPage.url()).toContain(`dataset.html?id=${dataset.id}`);
-    expect(page.url()).toContain('dataset-confirmation-index.html'); // clicking the chip didn't also trigger the row's own click handler
-    await newPage.close();
-
-    await patchDataset(originalAvailable); // restore — leave no permanent side effects
+    await page.fill('#field-comments', ''); // neutralize — see note above on why this can't be deleted
+    await page.click('#save-btn');
+    await expect(page.locator('#save-confirm')).toBeVisible();
   });
 });
