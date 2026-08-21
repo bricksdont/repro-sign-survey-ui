@@ -2,6 +2,7 @@
 
 let record = null; // null = new record
 let urlChips = [];
+let assignees = []; // [email] — self-assign only, see toggleAssignMe()
 let isReadOnly = false;
 let heartbeatInterval = null;
 let isDirty = false; // true once a field has changed since load/last save — drives the leave-page guard
@@ -71,6 +72,7 @@ async function init() {
     document.getElementById('breadcrumb-name').textContent = 'New Dataset';
   }
   updateDatasetNav();
+  updateAssignMeButton(); // no-op for a new record (assignees starts empty), but keeps behavior consistent
   wireEvents();
 }
 
@@ -226,6 +228,49 @@ function populateForm(r) {
   document.querySelectorAll('input[name="correspondence"]').forEach(radio => {
     radio.checked = radio.value === (r.correspondence || '');
   });
+  assignees = Array.isArray(r.assignees) ? [...r.assignees] : [];
+  renderAssigneeChips();
+  updateAssignMeButton();
+}
+
+// ── Assignees ──────────────────────────────────────────────────────────────
+
+// Self-assign only (issue #108): no picker of other users, since a normal
+// reviewer token can't list the users collection (see CLAUDE.md). Chips are
+// plain display — the only way to change membership is the toggle button
+// below, and only for the current user's own email.
+function renderAssigneeChips() {
+  const container = document.getElementById('assignees-chips');
+  container.innerHTML = '';
+  assignees.forEach(email => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.textContent = email;
+    container.appendChild(chip);
+  });
+}
+
+function updateAssignMeButton() {
+  const btn = document.getElementById('assign-me-btn');
+  const email = getEmail();
+  const amAssigned = !!email && assignees.includes(email);
+  btn.setAttribute('aria-pressed', String(amAssigned));
+  btn.textContent = amAssigned ? 'Remove myself' : 'Assign myself';
+  btn.disabled = !email;
+  btn.title = email ? '' : 'Could not determine your email — try logging in again.';
+}
+
+function toggleAssignMe() {
+  const email = getEmail();
+  if (!email) return;
+  if (assignees.includes(email)) {
+    assignees = assignees.filter(e => e !== email);
+  } else {
+    assignees.push(email);
+  }
+  renderAssigneeChips();
+  updateAssignMeButton();
+  markDirty();
 }
 
 function renderUrlChips() {
@@ -279,6 +324,7 @@ async function save() {
     available:      document.querySelector('input[name="available"]:checked')?.value || '',
     on_modal:       document.querySelector('input[name="on_modal"]:checked')?.value || '',
     correspondence: document.querySelector('input[name="correspondence"]:checked')?.value || '',
+    assignees:      [...assignees],
     comments:       document.getElementById('field-comments').value.trim(),
   };
 
@@ -366,6 +412,10 @@ function setReadOnly(ro) {
   document.querySelectorAll('input[name="correspondence"]').forEach(r => r.disabled = ro);
   document.getElementById('add-url-btn').disabled = ro;
   document.getElementById('save-btn').disabled    = ro;
+  // Only re-enable if it was actually assignable (getEmail() present) —
+  // updateAssignMeButton() already handles that disabled state otherwise.
+  if (ro) document.getElementById('assign-me-btn').disabled = true;
+  else updateAssignMeButton();
 }
 
 // ── Account menu ───────────────────────────────────────────────────────────
@@ -392,6 +442,7 @@ function wireEvents() {
   document.getElementById('prev-dataset').addEventListener('click', () => goToAdjacentDataset(-1));
   document.getElementById('next-dataset').addEventListener('click', () => goToAdjacentDataset(1));
   document.getElementById('add-url-btn').addEventListener('click', addUrlChip);
+  document.getElementById('assign-me-btn').addEventListener('click', toggleAssignMe);
   document.getElementById('url-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') addUrlChip();
   });

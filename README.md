@@ -38,10 +38,11 @@ A landing page routes annotators to either task. Each task has its own overview 
 - Reviewer attribution: logged-in email saved to `checked_by` on every save, shown next to the Checked/Flagged badge
 
 **Datasets catalogue** — manage the shared pool of datasets referenced in reviews:
-- Overview table with name, license, availability badge, and URL; clicking a row opens the dataset detail page
-- Search box plus five filters (Availability, On Modal, Correspondence, orphaned/hide-orphaned, used in a Final paper) — all combine, "Showing X of Y" appears once active, and the active filters are reflected in the URL and preserved through a round trip to the dataset detail page and back
+- Overview table with name, license, assignees (first one shown if there are several), availability badge, and URL; clicking a row opens the dataset detail page
+- Search box plus six filters (Assigned to me, Availability, On Modal, Correspondence, orphaned/hide-orphaned, used in a Final paper) — all combine, "Showing X of Y" appears once active, and the active filters are reflected in the URL and preserved through a round trip to the dataset detail page and back
 - "+ Add Dataset" navigates to a blank detail page; saving POSTs a new record and updates the URL to `?id=<id>`
-- Detail page has fields for name, license, URLs (chip list), availability, whether it's stored on Modal.com, correspondence status with the data owners, and comments; edit locking with 30-minute heartbeat
+- Detail page has fields for name, license, URLs (chip list), assignees, availability, whether it's stored on Modal.com, correspondence status with the data owners, and comments; edit locking with 30-minute heartbeat
+- Assignees is self-assign-only: a single "Assign myself" / "Remove myself" toggle adds or removes your own email — no picker of other users
 - ◀ ▶ buttons step through the same filtered/searched selection the dataset was opened from, with unsaved changes prompting to save before continuing
 - Dataset chips on the review detail page show a ↗ icon that opens the dataset detail page in a new tab
 - Detail page shows a scrollable "Used in Papers" list — every paper referencing this dataset, with a status badge, linking to the paper in a new tab
