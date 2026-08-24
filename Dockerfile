@@ -6,7 +6,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY server.py .
-COPY index.html review-index.html check-index.html paper.html paper-check.html login.html oauth-redirect.html datasets-index.html metrics-index.html dataset.html metric.html stats.html dataset-confirmation-index.html ./
+COPY index.html review-index.html check-index.html paper.html paper-check.html login.html oauth-redirect.html datasets-index.html metrics-index.html dataset.html metric.html stats.html reproduction-index.html reproduction.html ./
 COPY js/ js/
 COPY css/ css/
 COPY data.json .
