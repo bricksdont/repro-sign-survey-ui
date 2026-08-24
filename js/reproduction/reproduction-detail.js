@@ -64,10 +64,17 @@ async function init() {
   updateBackLink();
   computeNavOrder(); // not awaited — fills in ◀ ▶ / the counter once loaded, doesn't block the rest of the page
 
-  const paperId = urlParams.get('paper');
-  if (!paperId) return;
+  const paperIdSlug = urlParams.get('paper_id');
+  if (!paperIdSlug) return;
 
-  paper = await pbGet(`/api/collections/papers/records/${paperId}?expand=datasets,reproductions_via_paper`);
+  // PocketBase's REST API only fetches a single record by its own internal
+  // id, not by an arbitrary unique field — paper_id is unique, but needs a
+  // filtered list query instead of a direct GET-by-id. Keyed by paper_id
+  // (not the PocketBase internal id) to match how every other cross-link in
+  // the frontend references a paper (paper.html, review-index.html, "Used
+  // in Papers"), rather than leaking PocketBase's own internal id into URLs.
+  const result = await pbGet(`/api/collections/papers/records?filter=(paper_id="${paperIdSlug}")&expand=datasets,reproductions_via_paper&perPage=1`);
+  paper = result?.items?.[0];
   if (!paper) return;
   populatePaperInfo(paper);
 
@@ -92,7 +99,6 @@ async function computeNavOrder() {
       const datasets = p.expand?.datasets || [];
       const r = extractRepro(p.expand);
       return {
-        _pb_id: p.id,
         paper_id: p.paper_id,
         title: p.title,
         reproStatus: r?.status || '',
@@ -107,25 +113,29 @@ async function computeNavOrder() {
     const matchesSearch = !ql || p.paper_id.toLowerCase().includes(ql) || (p.title || '').toLowerCase().includes(ql);
     const matchesFilters = FILTERS.every(f => f.match(p, navFilters[f.param]));
     return matchesSearch && matchesFilters;
-  }).map(p => p._pb_id);
+  }).map(p => p.paper_id);
 
   updateReproductionNav();
 }
 
 function updateReproductionNav() {
-  const pos = paper ? navOrder.indexOf(paper.id) : -1;
+  const pos = paper ? navOrder.indexOf(paper.paper_id) : -1;
   document.getElementById('reproduction-counter').textContent =
     pos >= 0 ? `${pos + 1} / ${navOrder.length}` : '—';
   document.getElementById('prev-reproduction').disabled = pos <= 0;
   document.getElementById('next-reproduction').disabled = pos < 0 || pos >= navOrder.length - 1;
 }
 
-// Builds the ?paper=&q=&status=&assigned=&all_available=&all_on_modal= URL
-// for a given paper, carrying the current nav filter along (same
-// omit-at-default convention as buildFilterQuery() elsewhere).
-function buildReproductionUrl(pbId) {
+// Builds the ?paper_id=&q=&status=&assigned=&all_available=&all_on_modal=
+// URL for a given paper, carrying the current nav filter along (same
+// omit-at-default convention as buildFilterQuery() elsewhere). Keyed by the
+// paper's paper_id slug, not the reproduction row's own id or the paper's
+// internal PocketBase id — the page is keyed by paper since a paper may not
+// have a reproduction row yet, and paper_id matches how every other
+// cross-link in the frontend references a paper.
+function buildReproductionUrl(paperIdSlug) {
   const params = new URLSearchParams();
-  params.set('paper', pbId);
+  params.set('paper_id', paperIdSlug);
   if (navQuery) params.set('q', navQuery);
   NAV_FILTER_PARAMS.forEach(p => {
     if (navFilters[p] && navFilters[p] !== 'all') params.set(p, navFilters[p]);
@@ -141,7 +151,7 @@ function buildReproductionUrl(pbId) {
 // on the page rather than risking a silent discard.
 async function goToAdjacentReproduction(offset) {
   if (!paper) return;
-  const pos = navOrder.indexOf(paper.id);
+  const pos = navOrder.indexOf(paper.paper_id);
   const targetPos = pos + offset;
   if (targetPos < 0 || targetPos >= navOrder.length) return;
 
@@ -179,28 +189,44 @@ function populatePaperInfo(p) {
   document.getElementById('info-paper-title').textContent = p.title || '—';
   document.getElementById('info-reviewing-link').href = `paper.html?id=${p.paper_id}`;
 
-  const container = document.getElementById('info-datasets-chips');
-  container.innerHTML = '';
+  const tbody = document.getElementById('info-datasets-tbody');
+  tbody.innerHTML = '';
   const datasets = p.expand?.datasets || [];
   if (datasets.length === 0) {
-    container.innerHTML = '<span class="used-in-papers-empty">No datasets linked to this paper.</span>';
+    tbody.innerHTML = '<tr><td colspan="3" class="no-results">No datasets linked to this paper.</td></tr>';
     return;
   }
   datasets.forEach(d => {
-    const availClass = d.available === 'yes' ? 'chip-avail-yes'
-      : d.available === 'no' ? 'chip-avail-no'
-      : 'chip-avail-unknown';
-    const chip = document.createElement('span');
-    chip.className = `chip ${availClass}`;
+    const tr = document.createElement('tr');
+
+    const nameTd = document.createElement('td');
     const link = document.createElement('a');
     link.href = `dataset.html?id=${d.id}`;
     link.target = '_blank';
     link.rel = 'noopener noreferrer';
-    link.className = 'chip-detail-link';
+    link.className = 'review-link';
     link.textContent = d.name;
-    chip.appendChild(link);
-    container.appendChild(chip);
+    nameTd.appendChild(link);
+    tr.appendChild(nameTd);
+
+    const availTd = document.createElement('td');
+    availTd.innerHTML = datasetYesNoBadge(d.available);
+    tr.appendChild(availTd);
+
+    const modalTd = document.createElement('td');
+    modalTd.innerHTML = datasetYesNoBadge(d.on_modal);
+    tr.appendChild(modalTd);
+
+    tbody.appendChild(tr);
   });
+}
+
+// Both Available and On Modal are the same yes/no/"" (unanswered) shape —
+// same badge convention as datasets-overview.js's yesNoBadge().
+function datasetYesNoBadge(value) {
+  return value === 'yes' ? '<span class="avail-badge avail-yes">Yes</span>'
+    : value === 'no' ? '<span class="avail-badge avail-no">No</span>'
+    : '—';
 }
 
 // ── Form ───────────────────────────────────────────────────────────────────

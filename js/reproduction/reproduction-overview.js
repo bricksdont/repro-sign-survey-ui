@@ -56,7 +56,6 @@ async function init() {
       return {
         ...p,
         id: p.paper_id,   // kebab key used everywhere existing code says p.id
-        _pb_id: p.id,     // PocketBase opaque ID
         datasets,
         reproId: repro?.id || null,
         reproStatus: repro?.status || '', // '' = not started, whether no row exists or row has status:''
@@ -212,14 +211,14 @@ function renderTable(papers) {
       <td>${statusBadge(p.reproStatus)}</td>
       <td>${p.datasets.length > 0 ? yesNoBadge(p.allDatasetsAvailable) : '—'}</td>
       <td>${p.datasets.length > 0 ? yesNoBadge(p.allDatasetsOnModal) : '—'}</td>
-      <td class="col-action"><a href="reproduction.html?paper=${p._pb_id}${qs ? '&' + qs : ''}" class="review-link" onclick="event.stopPropagation()">Details &#8594;</a></td>
+      <td class="col-action"><a href="reproduction.html?paper_id=${p.id}${qs ? '&' + qs : ''}" class="review-link" onclick="event.stopPropagation()">Details &#8594;</a></td>
     `;
     // Same-tab navigation, unlike the old Dataset Confirmation Tracker's
     // new-tab rows — this page is now an active editing workflow (assign
     // yourself, update status), not a static reference list, matching why
     // datasets-index.html → dataset.html is same-tab.
     tr.addEventListener('click', () => {
-      window.location.href = `reproduction.html?paper=${p._pb_id}${qs ? '&' + qs : ''}`;
+      window.location.href = `reproduction.html?paper_id=${p.id}${qs ? '&' + qs : ''}`;
     });
     tbody.appendChild(tr);
   });

@@ -1495,7 +1495,7 @@ test.describe('Reproduction Tracker page', () => {
     test.skip(count === 0, 'No final papers in the backend — skipping');
 
     await rows.first().locator('.col-action a').click();
-    await expect(page).toHaveURL(/reproduction\.html\?paper=/);
+    await expect(page).toHaveURL(/reproduction\.html\?paper_id=/);
   });
 
   test('detail page renders the read-only Paper block and the editable form', async ({ page }) => {
@@ -1505,15 +1505,17 @@ test.describe('Reproduction Tracker page', () => {
     test.skip(count === 0, 'No final papers in the backend — skipping');
 
     await rows.first().click();
-    await expect(page).toHaveURL(/reproduction\.html\?paper=/);
+    await expect(page).toHaveURL(/reproduction\.html\?paper_id=/);
 
     await expect(page.locator('#info-paper-id')).not.toHaveText('');
     await expect(page.locator('#info-paper-title')).not.toHaveText('');
     await expect(page.locator('#info-reviewing-link')).toHaveAttribute('href', /paper\.html\?id=/);
     await expect(page.locator('#info-reviewing-link')).toHaveAttribute('target', '_blank');
     // Finalize already requires ≥1 dataset, so every final paper has at
-    // least one chip here.
-    await expect(page.locator('#info-datasets-chips .chip')).not.toHaveCount(0);
+    // least one row here, each showing an Available and On Modal column.
+    const datasetRows = page.locator('#info-datasets-tbody tr');
+    await expect(datasetRows).not.toHaveCount(0);
+    await expect(datasetRows.first().locator('td')).toHaveCount(3);
 
     await expect(page.locator('input[name="repro_status"]')).toHaveCount(3);
     await expect(page.locator('#assign-me-btn')).toBeVisible();
@@ -1535,7 +1537,7 @@ test.describe('Reproduction Tracker page', () => {
     const candidate = (await res.json()).items.find(p => !(p.expand?.reproductions_via_paper?.length));
     test.skip(!candidate, 'No finalized paper without an existing reproduction row — skipping');
 
-    await page.goto(`/reproduction.html?paper=${candidate.id}`);
+    await page.goto(`/reproduction.html?paper_id=${candidate.paper_id}`);
     await expect(page.locator('#assignees-chips .chip')).toHaveCount(0);
     await expect(page.locator('#assign-me-btn')).toHaveText('Assign myself');
     await expect(page.locator('input[name="repro_status"][value=""]')).toBeChecked();
@@ -1601,7 +1603,7 @@ test.describe('Reproduction Tracker page', () => {
       { headers: { Authorization: `Bearer ${token}` } });
     const beforeData = await before.json();
 
-    await page.goto(`/reproduction.html?paper=${candidate.id}`);
+    await page.goto(`/reproduction.html?paper_id=${candidate.paper_id}`);
     await page.fill('#field-comments', 'independent-lock-regression-check');
     await page.click('#save-btn');
     await expect(page.locator('#save-confirm')).toBeVisible();

@@ -13,7 +13,7 @@
       <nav class="breadcrumb">
         <a href="index.html" class="breadcrumb-link">Home</a>
         <span class="breadcrumb-sep">&#8594;</span>
-        <a href="reproduction-index.html" class="breadcrumb-link" id="breadcrumb-reproduction-link">Reproduction Tracker</a>
+        <a href="reproduction-index.html" class="breadcrumb-link" id="breadcrumb-reproduction-link">Reproduction</a>
         <span class="breadcrumb-sep">&#8594;</span>
         <span class="breadcrumb-current" id="breadcrumb-name">&#8230;</span>
       </nav>
@@ -23,7 +23,7 @@
           <span id="reproduction-counter" class="dataset-counter">1 / 1</span>
           <button id="next-reproduction" title="Next paper" disabled>&#9654;</button>
         </div>
-        <div class="account-menu">
+        <div class="account-menu hidden">
           <button id="account-btn" class="btn-account">Account</button>
           <div id="account-dropdown" class="account-dropdown hidden">
             <div id="account-email" class="account-email"></div>
@@ -37,9 +37,12 @@
     <div id="locked-notice" class="locked-notice hidden">This reproduction is being edited by another user.</div>
 
     <div id="paper-info-section" class="stats-section detail-form">
-      <div class="stats-section-title">Paper</div>
+      <div class="paper-info-header">
+        <div class="stats-section-title">Paper</div>
+        <a id="info-reviewing-link" href="#" target="_blank" rel="noopener noreferrer" class="review-link">Open in Reviewing &#8594;</a>
+      </div>
       <div class="dataset-form-group">
-        <label class="dataset-form-label">Paper ID</label>
+        <label class="dataset-form-label">ID</label>
         <div id="info-paper-id" class="field-display"></div>
       </div>
       <div class="dataset-form-group">
@@ -47,11 +50,17 @@
         <div id="info-paper-title" class="field-display"></div>
       </div>
       <div class="dataset-form-group">
-        <a id="info-reviewing-link" href="#" target="_blank" rel="noopener noreferrer" class="review-link">Open in Reviewing &#8594;</a>
-      </div>
-      <div class="dataset-form-group">
         <label class="dataset-form-label">Datasets</label>
-        <div id="info-datasets-chips" class="chip-container"></div>
+        <table class="papers-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Available</th>
+              <th>On Modal</th>
+            </tr>
+          </thead>
+          <tbody id="info-datasets-tbody"></tbody>
+        </table>
       </div>
     </div>
 
@@ -62,11 +71,11 @@
         <button type="button" id="assign-me-btn" class="text-action-btn" aria-pressed="false">Assign myself</button>
       </div>
       <div class="dataset-form-group">
-        <label class="dataset-form-label">Reproduction Status</label>
+        <label class="dataset-form-label">Reproduction status</label>
         <div class="dataset-radio-group">
-          <label><input type="radio" name="repro_status" value=""> Not started</label>
-          <label><input type="radio" name="repro_status" value="in_progress"> In progress</label>
           <label><input type="radio" name="repro_status" value="finished"> Finished</label>
+          <label><input type="radio" name="repro_status" value="in_progress"> In progress</label>
+          <label><input type="radio" name="repro_status" value=""> Not started</label>
         </div>
       </div>
       <div class="dataset-form-group">

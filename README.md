@@ -12,7 +12,7 @@ A landing page routes annotators to either task. Each task has its own overview 
 
 ## Features
 
-- Landing page with task cards routing to Reviewing, the Review Stats dashboard, the Datasets catalogue, the Metrics catalogue, and Reproducing (the Reproduction Tracker) (Checking is reachable via a direct link but deliberately has no landing-page card for now)
+- Landing page with task cards routing to Reviewing, the Review Stats dashboard, the Datasets catalogue, the Metrics catalogue, and Reproducing (Beta) (the Reproduction Tracker) (Checking is reachable via a direct link but deliberately has no landing-page card for now)
 - Version badge (`v<version>`) in the corner of the landing page, linking to the matching GitHub release
 - Breadcrumb navigation (`Home → Reviewing` / `Home → Checking` / `Home → Datasets` / `Home → Metrics`) on all task pages
 
@@ -63,9 +63,9 @@ A landing page routes annotators to either task. Each task has its own overview 
 - Computed entirely client-side from the `papers` collection — no backend aggregation endpoint, no charting library
 
 **Reproduction Tracker** (`reproduction-index.html` / `reproduction.html`) — tracks actual reproduction effort (not just dataset availability) for every finalized paper:
-- Overview table with Paper ID, Title, Assignees (first one shown if there are several), Reproduction Status, All Datasets Available, All Datasets On Modal; search box plus filters for Reproduction status, Assigned to me, All datasets available, All datasets on Modal — active filters reflected in the URL, bookmarkable/shareable
+- Overview table with Paper ID, Title, Assignees (first one shown if there are several), Reproduction status, All Datasets Available, All Datasets On Modal; search box plus filters for Reproduction status, Assigned to me, All datasets available, All datasets on Modal — active filters reflected in the URL, bookmarkable/shareable
 - Clicking a row opens the reproduction detail page in the same tab, carrying the active filter; ◀ ▶ buttons step through the same filtered selection
-- Detail page shows read-only paper info (Paper ID, Title, a link to the paper's reviewing form, and its associated datasets as colored availability chips linking to their detail pages) plus an editable form: Assignees (self-assign-only, same pattern as the Datasets catalogue), Reproduction Status (Not started / In progress / Finished), URL chips, and Comments
+- Detail page shows read-only paper info (Paper ID, Title, a link to the paper's reviewing form, and its associated datasets as colored availability chips linking to their detail pages) plus an editable form: Assignees (self-assign-only, same pattern as the Datasets catalogue), Reproduction status (Finished / In progress / Not started), URL chips, and Comments
 - Backed by a separate `reproductions` collection (one row per paper, created lazily on first save — a paper with no row *is* "not started") with its own independent edit lock, so reviewing a paper and tracking its reproduction never block each other
 
 **Shared features:**

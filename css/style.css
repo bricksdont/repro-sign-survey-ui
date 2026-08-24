@@ -222,6 +222,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px; /* keeps a minimum gap once a long truncated breadcrumb (e.g. reproduction.html's paper title) shrinks right up against the ◀ ▶ nav / Account controls, rather than sitting flush against them */
   margin-bottom: 24px;
 }
 
@@ -231,6 +232,7 @@ body {
   gap: 8px;
   font-size: 20px;
   font-weight: 700;
+  min-width: 0; /* allow shrinking below content width — see .breadcrumb-current */
 }
 
 .breadcrumb-link {
@@ -249,6 +251,15 @@ body {
 
 .breadcrumb-current {
   color: #111;
+  /* A long paper title (reproduction.html) would otherwise wrap onto
+     multiple lines — truncate to one line instead. min-width: 0 overrides
+     a flex item's default min-width: auto, which would otherwise floor
+     this at the text's own full width and prevent it from ever shrinking
+     enough for the ellipsis to apply. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .header-actions {
@@ -619,7 +630,7 @@ a.stat-bar-label:hover {
 }
 
 .back-link {
-  font-size: 13px;
+  font-size: 14px; /* matches .btn-primary's Save button, which it sits next to in every detail-footer */
   color: #4a90d9;
   text-decoration: none;
   font-weight: 500;
@@ -1614,10 +1625,65 @@ hr.field-divider {
   gap: 6px;
 }
 
+/* 14px matches .field-display/.field-input's own size — every label on
+   dataset.html/metric.html/reproduction.html now sits at the same size as
+   the field it labels, so weight/color alone carry the label/value
+   distinction rather than a size mismatch on top. Also fixes reproduction.
+   html's read-only Paper block (ID/Title/Datasets), which reads as
+   headings introducing what follows (a plain value, or for Datasets a
+   whole embedded table with its own NAME/AVAILABLE/ON MODAL column
+   headers) — a muted uppercase caption there would instead read as the
+   same hierarchy level as .papers-table th's column headers. */
 .dataset-form-label {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: #444;
+}
+/* Paper section vertical rhythm: #paper-info-section is a .stats-section
+   card, not a .dataset-form, so it never got that class's flex column +
+   16px gap between groups — consecutive .dataset-form-groups (Open in
+   Reviewing / Paper ID / Title / Datasets) just stacked with zero space
+   between them, while WITHIN each group .dataset-form-group's own 6px gap
+   plus .field-display's 6px top padding compounded to 12px between a label
+   and its value — backwards from the intended reading order (tight within
+   a label/value pair, loose between distinct ones). Also neutralizes
+   .chip-container's own 8px margin-bottom on the Datasets row so its
+   trailing space matches every other group's, governed by the same 16px
+   gap instead of its own separate value. */
+#paper-info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+#paper-info-section .dataset-form-group {
+  gap: 4px;
+}
+
+#paper-info-section .field-display {
+  padding: 0;
+  font-weight: 400; /* the label is now the bold element in this pair — see .dataset-form-label above */
+}
+
+#paper-info-section .chip-container {
+  margin-bottom: 0;
+}
+
+/* "Paper" + "Open in Reviewing →" share one row, the link pushed to the
+   card's right edge — replaces the link's own separate .dataset-form-group
+   row below the title. */
+.paper-info-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* .stats-section-title's own 14px margin-bottom stacked on top of the 16px
+   flex gap above, doubling the space between the "Paper"/"Open in
+   Reviewing →" row and "Paper ID" below it — the flex gap alone is enough,
+   same as every other gap in this section. */
+#paper-info-section .stats-section-title {
+  margin-bottom: 0;
 }
 
 .required-star {
@@ -1674,33 +1740,6 @@ hr.field-divider {
   color: #7a4200;
 }
 
-/* Dataset chip color variants — used on the Reproduction Tracker detail
-   page's read-only Datasets list. Same palette as .avail-yes/.avail-no
-   above, plus a neutral gray for an unanswered availability field. */
-.chip-avail-yes {
-  background: #d4edda;
-  color: #1a6b30;
-}
-
-.chip-avail-no {
-  background: #fde8e8;
-  color: #9b1c1c;
-}
-
-.chip-avail-unknown {
-  background: #eee;
-  color: #666;
-}
-
-/* .chip-detail-link defaults to color: inherit (matching the availability
-   color above); override to the standard link-blue here so the chip still
-   visibly reads as clickable regardless of its availability color. */
-.chip-avail-yes .chip-detail-link,
-.chip-avail-no .chip-detail-link,
-.chip-avail-unknown .chip-detail-link {
-  color: #4a90d9;
-}
-
 .dataset-url-cell {
   max-width: 280px;
   overflow: hidden;
@@ -1741,6 +1780,13 @@ hr.field-divider {
    <div class="overview">, rather than changing .detail-form itself, since
    metric.html shares that class and has no ◀ ▶ nav widening its header. */
 .overview-detail-nav .detail-form {
+  max-width: none;
+}
+
+/* .detail-footer has the same 560px cap as .detail-form (below), which
+   wasn't overridden here — so its Save button sat at the 560px mark
+   instead of flush with the now-full-width container's right edge. */
+.overview-detail-nav .detail-footer {
   max-width: none;
 }
 
