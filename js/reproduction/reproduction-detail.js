@@ -28,7 +28,13 @@ const FILTERS = [
   },
   {
     param: 'assigned', default: 'all',
-    match: (p, v) => v === 'all' || (!!getEmail() && p.reproAssignees.includes(getEmail())),
+    match: (p, v) => {
+      if (v === 'all') return true;
+      if (v === 'mine') return !!getEmail() && p.reproAssignees.includes(getEmail());
+      if (v === 'anyone') return p.reproAssignees.length > 0;
+      if (v === 'nobody') return p.reproAssignees.length === 0;
+      return true;
+    },
   },
   {
     param: 'all_available', default: 'all',
