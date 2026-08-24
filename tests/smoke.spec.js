@@ -1488,6 +1488,19 @@ test.describe('Reproduction Tracker page', () => {
     await expect(page.locator('#filter-assigned')).toHaveValue('mine');
   });
 
+  test('the assigned-to filter\'s "anyone"/"nobody" options partition the paper list', async ({ page }) => {
+    await page.goto('/reproduction-index.html');
+    const totalRows = await page.locator('.paper-row').count();
+    test.skip(totalRows === 0, 'No final papers in the backend — skipping');
+
+    await page.selectOption('#filter-assigned', 'anyone');
+    const anyoneCount = await page.locator('.paper-row').count();
+    await page.selectOption('#filter-assigned', 'nobody');
+    const nobodyCount = await page.locator('.paper-row').count();
+    expect(anyoneCount + nobodyCount).toBe(totalRows);
+    await expect(page).toHaveURL(/[?&]assigned=nobody/);
+  });
+
   test('row click and Details → both navigate to reproduction.html in the same tab, carrying the active filter', async ({ page }) => {
     await page.goto('/reproduction-index.html');
     const rows = page.locator('.paper-row');
