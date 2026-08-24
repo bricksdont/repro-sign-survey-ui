@@ -12,7 +12,7 @@ A landing page routes annotators to either task. Each task has its own overview 
 
 ## Features
 
-- Landing page with task cards routing to Reviewing, the Review Stats dashboard, the Datasets catalogue, the Metrics catalogue, and the Dataset Confirmation Tracker (Checking is reachable via a direct link but deliberately has no landing-page card for now)
+- Landing page with task cards routing to Reviewing, the Review Stats dashboard, the Datasets catalogue, the Metrics catalogue, and Reproducing (Beta) (the Reproduction Tracker) (Checking is reachable via a direct link but deliberately has no landing-page card for now)
 - Version badge (`v<version>`) in the corner of the landing page, linking to the matching GitHub release
 - Breadcrumb navigation (`Home → Reviewing` / `Home → Checking` / `Home → Datasets` / `Home → Metrics`) on all task pages
 
@@ -62,7 +62,11 @@ A landing page routes annotators to either task. Each task has its own overview 
 - A compact Yes/No/N-A/Unanswered table for Peer-Reviewed, Ranking, Copied Baseline Scores, Human Evaluation, and Ethical Concerns
 - Computed entirely client-side from the `papers` collection — no backend aggregation endpoint, no charting library
 
-**Dataset Confirmation Tracker** (`dataset-confirmation-index.html`) — every finalized paper, with an All / Confirmed / Unconfirmed filter: "Confirmed" means every dataset the paper uses has the same definitive availability answer (all available, or all unavailable — the investigation is settled either way); "Unconfirmed" covers a mix, or any dataset still unanswered. The active filter is reflected in the URL, so a filtered view is bookmarkable/shareable. Datasets render as clickable chips linking to their detail page, colored green/red/gray by availability. Each row also links to the paper's detail page in a new tab. A "Download JSON" button exports whatever's currently shown (respecting the active filter) as a JSON file, with per-editor locking fields stripped. Computed entirely client-side, same as Review Stats.
+**Reproduction Tracker** (`reproduction-index.html` / `reproduction.html`) — tracks actual reproduction effort (not just dataset availability) for every finalized paper:
+- Overview table with Paper ID, Title, Assignees (first one shown if there are several), Reproduction status, All Datasets Available, All Datasets On Modal; search box plus filters for Reproduction status, Assigned to me, All datasets available, All datasets on Modal — active filters reflected in the URL, bookmarkable/shareable
+- Clicking a row opens the reproduction detail page in the same tab, carrying the active filter; ◀ ▶ buttons step through the same filtered selection
+- Detail page shows read-only paper info (Paper ID, Title, a link to the paper's reviewing form, and its associated datasets as colored availability chips linking to their detail pages) plus an editable form: Assignees (self-assign-only, same pattern as the Datasets catalogue), Reproduction status (Finished / In progress / Not started), URL chips, and Comments
+- Backed by a separate `reproductions` collection (one row per paper, created lazily on first save — a paper with no row *is* "not started") with its own independent edit lock, so reviewing a paper and tracking its reproduction never block each other
 
 **Shared features:**
 - Paper navigation (◀ ▶); each paper has a stable URL with a one-click Copy Link button. Opening a paper from a filtered/searched overview list carries that filter into the URL (`?q=`/`?status=`), keeping ◀ ▶ within that subset while browsing; a bare link always navigates the full collection. Copy Link always copies the plain `?id=` link, stripping any active filter — a shared link stays simple. Returning to the overview (e.g. via Back) restores the same search/filter, which also has a one-click × clear button
