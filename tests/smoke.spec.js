@@ -1389,8 +1389,23 @@ test.describe('Review Stats page', () => {
     await page.goto('/stats.html');
     await expect(page.locator('#stats-summary')).toContainText('papers total');
     await expect(page.locator('#status-breakdown .stat-bar-row')).toHaveCount(4);
+    await expect(page.locator('#sub-area-breakdown')).toBeVisible();
     await expect(page.locator('#fields-breakdown tr')).toHaveCount(5);
     await expect(page.locator('a[href="index.html"]')).toBeVisible();
+  });
+
+  test('the subnav links to the other two stats pages, with the current page highlighted (#103)', async ({ page }) => {
+    await page.goto('/stats.html');
+    await expect(page.locator('.stats-subnav .filter-btn', { hasText: 'Reviewing' })).toHaveClass(/active/);
+    await expect(page.locator('.stats-subnav .filter-btn', { hasText: 'Datasets' })).not.toHaveClass(/active/);
+
+    await page.click('.stats-subnav .filter-btn:has-text("Datasets")');
+    await expect(page).toHaveURL(/dataset-stats\.html/);
+    await expect(page.locator('.stats-subnav .filter-btn', { hasText: 'Datasets' })).toHaveClass(/active/);
+
+    await page.click('.stats-subnav .filter-btn:has-text("Reproduction")');
+    await expect(page).toHaveURL(/reproduction-stats\.html/);
+    await expect(page.locator('.stats-subnav .filter-btn', { hasText: 'Reproduction' })).toHaveClass(/active/);
   });
 
   test('clickable Top Datasets/Metrics labels are visually distinct from non-clickable ones', async ({ page }) => {
@@ -1448,6 +1463,86 @@ test.describe('Review Stats page', () => {
     await page.goto('/');
     await page.click('a[href="stats.html"]');
     await expect(page).toHaveURL(/stats\.html/);
+  });
+});
+
+test.describe('Dataset Stats page', () => {
+  test('reachable via the subnav from the Review Stats page (#103)', async ({ page }) => {
+    await page.goto('/stats.html');
+    await page.click('.stats-subnav .filter-btn:has-text("Datasets")');
+    await expect(page).toHaveURL(/dataset-stats\.html/);
+  });
+
+  test('renders the summary and all breakdown sections', async ({ page }) => {
+    await page.goto('/dataset-stats.html');
+    await expect(page.locator('#stats-summary')).toContainText('datasets total');
+    await expect(page.locator('#availability-breakdown .stat-bar-row')).toHaveCount(3);
+    await expect(page.locator('#on-modal-breakdown .stat-bar-row')).toHaveCount(3);
+    await expect(page.locator('#correspondence-breakdown .stat-bar-row')).toHaveCount(3);
+    await expect(page.locator('#top-assignees')).toBeVisible();
+    await expect(page.locator('a[href="index.html"]')).toBeVisible();
+  });
+
+  test('the availability/on-Modal/correspondence breakdown counts sum to the dataset total (#103)', async ({ page }) => {
+    await page.goto('/dataset-stats.html');
+    const total = Number((await page.locator('#stats-summary .stat-num').textContent()).trim());
+
+    for (const containerId of ['availability-breakdown', 'on-modal-breakdown', 'correspondence-breakdown']) {
+      const counts = await page.locator(`#${containerId} .stat-bar-count`).allTextContents();
+      const sum = counts.reduce((a, b) => a + Number(b), 0);
+      expect(sum).toBe(total);
+    }
+  });
+
+  test('the "Used in a Final paper" toggle defaults to showing all datasets, then reduces the total and every breakdown recomputes against it, with the URL syncing', async ({ page }) => {
+    await page.goto('/dataset-stats.html');
+    await expect(page.locator('#filter-final-paper')).toHaveValue('all');
+    await expect(page.locator('#filter-final-paper')).not.toHaveClass(/active/);
+    const totalAll = Number((await page.locator('#stats-summary .stat-num').textContent()).trim());
+
+    await page.selectOption('#filter-final-paper', 'only');
+    await expect(page).toHaveURL(/[?&]final=only/);
+    await expect(page.locator('#filter-final-paper')).toHaveClass(/active/);
+    const totalOnly = Number((await page.locator('#stats-summary .stat-num').textContent()).trim());
+    test.skip(totalOnly === 0, 'No datasets used in a final paper — skipping');
+    expect(totalOnly).toBeLessThanOrEqual(totalAll);
+
+    // Breakdowns recompute against the filtered subset, not the full set.
+    const availCounts = await page.locator('#availability-breakdown .stat-bar-count').allTextContents();
+    expect(availCounts.reduce((a, b) => a + Number(b), 0)).toBe(totalOnly);
+
+    // Restores on direct navigation.
+    await page.goto('/dataset-stats.html?final=only');
+    await expect(page.locator('#filter-final-paper')).toHaveValue('only');
+    await expect(page.locator('#filter-final-paper')).toHaveClass(/active/);
+  });
+});
+
+test.describe('Reproduction Stats page', () => {
+  test('reachable via the subnav from the Review Stats page (#103)', async ({ page }) => {
+    await page.goto('/stats.html');
+    await page.click('.stats-subnav .filter-btn:has-text("Reproduction")');
+    await expect(page).toHaveURL(/reproduction-stats\.html/);
+  });
+
+  test('renders the summary and all breakdown sections', async ({ page }) => {
+    await page.goto('/reproduction-stats.html');
+    await expect(page.locator('#stats-summary')).toContainText('final papers total');
+    await expect(page.locator('#status-breakdown .stat-bar-row')).toHaveCount(3);
+    await expect(page.locator('#all-available-breakdown .stat-bar-row')).toHaveCount(2);
+    await expect(page.locator('#all-on-modal-breakdown .stat-bar-row')).toHaveCount(2);
+    await expect(page.locator('#top-assignees')).toBeVisible();
+    await expect(page.locator('a[href="index.html"]')).toBeVisible();
+  });
+
+  test('the reproduction status breakdown counts sum to the final-papers total, including "Not started" (#103)', async ({ page }) => {
+    await page.goto('/reproduction-stats.html');
+    const total = Number((await page.locator('#stats-summary .stat-num').textContent()).trim());
+    test.skip(total === 0, 'No final papers in the backend — skipping');
+
+    const counts = await page.locator('#status-breakdown .stat-bar-count').allTextContents();
+    const sum = counts.reduce((a, b) => a + Number(b), 0);
+    expect(sum).toBe(total);
   });
 });
 

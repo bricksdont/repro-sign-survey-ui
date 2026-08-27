@@ -12,7 +12,7 @@ A landing page routes annotators to either task. Each task has its own overview 
 
 ## Features
 
-- Landing page with task cards routing to Reviewing, the Review Stats dashboard, the Datasets catalogue, the Metrics catalogue, and Reproducing (Beta) (the Reproduction Tracker) (Checking is reachable via a direct link but deliberately has no landing-page card for now)
+- Landing page with task cards routing to Reviewing, the Stats dashboards (Reviewing/Datasets/Reproduction, tied together by a subnav), the Datasets catalogue, the Metrics catalogue, and Reproducing (Beta) (the Reproduction Tracker) (Checking is reachable via a direct link but deliberately has no landing-page card for now)
 - Version badge (`v<version>`) in the corner of the landing page, linking to the matching GitHub release
 - Breadcrumb navigation (`Home → Reviewing` / `Home → Checking` / `Home → Datasets` / `Home → Metrics`) on all task pages
 
@@ -54,13 +54,19 @@ A landing page routes annotators to either task. Each task has its own overview 
 - Metric chips on the review detail page show a ↗ icon that opens the metric detail page in a new tab
 - Detail page shows the same "Used in Papers" list as the dataset detail page
 
-**Review Stats dashboard** — reviewing progress at a glance (named to distinguish it from any future Checking-task stats):
+**Stats dashboards** — three separate pages, tied together by a pill-style subnav at the top of each (a real link to the other two pages, not a JS tab switch):
+
+*Review Stats* (`stats.html`) — reviewing progress at a glance (named to distinguish it from any future Checking-task stats):
 - Total paper count and a status breakdown bar chart (Needs Review / Final / Flagged / Rejected)
 - Top reviewers by email — every status-change action (Finalize, Flag, Reject, Clear/Revert), not just Finalize, so flag/reject work is credited too
 - Top datasets and top metrics used across all papers, linking to their catalogue detail pages in a new tab
-- Breakdown of papers by Area of SLP
+- Breakdown of papers by Area of SLP and by Sub-area of SLP
 - A compact Yes/No/N-A/Unanswered table for Peer-Reviewed, Ranking, Copied Baseline Scores, Human Evaluation, and Ethical Concerns
 - Computed entirely client-side from the `papers` collection — no backend aggregation endpoint, no charting library
+
+*Dataset Stats* (`dataset-stats.html`) — Availability / On Modal / Correspondence breakdowns for the whole dataset catalogue, plus Top Assignees (who's doing the most dataset-tracking work); a "Used in a Final paper" toggle (off by default) narrows every number on the page — summary count included — down to just the datasets referenced by a finalized paper
+
+*Reproduction Stats* (`reproduction-stats.html`) — Reproduction Status breakdown (Not started / In progress / Finished) across every finalized paper, Top Assignees, and All Datasets Available / All Datasets On Modal breakdowns
 
 **Reproduction Tracker** (`reproduction-index.html` / `reproduction.html`) — tracks actual reproduction effort (not just dataset availability) for every finalized paper:
 - Overview table with Paper ID, Title, Assignees (first one shown if there are several), Reproduction status, All Datasets Available, All Datasets On Modal; search box plus filters for Reproduction status, Assigned to (all / only me / anyone / nobody), All datasets available, All datasets on Modal — active filters reflected in the URL, bookmarkable/shareable

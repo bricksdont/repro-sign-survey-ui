@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "validate:html": "html-validate index.html review-index.html check-index.html paper.html paper-check.html login.html oauth-redirect.html datasets-index.html metrics-index.html dataset.html metric.html stats.html reproduction-index.html reproduction.html",
+    "validate:html": "html-validate index.html review-index.html check-index.html paper.html paper-check.html login.html oauth-redirect.html datasets-index.html metrics-index.html dataset.html metric.html stats.html dataset-stats.html reproduction-stats.html reproduction-index.html reproduction.html",
     "test": "playwright test"
   },
   "devDependencies": {

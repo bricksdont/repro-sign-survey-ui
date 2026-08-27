@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>REPRO-SIGN Survey Tool — Review Stats</title>
+  <title>REPRO-SIGN Survey Tool — Dataset Stats</title>
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -13,7 +13,7 @@
       <nav class="breadcrumb">
         <a href="index.html" class="breadcrumb-link">Home</a>
         <span class="breadcrumb-sep">&#8594;</span>
-        <span class="breadcrumb-current">Review Stats</span>
+        <span class="breadcrumb-current">Dataset Stats</span>
       </nav>
       <div class="header-actions">
         <div class="account-menu">
@@ -28,61 +28,39 @@
     </div>
 
     <div class="stats-subnav status-filters">
-      <a href="stats.html" class="filter-btn active">Reviewing</a>
-      <a href="dataset-stats.html" class="filter-btn">Datasets</a>
+      <a href="stats.html" class="filter-btn">Reviewing</a>
+      <a href="dataset-stats.html" class="filter-btn active">Datasets</a>
       <a href="reproduction-stats.html" class="filter-btn">Reproduction</a>
+      <select id="filter-final-paper" class="filter-select filter-bar-right">
+        <option value="all">Final paper: All</option>
+        <option value="only">Used in a Final paper</option>
+      </select>
     </div>
 
     <div id="stats-summary" class="stats-row"></div>
 
     <div class="stats-section">
-      <div class="stats-section-title">Status Breakdown</div>
-      <div id="status-breakdown"></div>
+      <div class="stats-section-title">Availability</div>
+      <div id="availability-breakdown"></div>
     </div>
 
     <div class="stats-section">
-      <div class="stats-section-title">Top Reviewers</div>
-      <div id="top-reviewers"></div>
+      <div class="stats-section-title">On Modal</div>
+      <div id="on-modal-breakdown"></div>
     </div>
 
     <div class="stats-section">
-      <div class="stats-section-title">Top Datasets</div>
-      <div id="top-datasets"></div>
+      <div class="stats-section-title">Correspondence</div>
+      <div id="correspondence-breakdown"></div>
     </div>
 
     <div class="stats-section">
-      <div class="stats-section-title">Top Metrics</div>
-      <div id="top-metrics"></div>
-    </div>
-
-    <div class="stats-section">
-      <div class="stats-section-title">Papers by Area of SLP</div>
-      <div id="area-breakdown"></div>
-    </div>
-
-    <div class="stats-section">
-      <div class="stats-section-title">Papers by Sub-area of SLP</div>
-      <div id="sub-area-breakdown"></div>
-    </div>
-
-    <div class="stats-section">
-      <div class="stats-section-title">Answered Fields</div>
-      <table class="stats-table">
-        <thead>
-          <tr>
-            <th>Field</th>
-            <th>Yes</th>
-            <th>No</th>
-            <th>N/A</th>
-            <th>Unanswered</th>
-          </tr>
-        </thead>
-        <tbody id="fields-breakdown"></tbody>
-      </table>
+      <div class="stats-section-title">Top Assignees</div>
+      <div id="top-assignees"></div>
     </div>
   </div>
   <script src="js/api.js"></script>
   <script src="js/stats/stats-shared.js"></script>
-  <script src="js/stats/stats.js"></script>
+  <script src="js/stats/dataset-stats.js"></script>
 </body>
 </html>
