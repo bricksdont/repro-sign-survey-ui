@@ -540,6 +540,22 @@ a.stat-bar-label:hover {
   color: #fff;
 }
 
+/* .filter-btn has only ever been a <button> until the stats subnav
+   (issue #103) used it on real <a> links instead — a plain page navigation
+   between stats.html/dataset-stats.html/reproduction-stats.html, not a
+   client-side toggle. Anchors default to underlined/inline, neither of
+   which fits the pill look; same fix as the existing a.stat-bar-label
+   override below. */
+a.filter-btn {
+  display: inline-block;
+  text-decoration: none;
+}
+
+/* Stats subnav (issue #103) — spacing before the summary row below it. */
+.stats-subnav {
+  margin-bottom: 20px;
+}
+
 .results-count {
   font-size: 13px;
   color: #888;

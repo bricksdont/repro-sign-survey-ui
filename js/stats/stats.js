@@ -5,18 +5,9 @@ async function loadPapers() {
   return pbGetAll('papers', '&expand=datasets,metrics');
 }
 
-// ── Tally helpers ────────────────────────────────────────────────────────
-
-// Counts occurrences of keyFn(item) across items, skipping null/undefined/''.
-function tally(items, keyFn) {
-  const counts = new Map();
-  items.forEach(item => {
-    const key = keyFn(item);
-    if (key === undefined || key === null || key === '') return;
-    counts.set(key, (counts.get(key) || 0) + 1);
-  });
-  return counts;
-}
+// ── Helpers ──────────────────────────────────────────────────────────────
+// tally/sortedEntries/renderBarSection/renderFixedBreakdown live in
+// js/stats/stats-shared.js, loaded before this file.
 
 // Normalizes peer_reviewed's legacy bool values alongside the current
 // yes/no/na strings (see CLAUDE.md — populateForm has the same fallback).
@@ -24,10 +15,6 @@ function normalizeYesNoNa(value) {
   if (value === true)  return 'yes';
   if (value === false) return 'no';
   return value || '';
-}
-
-function sortedEntries(counts) {
-  return [...counts.entries()].sort((a, b) => b[1] - a[1]);
 }
 
 // ── Rendering ────────────────────────────────────────────────────────────
@@ -48,63 +35,6 @@ function availabilityBadge(available) {
     slot.appendChild(badge);
   }
   return slot;
-}
-
-function renderBarSection(containerId, entries, { emptyMessage, topN = 10, linkFn, badgeFn, color = '#4a90d9' } = {}) {
-  const container = document.getElementById(containerId);
-  container.innerHTML = '';
-
-  if (entries.length === 0) {
-    container.innerHTML = `<div class="stats-empty">${emptyMessage}</div>`;
-    return;
-  }
-
-  const shown = entries.slice(0, topN);
-  const max = shown[0][1];
-
-  shown.forEach(([label, count]) => {
-    const row = document.createElement('div');
-    row.className = 'stat-bar-row';
-
-    const href = linkFn ? linkFn(label) : null;
-    const labelEl = document.createElement(href ? 'a' : 'span');
-    labelEl.className = 'stat-bar-label';
-    labelEl.textContent = label;
-    labelEl.title = label;
-    if (href) {
-      labelEl.href = href;
-      // Opens in a new tab, same as the "Used in Papers" links — clicking
-      // away from stats.html shouldn't lose your place in the dashboard.
-      labelEl.target = '_blank';
-      labelEl.rel = 'noopener noreferrer';
-    }
-
-    const track = document.createElement('div');
-    track.className = 'stat-bar-track';
-    const fill = document.createElement('div');
-    fill.className = 'stat-bar-fill';
-    fill.style.width = `${(count / max) * 100}%`;
-    fill.style.background = color;
-    track.appendChild(fill);
-
-    const countEl = document.createElement('span');
-    countEl.className = 'stat-bar-count';
-    countEl.textContent = count;
-
-    row.appendChild(labelEl);
-    const badge = badgeFn ? badgeFn(label) : null;
-    if (badge) row.appendChild(badge);
-    row.appendChild(track);
-    row.appendChild(countEl);
-    container.appendChild(row);
-  });
-
-  if (entries.length > topN) {
-    const more = document.createElement('div');
-    more.className = 'stats-empty';
-    more.textContent = `+ ${entries.length - topN} more`;
-    container.appendChild(more);
-  }
 }
 
 function renderFieldsTable(papers) {
@@ -155,28 +85,6 @@ const STATUS_COLORS = {
   rejected:     '#c0392b',
 };
 
-function renderStatusBreakdown(papers) {
-  const counts = tally(papers, p => p.status || 'needs_review');
-  const container = document.getElementById('status-breakdown');
-  container.innerHTML = '';
-
-  const max = Math.max(...Object.keys(STATUS_LABELS).map(s => counts.get(s) || 0), 1);
-
-  Object.keys(STATUS_LABELS).forEach(status => {
-    const count = counts.get(status) || 0;
-    const row = document.createElement('div');
-    row.className = 'stat-bar-row';
-    row.innerHTML = `
-      <span class="stat-bar-label">${STATUS_LABELS[status]}</span>
-      <div class="stat-bar-track">
-        <div class="stat-bar-fill" style="width:${(count / max) * 100}%; background:${STATUS_COLORS[status]}"></div>
-      </div>
-      <span class="stat-bar-count">${count}</span>
-    `;
-    container.appendChild(row);
-  });
-}
-
 function renderSummary(papers) {
   document.getElementById('stats-summary').innerHTML =
     `<span class="stat"><span class="stat-num">${papers.length}</span> papers total</span>`;
@@ -188,7 +96,7 @@ async function init() {
   const papers = await loadPapers();
 
   renderSummary(papers);
-  renderStatusBreakdown(papers);
+  renderFixedBreakdown('status-breakdown', tally(papers, p => p.status || 'needs_review'), STATUS_LABELS, STATUS_COLORS);
 
   // Counts every status-change entry (Finalize, Flag, Reject, Clear/Revert)
   // per person, not just papers.finalized_by — that only credited Finalize,
@@ -238,6 +146,20 @@ async function init() {
   });
   renderBarSection('area-breakdown', sortedEntries(areaCounts), {
     emptyMessage: 'No SLP areas recorded yet.',
+    topN: 12,
+    color: '#8e6fce',
+  });
+
+  // Sub-area of SLP (issue #101 field, issue #103 stats addition) — same
+  // shape/pattern as Area of SLP above, just reading the other field.
+  const subAreaCounts = new Map();
+  papers.forEach(p => {
+    (Array.isArray(p.sub_area_of_slp) ? p.sub_area_of_slp : []).forEach(subArea => {
+      subAreaCounts.set(subArea, (subAreaCounts.get(subArea) || 0) + 1);
+    });
+  });
+  renderBarSection('sub-area-breakdown', sortedEntries(subAreaCounts), {
+    emptyMessage: 'No SLP sub-areas recorded yet.',
     topN: 12,
     color: '#8e6fce',
   });
