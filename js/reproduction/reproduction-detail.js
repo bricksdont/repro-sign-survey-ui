@@ -194,6 +194,11 @@ function populatePaperInfo(p) {
   document.getElementById('info-paper-id').textContent = p.paper_id;
   document.getElementById('info-paper-title').textContent = p.title || '—';
   document.getElementById('info-reviewing-link').href = `paper.html?id=${p.paper_id}`;
+  // Enabled here (not gated on a reproduction row existing yet) — /export
+  // 404s with a clear message if nothing's been started for this paper,
+  // same as clicking it before anything's been saved would naturally show.
+  document.getElementById('export-json-btn').disabled = false;
+  document.getElementById('copy-link-btn').disabled = false;
 
   const tbody = document.getElementById('info-datasets-tbody');
   tbody.innerHTML = '';
@@ -445,6 +450,20 @@ function wireAccountMenu() {
   });
 }
 
+function copyLink() {
+  // Deliberately strips the nav-filter params (status/assigned/all_available/
+  // all_on_modal) and search q — a shared/copied link should stay a plain,
+  // interpretable link to this one reproduction, not carry the sender's
+  // current overview filter along with it.
+  const plainUrl = `${window.location.origin}${window.location.pathname}?paper_id=${paper.paper_id}`;
+  navigator.clipboard.writeText(plainUrl).then(() => {
+    const btn = document.getElementById('copy-link-btn');
+    const original = btn.innerHTML;
+    btn.textContent = 'Copied ✓';
+    setTimeout(() => { btn.innerHTML = original; }, 2000);
+  });
+}
+
 // ── Events ─────────────────────────────────────────────────────────────────
 
 function wireEvents() {
@@ -453,6 +472,10 @@ function wireEvents() {
   document.getElementById('next-reproduction').addEventListener('click', () => goToAdjacentReproduction(1));
   document.getElementById('add-url-btn').addEventListener('click', addUrlChip);
   document.getElementById('assign-me-btn').addEventListener('click', toggleAssignMe);
+  document.getElementById('copy-link-btn').addEventListener('click', copyLink);
+  document.getElementById('export-json-btn').addEventListener('click', () => {
+    downloadExport('reproductions', paper?.paper_id).catch(err => alert(err.message));
+  });
   document.getElementById('url-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') addUrlChip();
   });

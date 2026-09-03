@@ -231,6 +231,7 @@ function populateForm(r) {
   assignees = Array.isArray(r.assignees) ? [...r.assignees] : [];
   renderAssigneeChips();
   updateAssignMeButton();
+  document.getElementById('export-json-btn').disabled = false; // no id to export until a record exists
 }
 
 // ── Assignees ──────────────────────────────────────────────────────────────
@@ -347,6 +348,7 @@ async function save() {
       record = await res.json();
       history.replaceState(null, '', `?id=${record.id}`);
       await acquireLock();
+      document.getElementById('export-json-btn').disabled = false;
     }
   }
 
@@ -443,6 +445,9 @@ function wireEvents() {
   document.getElementById('next-dataset').addEventListener('click', () => goToAdjacentDataset(1));
   document.getElementById('add-url-btn').addEventListener('click', addUrlChip);
   document.getElementById('assign-me-btn').addEventListener('click', toggleAssignMe);
+  document.getElementById('export-json-btn').addEventListener('click', () => {
+    downloadExport('datasets', record?.id).catch(err => alert(err.message));
+  });
   document.getElementById('url-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') addUrlChip();
   });
