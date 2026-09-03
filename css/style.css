@@ -713,8 +713,13 @@ a.filter-btn {
 .dataset-counter {
   font-size: 12px;
   color: #777;
-  min-width: 36px;
+  /* Wide enough for up to three-digit counts on both sides ("888 / 888")
+     without the counter itself causing a wrap. */
+  min-width: 62px;
   text-align: center;
+  /* Without this, the browser wraps at the space around "/" once the flex
+     row gets tight — e.g. "86 / 90" splitting onto two lines. */
+  white-space: nowrap;
 }
 
 /* ── Status badge ── */
