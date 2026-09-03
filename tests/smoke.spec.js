@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'fs';
 
 const TEST_EMAIL    = process.env.PB_TEST_EMAIL;
 const TEST_PASSWORD = process.env.PB_TEST_PASSWORD;
@@ -85,6 +86,7 @@ test.describe('Review overview page', () => {
     await expect(page.locator('#search-clear-btn')).toBeHidden();
     await expect(page).not.toHaveURL(/q=/);
   });
+
 });
 
 test.describe('Review detail page', () => {
@@ -97,6 +99,20 @@ test.describe('Review detail page', () => {
     await expect(page.locator('#flag-btn')).toBeVisible();
     await expect(page.locator('#reject-btn')).toBeVisible();
     await expect(page.locator('#status-history-btn')).toBeVisible();
+  });
+
+  test('Download JSON downloads this one paper via /export, keyed by paper_id', async ({ page }) => {
+    await page.goto('/paper.html?id=emnlp-2024-518');
+    await expect(page.locator('#display-title')).toBeVisible();
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.click('#export-json-btn'),
+    ]);
+    expect(download.suggestedFilename()).toMatch(/^papers-emnlp-2024-518-\d{4}-\d{2}-\d{2}\.json$/);
+    const data = JSON.parse(readFileSync(await download.path(), 'utf8'));
+    expect(data.paper_id).toBe('emnlp-2024-518');
+    expect(data).not.toHaveProperty('locked_by');
+    expect(data).not.toHaveProperty('locked_at');
   });
 
   test('autosave persists a field change without finalizing', async ({ page }) => {
@@ -1629,6 +1645,48 @@ test.describe('Reproduction Tracker page', () => {
     await expect(page.locator('#assign-me-btn')).toBeVisible();
     await expect(page.locator('#save-btn')).toBeVisible();
     await expect(page.locator('.back-link')).toBeVisible();
+    await expect(page.locator('#export-json-btn')).toBeEnabled();
+  });
+
+  test('Download JSON downloads the reproduction for a paper that has one, and shows a clear error for one that doesn\'t (#110)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+
+    const paperListRes = await page.request.get(
+      'http://localhost:8090/api/collections/papers/records?filter=(status="final")&perPage=200',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const finalPapers = (await paperListRes.json()).items;
+    const reprosRes = await page.request.get('http://localhost:8090/api/collections/reproductions/records?perPage=200',
+      { headers: { Authorization: `Bearer ${token}` } });
+    const repros = (await reprosRes.json()).items;
+    const paperIdsWithRepro = new Set(repros.map(r => r.paper));
+
+    const withRepro = finalPapers.find(p => paperIdsWithRepro.has(p.id));
+    if (withRepro) {
+      await page.goto(`/reproduction.html?paper_id=${withRepro.paper_id}`);
+      const [download] = await Promise.all([
+        page.waitForEvent('download'),
+        page.click('#export-json-btn'),
+      ]);
+      expect(download.suggestedFilename()).toBe(`reproductions-${withRepro.paper_id}-${new Date().toISOString().slice(0, 10)}.json`);
+      const data = JSON.parse(readFileSync(await download.path(), 'utf8'));
+      // A reproduction's own `paper` field is only ever the internal
+      // PocketBase id — expand.paper.paper_id is what correlates the
+      // downloaded record back to the paper_id it was requested with.
+      expect(data.expand.paper.paper_id).toBe(withRepro.paper_id);
+      expect(data).not.toHaveProperty('locked_by');
+      expect(data).not.toHaveProperty('locked_at');
+    }
+
+    const withoutRepro = finalPapers.find(p => !paperIdsWithRepro.has(p.id));
+    test.skip(!withoutRepro, 'No final paper without a reproduction row — skipping the no-row case');
+    let alertMessage = null;
+    page.once('dialog', async dialog => { alertMessage = dialog.message(); await dialog.accept(); });
+    await page.goto(`/reproduction.html?paper_id=${withoutRepro.paper_id}`);
+    await expect(page.locator('#export-json-btn')).toBeEnabled();
+    await page.click('#export-json-btn');
+    await expect.poll(() => alertMessage).toBe('reproduction not found for that paper');
   });
 
   test('assigning myself, setting status, and adding a URL creates a reproduction row and persists across reload (#110)', async ({ page }) => {
@@ -1727,5 +1785,164 @@ test.describe('Reproduction Tracker page', () => {
     await page.fill('#field-comments', ''); // neutralize — see note above on why this can't be deleted
     await page.click('#save-btn');
     await expect(page.locator('#save-confirm')).toBeVisible();
+  });
+});
+
+test.describe('/export endpoint', () => {
+  test('requires an Authorization header', async ({ page }) => {
+    const res = await page.request.get('/export?collection=papers');
+    expect(res.status()).toBe(401);
+  });
+
+  test('rejects an unknown collection', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get('/export?collection=metrics', { headers: { Authorization: `Bearer ${token}` } });
+    expect(res.status()).toBe(400);
+  });
+
+  test('rejects a missing collection', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get('/export', { headers: { Authorization: `Bearer ${token}` } });
+    expect(res.status()).toBe(400);
+  });
+
+  test('exports the full datasets collection, with locking fields stripped', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+
+    const res = await page.request.get('/export?collection=datasets', { headers: { Authorization: `Bearer ${token}` } });
+    expect(res.status()).toBe(200);
+    const data = await res.json();
+    test.skip(data.length === 0, 'No datasets in backend — skipping');
+    for (const dataset of data) {
+      expect(dataset).not.toHaveProperty('locked_by');
+      expect(dataset).not.toHaveProperty('locked_at');
+    }
+  });
+
+  test('exports a single dataset by its PocketBase id, 404s for an unknown one', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+
+    const listRes = await page.request.get('http://localhost:8090/api/collections/datasets/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } });
+    const record = (await listRes.json()).items[0];
+    test.skip(!record, 'No datasets in backend — skipping');
+
+    const res = await page.request.get(`/export?collection=datasets&id=${record.id}`, { headers: { Authorization: `Bearer ${token}` } });
+    expect(res.status()).toBe(200);
+    const data = await res.json();
+    expect(data.id).toBe(record.id);
+    expect(data.name).toBe(record.name);
+    expect(data).not.toHaveProperty('locked_by');
+    expect(data).not.toHaveProperty('locked_at');
+
+    const notFoundRes = await page.request.get('/export?collection=datasets&id=doesnotexist12345',
+      { headers: { Authorization: `Bearer ${token}` } });
+    expect(notFoundRes.status()).toBe(404);
+  });
+
+  test('exports the full papers collection with expanded datasets/metrics, locking fields stripped at both levels', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+
+    const res = await page.request.get('/export?collection=papers', { headers: { Authorization: `Bearer ${token}` } });
+    expect(res.status()).toBe(200);
+    const data = await res.json();
+    test.skip(data.length === 0, 'No papers in backend — skipping');
+    for (const paper of data) {
+      expect(paper).not.toHaveProperty('locked_by');
+      expect(paper).not.toHaveProperty('locked_at');
+      for (const dataset of paper.expand?.datasets || []) {
+        expect(dataset).not.toHaveProperty('locked_by');
+        expect(dataset).not.toHaveProperty('locked_at');
+      }
+      for (const metric of paper.expand?.metrics || []) {
+        expect(metric).not.toHaveProperty('locked_by');
+        expect(metric).not.toHaveProperty('locked_at');
+      }
+    }
+  });
+
+  test('exports a single paper by its paper_id slug, 404s for an unknown one', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+
+    const listRes = await page.request.get('http://localhost:8090/api/collections/papers/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } });
+    const record = (await listRes.json()).items[0];
+    test.skip(!record, 'No papers in backend — skipping');
+
+    const res = await page.request.get(`/export?collection=papers&id=${record.paper_id}`, { headers: { Authorization: `Bearer ${token}` } });
+    expect(res.status()).toBe(200);
+    const data = await res.json();
+    expect(data.paper_id).toBe(record.paper_id);
+    expect(data).not.toHaveProperty('locked_by');
+    expect(data).not.toHaveProperty('locked_at');
+
+    const notFoundRes = await page.request.get('/export?collection=papers&id=does-not-exist-slug',
+      { headers: { Authorization: `Bearer ${token}` } });
+    expect(notFoundRes.status()).toBe(404);
+  });
+
+  test('exports a reproduction by its paper\'s paper_id, with the paper expanded — and that paper\'s own datasets/metrics doubly-expanded inline', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+
+    const listRes = await page.request.get('http://localhost:8090/api/collections/reproductions/records?perPage=200&expand=paper.datasets,paper.metrics',
+      { headers: { Authorization: `Bearer ${token}` } });
+    const items = (await listRes.json()).items;
+    test.skip(items.length === 0, 'No reproductions in backend — skipping');
+    // Prefer a record whose paper actually has datasets/metrics, so the
+    // double-expansion assertions below exercise real nested data rather
+    // than trivially passing on an empty case.
+    const record = items.find(r => r.expand?.paper?.expand?.datasets?.length && r.expand?.paper?.expand?.metrics?.length) || items[0];
+    const paperIdSlug = record.expand.paper.paper_id;
+
+    const res = await page.request.get(`/export?collection=reproductions&id=${paperIdSlug}`, { headers: { Authorization: `Bearer ${token}` } });
+    expect(res.status()).toBe(200);
+    const data = await res.json();
+    expect(data.id).toBe(record.id);
+    // The record's own `paper` field is only ever PocketBase's internal id —
+    // expand.paper.paper_id is what makes the slug queried with correlatable
+    // in the response.
+    expect(data.expand.paper.paper_id).toBe(paperIdSlug);
+    expect(data).not.toHaveProperty('locked_by');
+    expect(data).not.toHaveProperty('locked_at');
+    expect(data.expand.paper).not.toHaveProperty('locked_by');
+    expect(data.expand.paper).not.toHaveProperty('locked_at');
+
+    // Double expansion: the paper's own datasets/metrics relations come back
+    // as full inline records under expand.paper.expand, not bare ids —
+    // and locking fields are stripped at this third level too.
+    const pdExpand = record.expand.paper.expand || {};
+    if (pdExpand.datasets?.length) {
+      expect(data.expand.paper.expand.datasets).toHaveLength(pdExpand.datasets.length);
+      for (const ds of data.expand.paper.expand.datasets) {
+        expect(ds).not.toHaveProperty('locked_by');
+        expect(ds).not.toHaveProperty('locked_at');
+      }
+    }
+    if (pdExpand.metrics?.length) {
+      expect(data.expand.paper.expand.metrics).toHaveLength(pdExpand.metrics.length);
+      for (const m of data.expand.paper.expand.metrics) {
+        expect(m).not.toHaveProperty('locked_by');
+        expect(m).not.toHaveProperty('locked_at');
+      }
+    }
+
+    const notFoundRes = await page.request.get('/export?collection=reproductions&id=does-not-exist-slug',
+      { headers: { Authorization: `Bearer ${token}` } });
+    expect(notFoundRes.status()).toBe(404);
+  });
+
+  test('rejects an id containing a quote, before it ever reaches a PocketBase filter', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get(`/export?collection=papers&id=${encodeURIComponent('x") // ')}`,
+      { headers: { Authorization: `Bearer ${token}` } });
+    expect(res.status()).toBe(400);
   });
 });

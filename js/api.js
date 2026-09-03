@@ -102,6 +102,34 @@ async function pbPatch(path, body) {
   return { ok: res.ok, status: res.status, data: res.ok ? await res.json() : null };
 }
 
+// ---- JSON export ------------------------------------------------------------
+// server.py's own /export route (same origin as the current page — deliberately
+// NOT PB_URL, which points at PocketBase directly) proxies PocketBase with
+// locking fields stripped. It requires the caller's own token as a header,
+// which a plain <a href> can never attach — every "Download JSON" button
+// calls this instead, mirroring the old dataset-confirmation-overview.js's
+// Blob + <a download> pattern, just fetching from /export instead of doing
+// the PocketBase call directly.
+async function downloadExport(collection, id) {
+  const params = new URLSearchParams({ collection });
+  if (id) params.set('id', id);
+  const res = await fetch(`/export?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${getToken()}` },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Export failed (${res.status})`);
+  }
+  const data = await res.json();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = `${collection}${id ? `-${id}` : ''}-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(blobUrl);
+}
+
 // ---- OAuth2 (Slack, etc.) --------------------------------------------------
 // PocketBase OAuth2; the flow is:
 //   1. startOAuth2()   — fetch the provider's authURL, stash the

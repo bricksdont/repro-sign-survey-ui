@@ -664,12 +664,23 @@ a.filter-btn {
   font-size: 12px;
   color: #888;
   cursor: pointer;
+  white-space: nowrap;
   transition: border-color 0.15s, color 0.15s;
 }
 
 .copy-link-btn:hover {
   border-color: #999;
   color: #444;
+}
+
+/* reproduction.html's Copy link / Download JSON buttons — their own row
+   below .overview-header rather than sharing the top row with the ◀ ▶ nav,
+   so they don't compete for space with (or line-wrap alongside) the
+   record-level nav controls. Left-aligned. */
+.detail-secondary-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
 }
 
 .paper-nav {

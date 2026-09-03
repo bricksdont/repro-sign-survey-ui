@@ -1324,6 +1324,9 @@ function wireEvents() {
 
   document.getElementById('copy-link-btn').addEventListener('click', copyLink);
   document.getElementById('status-history-btn').addEventListener('click', showStatusHistory);
+  document.getElementById('export-json-btn').addEventListener('click', () => {
+    downloadExport('papers', papers[currentIndex].id).catch(err => alert(err.message));
+  });
   document.getElementById('status-history-close-btn').addEventListener('click', closeStatusHistory);
   document.getElementById('status-history-overlay').addEventListener('click', e => {
     if (e.target === document.getElementById('status-history-overlay')) closeStatusHistory();
