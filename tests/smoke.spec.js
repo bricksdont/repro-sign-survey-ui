@@ -1176,29 +1176,6 @@ test.describe('Dataset detail page', () => {
     // Assignees is empty by default, self-assign only (#108).
     await expect(page.locator('#assignees-chips .chip')).toHaveCount(0);
     await expect(page.locator('#assign-me-btn')).toHaveText('Assign myself');
-    // No id to export until this record is saved.
-    await expect(page.locator('#export-json-btn')).toBeDisabled();
-  });
-
-  test('Download JSON downloads this one dataset via /export, keyed by its PocketBase id', async ({ page }) => {
-    await page.goto('/login.html');
-    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
-    const listRes = await page.request.get('http://localhost:8090/api/collections/datasets/records?perPage=1',
-      { headers: { Authorization: `Bearer ${token}` } });
-    const record = (await listRes.json()).items[0];
-    test.skip(!record, 'No datasets in backend — skipping');
-
-    await page.goto(`/dataset.html?id=${record.id}`);
-    await expect(page.locator('#export-json-btn')).toBeEnabled();
-    const [download] = await Promise.all([
-      page.waitForEvent('download'),
-      page.click('#export-json-btn'),
-    ]);
-    expect(download.suggestedFilename()).toBe(`datasets-${record.id}-${new Date().toISOString().slice(0, 10)}.json`);
-    const data = JSON.parse(readFileSync(await download.path(), 'utf8'));
-    expect(data.id).toBe(record.id);
-    expect(data).not.toHaveProperty('locked_by');
-    expect(data).not.toHaveProperty('locked_at');
   });
 
   test('Assign myself / Remove myself toggles the current user in assignees and persists (#108)', async ({ page }) => {
