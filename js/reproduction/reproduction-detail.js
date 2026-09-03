@@ -474,7 +474,18 @@ function wireEvents() {
   document.getElementById('assign-me-btn').addEventListener('click', toggleAssignMe);
   document.getElementById('copy-link-btn').addEventListener('click', copyLink);
   document.getElementById('export-json-btn').addEventListener('click', () => {
-    downloadExport('reproductions', paper?.paper_id).catch(err => alert(err.message));
+    downloadExport('reproductions', paper?.paper_id).catch(err => {
+      // /export's own 404 message is written for API/curl consumers and
+      // doesn't explain *why* — the button is deliberately enabled before a
+      // reproductions row exists (rows are created lazily on first save), so
+      // in-app this is nearly always just "nothing saved here yet" rather
+      // than a real error. Give the in-app alert the actionable version.
+      if (err.message === 'reproduction not found for that paper') {
+        alert('Nothing to export yet — no reproduction record exists for this paper. Try making any change (e.g. assign yourself, set a status, or add a URL) and saving — that creates the record.');
+      } else {
+        alert(err.message);
+      }
+    });
   });
   document.getElementById('url-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') addUrlChip();

@@ -1686,7 +1686,7 @@ test.describe('Reproduction Tracker page', () => {
     await page.goto(`/reproduction.html?paper_id=${withoutRepro.paper_id}`);
     await expect(page.locator('#export-json-btn')).toBeEnabled();
     await page.click('#export-json-btn');
-    await expect.poll(() => alertMessage).toBe('reproduction not found for that paper');
+    await expect.poll(() => alertMessage).toBe('Nothing to export yet — no reproduction record exists for this paper. Try making any change (e.g. assign yourself, set a status, or add a URL) and saving — that creates the record.');
   });
 
   test('assigning myself, setting status, and adding a URL creates a reproduction row and persists across reload (#110)', async ({ page }) => {
