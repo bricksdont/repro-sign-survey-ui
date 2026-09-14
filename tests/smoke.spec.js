@@ -525,6 +525,105 @@ test.describe('Review detail page', () => {
     });
   });
 
+  test('re-clicking Finalize on an already-final paper does not overwrite finalized_by or add a duplicate status_history entry (#120)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+
+    const papersRes = await page.request.get(
+      'http://localhost:8090/api/collections/papers/records?filter=(paper_id="emnlp-2024-518")',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const { items } = await papersRes.json();
+    const record = items[0];
+    test.skip(!record, 'Fixture paper not found — skipping');
+
+    const [datasetsRes, metricsRes] = await Promise.all([
+      page.request.get('http://localhost:8090/api/collections/datasets/records?perPage=1',
+        { headers: { Authorization: `Bearer ${token}` } }),
+      page.request.get('http://localhost:8090/api/collections/metrics/records?perPage=1',
+        { headers: { Authorization: `Bearer ${token}` } }),
+    ]);
+    const datasetId = (await datasetsRes.json()).items[0]?.id;
+    const metricId  = (await metricsRes.json()).items[0]?.id;
+    test.skip(!datasetId || !metricId, 'No datasets/metrics in backend — skipping');
+
+    async function patchPaper(data) {
+      await page.request.patch(
+        `http://localhost:8090/api/collections/papers/records/${record.id}`,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, data }
+      );
+    }
+
+    // Simulate a paper someone else already finalized: status is already
+    // `final`, attributed to a different email, with exactly one matching
+    // status_history entry — this is the state a second reviewer would see
+    // when opening an already-final paper.
+    const originalFinalizer = 'original-finalizer@example.com';
+    const originalHistory = [{
+      by: originalFinalizer, before: 'needs_review', after: 'final', when: new Date().toISOString(),
+    }];
+    await patchPaper({
+      status: 'final',
+      title: record.title || 'Test Paper',
+      year: record.year || 2024,
+      peer_reviewed: 'yes',
+      code_repos: 'N/A',
+      datasets: [datasetId],
+      metrics: [metricId],
+      area_of_slp: ['Translation'],
+      main_experiment_has_ranking: 'yes',
+      copied_scores: 'no',
+      includes_human_evaluation: 'no',
+      what_to_reproduce: 'Table 3.',
+      compute_requirements: 'N/A',
+      textual_conclusion: 'Test conclusion.',
+      potential_ethical_concerns: 'no',
+      finalized_by: originalFinalizer,
+      status_history: originalHistory,
+    });
+
+    // Re-clicking Finalize here mirrors a second reviewer opening an
+    // already-final paper and clicking Finalize again (#120) — the button
+    // isn't disabled just because status is already `final`.
+    await page.goto('/paper.html?id=emnlp-2024-518');
+    await expect(page.locator('#status-badge')).toContainText('Final');
+    await expect(page.locator('#finalize-btn')).toBeEnabled();
+    await page.click('#finalize-btn');
+    await expect(page.locator('#status-badge')).toContainText('Final');
+
+    const afterRes = await page.request.get(
+      `http://localhost:8090/api/collections/papers/records/${record.id}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const after = await afterRes.json();
+    // The no-op re-finalize must not reattribute the paper or fabricate a
+    // second transition — finalized_by and status_history stay exactly as
+    // the original finalizer left them.
+    expect(after.finalized_by).toBe(originalFinalizer);
+    expect(after.status_history).toHaveLength(1);
+    expect(after.status_history[0].by).toBe(originalFinalizer);
+
+    await patchPaper({ // restore — leave no permanent side effects
+      status:                      record.status || 'needs_review',
+      title:                       record.title,
+      year:                        record.year,
+      peer_reviewed:               record.peer_reviewed || '',
+      code_repos:                  record.code_repos || [],
+      datasets:                    record.datasets || [],
+      metrics:                     record.metrics || [],
+      area_of_slp:                 record.area_of_slp || [],
+      main_experiment_has_ranking: record.main_experiment_has_ranking || '',
+      copied_scores:               record.copied_scores || '',
+      includes_human_evaluation:   record.includes_human_evaluation || '',
+      what_to_reproduce:           record.what_to_reproduce || '',
+      compute_requirements:        record.compute_requirements || '',
+      textual_conclusion:          record.textual_conclusion || '',
+      potential_ethical_concerns:  record.potential_ethical_concerns || '',
+      finalized_by:                record.finalized_by || '',
+      status_history:              record.status_history || [],
+    });
+  });
+
   test('Status History logs flag/clear transitions, newest first', async ({ page }) => {
     await page.goto('/login.html');
     const token = await page.evaluate(() => localStorage.getItem('pb_token'));
