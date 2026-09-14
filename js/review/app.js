@@ -573,11 +573,12 @@ function buildPatchPayload(state, p, extra = {}) {
 async function persistPaper(index, extra = {}) {
   const p     = papers[index];
   const state = collectFormState();
+  const isStatusTransition = extra.status !== undefined && extra.status !== p.status;
 
   // Log every actual status transition — never for autosave, which passes no
   // status override at all.
   let historyExtra = {};
-  if (extra.status !== undefined && extra.status !== p.status) {
+  if (isStatusTransition) {
     const history = Array.isArray(p.status_history) ? [...p.status_history] : [];
     history.push({
       by:     getEmail() || '',
@@ -588,7 +589,15 @@ async function persistPaper(index, extra = {}) {
     historyExtra = { status_history: history };
   }
 
-  const payload = buildPatchPayload(state, p, { ...extra, ...historyExtra });
+  // finalized_by should only ever be (re)stamped on the actual transition
+  // into `final` — Finalize stays clickable on an already-final paper (see
+  // updateFinalizeButtonState), and without this guard a second Finalize
+  // click there would silently overwrite attribution with no corresponding
+  // status_history entry (issue #120).
+  const finalizeExtra = { ...extra };
+  if (!isStatusTransition) delete finalizeExtra.finalized_by;
+
+  const payload = buildPatchPayload(state, p, { ...finalizeExtra, ...historyExtra });
   papers[index] = {
     ...p,
     ...state,
