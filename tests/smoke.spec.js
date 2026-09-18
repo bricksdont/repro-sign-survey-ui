@@ -1433,6 +1433,76 @@ test.describe('Dataset detail page', () => {
     });
   });
 
+  test('Contact Dates chips (sorted, deduped) and Permission radios persist (#122)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get('http://localhost:8090/api/collections/datasets/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } });
+    const record = (await res.json()).items[0];
+    test.skip(!record, 'No datasets in backend — skipping');
+
+    async function patchDataset(data) {
+      await page.request.patch(`http://localhost:8090/api/collections/datasets/records/${record.id}`,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, data });
+    }
+
+    // #122 depends on backend PR #65 (contact_dates/permission_to_reproduce/
+    // permission_model_weights on datasets) — skip gracefully if the
+    // deployed schema hasn't caught up yet, same convention as #104 above.
+    await patchDataset({ contact_dates: ['2026-01-01'] });
+    const check = await (await page.request.get(
+      `http://localhost:8090/api/collections/datasets/records/${record.id}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    )).json();
+    test.skip(!Array.isArray(check.contact_dates) || check.contact_dates[0] !== '2026-01-01',
+      'Backend does not have contact_dates/permission fields yet — skipping (depends on backend PR #65)');
+
+    await patchDataset({ // reset before loading the UI
+      contact_dates: [], permission_to_reproduce: '', permission_model_weights: '',
+    });
+
+    await page.goto(`/dataset.html?id=${record.id}`);
+    await expect(page.locator('#contact-dates-chips .chip')).toHaveCount(0);
+    await expect(page.locator('input[name="permission_to_reproduce"][value=""]')).toBeChecked();
+    await expect(page.locator('input[name="permission_model_weights"][value=""]')).toBeChecked();
+
+    // Add the later date first — chips must render sorted oldest → newest
+    // regardless of entry order (ISO strings sort correctly as plain text).
+    await page.fill('#contact-date-input', '2026-09-18');
+    await page.click('#add-contact-date-btn');
+    await page.fill('#contact-date-input', '2026-03-04');
+    await page.click('#add-contact-date-btn');
+    await expect(page.locator('#contact-dates-chips .chip')).toHaveText(['04.03.2026×', '18.09.2026×']);
+
+    // Re-adding an already-present date is a no-op, same as the URL field.
+    await page.fill('#contact-date-input', '2026-03-04');
+    await page.click('#add-contact-date-btn');
+    await expect(page.locator('#contact-dates-chips .chip')).toHaveCount(2);
+
+    await page.check('input[name="permission_to_reproduce"][value="yes"]');
+    await page.check('input[name="permission_model_weights"][value="no"]');
+    await page.click('#save-btn');
+    await expect(page.locator('#save-confirm')).toBeVisible();
+
+    await page.reload();
+    await expect(page.locator('#contact-dates-chips .chip')).toHaveText(['04.03.2026×', '18.09.2026×']);
+    await expect(page.locator('input[name="permission_to_reproduce"][value="yes"]')).toBeChecked();
+    await expect(page.locator('input[name="permission_model_weights"][value="no"]')).toBeChecked();
+
+    // Removing a chip and saving persists across another reload.
+    await page.locator('#contact-dates-chips .chip .chip-remove').first().click();
+    await page.click('#save-btn');
+    await expect(page.locator('#save-confirm')).toBeVisible();
+    await page.reload();
+    await expect(page.locator('#contact-dates-chips .chip')).toHaveText(['18.09.2026×']);
+
+    await patchDataset({ // restore — leave no permanent side effects
+      contact_dates:             record.contact_dates             || [],
+      permission_to_reproduce:   record.permission_to_reproduce   || '',
+      permission_model_weights:  record.permission_model_weights  || '',
+    });
+  });
+
   test('shows Used in Papers section for an existing dataset (#used-in-papers)', async ({ page }) => {
     await page.goto('/datasets-index.html');
     const rows = page.locator('.paper-row');

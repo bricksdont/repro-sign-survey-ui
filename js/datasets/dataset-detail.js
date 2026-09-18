@@ -2,6 +2,7 @@
 
 let record = null; // null = new record
 let urlChips = [];
+let contactDates = []; // ["YYYY-MM-DD", ...] — kept sorted chronologically, see renderContactDateChips()
 let assignees = []; // [email] — self-assign only, see toggleAssignMe()
 let isReadOnly = false;
 let heartbeatInterval = null;
@@ -228,6 +229,14 @@ function populateForm(r) {
   document.querySelectorAll('input[name="correspondence"]').forEach(radio => {
     radio.checked = radio.value === (r.correspondence || '');
   });
+  contactDates = Array.isArray(r.contact_dates) ? [...r.contact_dates].sort() : [];
+  renderContactDateChips();
+  document.querySelectorAll('input[name="permission_to_reproduce"]').forEach(radio => {
+    radio.checked = radio.value === (r.permission_to_reproduce || '');
+  });
+  document.querySelectorAll('input[name="permission_model_weights"]').forEach(radio => {
+    radio.checked = radio.value === (r.permission_model_weights || '');
+  });
   assignees = Array.isArray(r.assignees) ? [...r.assignees] : [];
   renderAssigneeChips();
   updateAssignMeButton();
@@ -304,6 +313,52 @@ function addUrlChip() {
   input.focus();
 }
 
+// "YYYY-MM-DD" (the stored/wire format, and what <input type="date"> both
+// reads and writes) -> "DD.MM.YYYY" for chip display. Plain string
+// reordering rather than a Date object, so there's no timezone conversion
+// to worry about for a value that's just a calendar date.
+function formatContactDate(iso) {
+  const [y, m, d] = iso.split('-');
+  return `${d}.${m}.${y}`;
+}
+
+// contactDates is kept sorted chronologically at all times (ISO strings sort
+// correctly as plain text) rather than in add order, so the chip list always
+// reads oldest → newest regardless of the order dates were entered in.
+function renderContactDateChips() {
+  const container = document.getElementById('contact-dates-chips');
+  container.innerHTML = '';
+  contactDates.forEach((iso, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    const label = document.createElement('span');
+    label.textContent = formatContactDate(iso);
+    chip.appendChild(label);
+    const rm = document.createElement('button');
+    rm.className = 'chip-remove'; rm.innerHTML = '&times;'; rm.title = 'Remove';
+    rm.addEventListener('click', () => {
+      if (isReadOnly) return;
+      contactDates.splice(i, 1); renderContactDateChips();
+      markDirty();
+    });
+    chip.appendChild(rm);
+    container.appendChild(chip);
+  });
+}
+
+function addContactDateChip() {
+  if (isReadOnly) return;
+  const input = document.getElementById('contact-date-input');
+  const val = input.value; // "" if nothing selected — <input type="date"> has no free text to trim
+  if (val && !contactDates.includes(val)) {
+    contactDates.push(val);
+    contactDates.sort();
+    renderContactDateChips();
+    markDirty();
+  }
+  input.value = '';
+}
+
 // ── Unsaved-changes guard ────────────────────────────────────────────────
 
 function markDirty() {
@@ -319,13 +374,16 @@ async function save() {
 
   const payload = {
     name,
-    license:        document.getElementById('field-license').value.trim(),
-    url:            [...urlChips],
-    available:      document.querySelector('input[name="available"]:checked')?.value || '',
-    on_modal:       document.querySelector('input[name="on_modal"]:checked')?.value || '',
-    correspondence: document.querySelector('input[name="correspondence"]:checked')?.value || '',
-    assignees:      [...assignees],
-    comments:       document.getElementById('field-comments').value.trim(),
+    license:                   document.getElementById('field-license').value.trim(),
+    url:                       [...urlChips],
+    available:                 document.querySelector('input[name="available"]:checked')?.value || '',
+    on_modal:                  document.querySelector('input[name="on_modal"]:checked')?.value || '',
+    correspondence:            document.querySelector('input[name="correspondence"]:checked')?.value || '',
+    contact_dates:             [...contactDates],
+    permission_to_reproduce:   document.querySelector('input[name="permission_to_reproduce"]:checked')?.value || '',
+    permission_model_weights:  document.querySelector('input[name="permission_model_weights"]:checked')?.value || '',
+    assignees:                 [...assignees],
+    comments:                  document.getElementById('field-comments').value.trim(),
   };
 
   const saveBtn = document.getElementById('save-btn');
@@ -410,7 +468,11 @@ function setReadOnly(ro) {
   document.querySelectorAll('input[name="available"]').forEach(r => r.disabled = ro);
   document.querySelectorAll('input[name="on_modal"]').forEach(r => r.disabled = ro);
   document.querySelectorAll('input[name="correspondence"]').forEach(r => r.disabled = ro);
+  document.querySelectorAll('input[name="permission_to_reproduce"]').forEach(r => r.disabled = ro);
+  document.querySelectorAll('input[name="permission_model_weights"]').forEach(r => r.disabled = ro);
   document.getElementById('add-url-btn').disabled = ro;
+  document.getElementById('contact-date-input').disabled = ro;
+  document.getElementById('add-contact-date-btn').disabled = ro;
   document.getElementById('save-btn').disabled    = ro;
   // Only re-enable if it was actually assignable (getEmail() present) —
   // updateAssignMeButton() already handles that disabled state otherwise.
@@ -442,9 +504,13 @@ function wireEvents() {
   document.getElementById('prev-dataset').addEventListener('click', () => goToAdjacentDataset(-1));
   document.getElementById('next-dataset').addEventListener('click', () => goToAdjacentDataset(1));
   document.getElementById('add-url-btn').addEventListener('click', addUrlChip);
+  document.getElementById('add-contact-date-btn').addEventListener('click', addContactDateChip);
   document.getElementById('assign-me-btn').addEventListener('click', toggleAssignMe);
   document.getElementById('url-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') addUrlChip();
+  });
+  document.getElementById('contact-date-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addContactDateChip();
   });
   document.getElementById('field-name').addEventListener('keydown', e => {
     if (e.key === 'Enter') save();
@@ -460,6 +526,12 @@ function wireEvents() {
     radio.addEventListener('change', markDirty);
   });
   document.querySelectorAll('input[name="correspondence"]').forEach(radio => {
+    radio.addEventListener('change', markDirty);
+  });
+  document.querySelectorAll('input[name="permission_to_reproduce"]').forEach(radio => {
+    radio.addEventListener('change', markDirty);
+  });
+  document.querySelectorAll('input[name="permission_model_weights"]').forEach(radio => {
     radio.addEventListener('change', markDirty);
   });
 }

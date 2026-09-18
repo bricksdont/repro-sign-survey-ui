@@ -1657,6 +1657,36 @@ hr.field-divider {
   gap: 6px;
 }
 
+/* Thin rule + small-caps caption pairs, splitting the dataset form into
+   loose groups — identity (Name/License/URLs/Assignees, no divider/caption,
+   implicitly the form's first section), Availability (Available/On Modal),
+   Outreach & Permissions (Correspondence/Contact Dates/Permission to
+   reproduce/Permission to publish model weights), and Misc (Comments) —
+   since the form grew long enough (#122) to read as an undifferentiated
+   stack of fields without some grouping. */
+.dataset-form-divider {
+  border: none;
+  border-top: 1px solid #e5e5e5;
+  margin: 0;
+}
+
+/* Deliberately lighter than .stats-section-title (used for whole boxed
+   cards like "Used in Papers") rather than reusing it directly, since these
+   are sub-groupings within one form, not separate cards. Negative margin-top
+   pulls the caption up against the divider immediately above it — pairing
+   them visually — rather than sitting centered in the 16px flex gap between
+   the two; spacing below stays at the default flex gap, toward the group
+   the caption introduces. */
+.dataset-form-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #999;
+  margin-top: -10px;
+  text-align: right;
+}
+
 /* 14px matches .field-display/.field-input's own size — every label on
    dataset.html/metric.html/reproduction.html now sits at the same size as
    the field it labels, so weight/color alone carry the label/value
