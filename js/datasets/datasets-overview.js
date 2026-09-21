@@ -175,7 +175,7 @@ function renderTable(datasets) {
 
     tr.innerHTML = `
       <td><strong>${escapeHtml(d.name)}</strong></td>
-      <td>${escapeHtml(d.license || '—')}</td>
+      <td class="dataset-license-cell">${escapeHtml(d.license || '—')}</td>
       <td>${assigneesCell}</td>
       <td>${yesNoBadge(d.available)}</td>
       <td>${yesNoBadge(d.on_modal)}</td>

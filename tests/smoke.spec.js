@@ -1087,6 +1087,41 @@ test.describe('Datasets overview page', () => {
     await expect(page).toHaveURL(/dataset\.html\?id=/);
   });
 
+  test('a long unbroken License value does not push the table wider than the page (right edge stays aligned with the filter bar)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get('http://localhost:8090/api/collections/datasets/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } });
+    const record = (await res.json()).items[0];
+    test.skip(!record, 'No datasets in backend — skipping');
+
+    // A bare URL with no whitespace to wrap at — table-layout: auto (the
+    // table's previous default) would let this push the whole table wider
+    // than its container, since a cell's overflow/white-space rules can't
+    // shrink an unbroken string's minimum content width.
+    await page.request.patch(`http://localhost:8090/api/collections/datasets/records/${record.id}`, {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      data: { license: 'https://creativecommons.org/licenses/by-nc-nd/4.0/' },
+    });
+
+    await page.goto('/datasets-index.html');
+    await page.waitForSelector('table tbody tr');
+    const overflowing = await page.evaluate(() =>
+      document.documentElement.scrollWidth > document.documentElement.clientWidth);
+    expect(overflowing).toBe(false);
+
+    const filterBarRight = (await page.locator('.filter-bar').boundingBox()).x
+      + (await page.locator('.filter-bar').boundingBox()).width;
+    const tableRight = (await page.locator('table.papers-table').boundingBox()).x
+      + (await page.locator('table.papers-table').boundingBox()).width;
+    expect(Math.round(tableRight)).toBe(Math.round(filterBarRight));
+
+    await page.request.patch(`http://localhost:8090/api/collections/datasets/records/${record.id}`, { // restore
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      data: { license: record.license || '' },
+    });
+  });
+
   test('stats row reports on-Modal, used-in-final, contacted, and got-reply counts alongside the totals, numbers bolded (#106)', async ({ page }) => {
     await page.goto('/datasets-index.html');
     // Each stat (number + label) is one .stat span; spacing between stats
