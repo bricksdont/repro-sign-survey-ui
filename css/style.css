@@ -217,9 +217,27 @@ body {
    arbitrary 1400px that still left visible margins on a wide screen.
    Scoped to this one page rather than widening .overview globally, which
    every other overview/detail page also uses and hasn't asked to be
-   wider. */
+   wider. margin-bottom: 0 — .table-scroll is .overview's last child here
+   (unlike every other overview page, which ends in a table/detail-footer
+   with no scroll pane of its own), so .overview's shared 48px bottom
+   margin left a gap below the table before the page's actual bottom edge.
+
+   display: flex + a height pinned to the viewport (minus the 48px top
+   margin .overview still applies) turns the header/stats-row/filter-bar/
+   results-count into fixed-height flex items and lets .table-scroll (flex:
+   1 below) claim exactly whatever's left, however tall that header
+   actually renders — no guessing. A first attempt used .table-scroll's own
+   max-height: calc(100vh - 280px), a hardcoded guess at the header's
+   height that turned out too conservative (the real header is ~188px, not
+   280px), leaving ~90px of unused space below the table that no margin
+   fix alone could close, since the table was already exactly meeting its
+   own (too-short) cap rather than actually being pushed down by a margin. */
 .overview-wide {
   max-width: none;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 48px);
 }
 
 .overview-header {
@@ -1790,28 +1808,42 @@ hr.field-divider {
    table via its own wrapper, not .papers-table/.papers-table td globally,
    which every other overview page also uses and relies on normal title
    wrapping for (e.g. review-index.html's .paper-title). */
-/* Bounded height + its own vertical scroll — without this, the horizontal
-   scrollbar sits at the very bottom of however many rows there are, which
-   on a long dataset list means scrolling the whole page down just to reach
-   it. Capping the pane's height keeps that scrollbar within the initial
-   viewport regardless of row count. overflow-x: auto (not scroll) so the
-   scrollbar only appears when content actually needs it — with a wide
-   enough window, every column can fit without scrolling, and there's no
-   reason to show one then. Getting it to actually render as a permanently-
-   visible classic bar (not a hover-only overlay) once it IS needed doesn't
-   come from auto vs scroll at all, on macOS/modern Chromium — that choice
-   only controls whether the scroll capability is unconditionally active,
-   not overlay-vs-classic rendering (confirmed by measuring offsetWidth -
-   clientWidth: zero either way when a custom scrollbar isn't defined).
-   That's a separate OS/browser preference standard `overflow` can't reach;
-   the ::-webkit-scrollbar rules below are what force classic rendering in
-   Chrome/Safari/Edge, and they only ever paint when overflow-x: auto has
-   actually decided a scrollbar is needed. Firefox already renders classic
-   scrollbars by default. */
+/* flex: 1 + min-height: 0 (inside .overview-wide's flex column, above) —
+   without this, the horizontal scrollbar sits at the very bottom of
+   however many rows there are, which on a long dataset list means
+   scrolling the whole page down just to reach it. Claiming exactly the
+   remaining viewport space (rather than a hardcoded max-height guess — see
+   .overview-wide's comment for why that didn't work out) keeps the
+   scrollbar within the initial viewport regardless of row count, with no
+   leftover gap below it either. min-height: 0 overrides a flex item's
+   default min-height: auto, which would otherwise floor this at the
+   table's full unclipped content height and defeat the point of flex: 1
+   entirely — the same reason .breadcrumb-current needs min-width: 0 to
+   ellipsis-truncate in a flex row. overflow-x: auto (not scroll) so the
+   horizontal scrollbar only appears when content actually needs it — with
+   a wide enough window, every column can fit without scrolling, and
+   there's no reason to show one then. Getting it to actually render as a
+   permanently-visible classic bar (not a hover-only overlay) once it IS
+   needed doesn't come from auto vs scroll at all, on macOS/modern Chromium
+   — that choice only controls whether the scroll capability is
+   unconditionally active, not overlay-vs-classic rendering (confirmed by
+   measuring offsetWidth - clientWidth: zero either way when a custom
+   scrollbar isn't defined). That's a separate OS/browser preference
+   standard `overflow` can't reach; the ::-webkit-scrollbar rules below are
+   what force classic rendering in Chrome/Safari/Edge, and they only ever
+   paint when overflow-x: auto has actually decided a scrollbar is needed.
+   Firefox already renders classic scrollbars by default. */
+/* margin-right: -24px cancels .overview's right padding for this one child
+   only — .overview-header/.stats-row/.filter-bar stay inset normally, but
+   .table-scroll's own box (and so the vertical scrollbar rendered at its
+   right edge) extends flush to the true viewport edge, rather than sitting
+   24px in from it. */
 .table-scroll {
   overflow-x: auto;
-  max-height: calc(100vh - 280px);
   overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  margin-right: -24px;
 }
 
 .table-scroll::-webkit-scrollbar {
@@ -1819,18 +1851,70 @@ hr.field-divider {
   width: 12px;
 }
 
-.table-scroll::-webkit-scrollbar-track {
+/* Horizontal scrollbar is always visible (deliberately — the default
+   auto-hiding overlay scrollbar was too easy to miss, see the .table-
+   scroll comment above). Vertical scrolling within a bounded pane is a
+   much more familiar interaction (any scrollable list works this way), so
+   it stays hidden until the user actually hovers .table-scroll — :vertical/
+   :horizontal are real WebKit scrollbar pseudo-classes, letting the two
+   axes be styled independently on the same element. */
+.table-scroll::-webkit-scrollbar-track:horizontal {
   background: #ececec;
 }
 
-.table-scroll::-webkit-scrollbar-thumb {
+.table-scroll::-webkit-scrollbar-thumb:horizontal {
   background: #b8b8b8;
   border-radius: 6px;
   border: 2px solid #ececec;
 }
 
-.table-scroll::-webkit-scrollbar-thumb:hover {
+.table-scroll::-webkit-scrollbar-thumb:horizontal:hover {
   background: #999;
+}
+
+.table-scroll::-webkit-scrollbar-track:vertical,
+.table-scroll::-webkit-scrollbar-thumb:vertical {
+  background: transparent;
+}
+
+/* Revealed only while .is-scrolling is present — deliberately not also on
+   :hover. An earlier version showed it on hover OR is-scrolling, but two
+   independent triggers with different lifetimes (hover ends the instant
+   the pointer leaves; is-scrolling only ends on its own 800ms timeout)
+   produced confusing, order-dependent behavior — e.g. scrolling then
+   immediately clicking elsewhere could end hover while is-scrolling was
+   still active, but the visible result depended on exactly which state
+   change the browser happened to repaint for. One trigger only, driven
+   purely by the `scroll` listener in datasets-overview.js's
+   wireTableScrollIndicator(), makes this fully deterministic. */
+.table-scroll.is-scrolling::-webkit-scrollbar-track:vertical {
+  background: #ececec;
+}
+
+.table-scroll.is-scrolling::-webkit-scrollbar-thumb:vertical {
+  background: #b8b8b8;
+  border-radius: 6px;
+  border: 2px solid #ececec;
+}
+
+.table-scroll::-webkit-scrollbar-thumb:vertical:hover {
+  background: #999;
+}
+
+/* The square where the horizontal and vertical scrollbar tracks meet —
+   both can be active at once here (flex: 1 fills the viewport vertically,
+   .table-scroll can also need to scroll horizontally). Left unstyled it
+   renders as the browser's plain default (white), standing out against the
+   custom-styled track everywhere else on the same scrollbar. Matches the
+   vertical track/thumb's is-scrolling-only visibility above rather than
+   the horizontal track's always-visible #ececec, since this corner is
+   really "part of" the vertical scrollbar's footprint. */
+.table-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.table-scroll.is-scrolling::-webkit-scrollbar-corner {
+  background: #ececec;
 }
 
 .table-scroll .papers-table td {

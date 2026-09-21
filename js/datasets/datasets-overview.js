@@ -54,6 +54,23 @@ async function init() {
   wireFilterEvents();
   applyFilters(); // renders (and syncs the URL for) the restored or default filters
   renderStats();
+  wireTableScrollIndicator();
+}
+
+// The vertical scrollbar stays hidden until .table-scroll is hovered OR
+// this toggles .is-scrolling on — :hover alone doesn't track actual scroll
+// activity (e.g. trackpad momentum scrolling can continue after the
+// pointer's moved off the pane). Cleared after a short idle delay, same
+// pattern as a native overlay scrollbar auto-hiding once scrolling stops.
+let scrollIndicatorTimeout = null;
+
+function wireTableScrollIndicator() {
+  const el = document.querySelector('.table-scroll');
+  el.addEventListener('scroll', () => {
+    el.classList.add('is-scrolling');
+    clearTimeout(scrollIndicatorTimeout);
+    scrollIndicatorTimeout = setTimeout(() => el.classList.remove('is-scrolling'), 800);
+  });
 }
 
 function restoreFiltersFromURL() {
