@@ -164,18 +164,21 @@ function renderTable(datasets) {
 
     const urls = Array.isArray(d.url) ? d.url : (d.url ? [d.url] : []);
     const urlCell = urls.length > 0
-      ? `<a href="${escapeHtml(urls[0])}" target="_blank" rel="noopener noreferrer" class="dataset-url-link" onclick="event.stopPropagation()">${escapeHtml(urls[0])}</a>`
+      // href always carries the full URL — only the visible label is
+      // truncated, so the link itself still goes to the right place.
+      ? `<a href="${escapeHtml(urls[0])}" target="_blank" rel="noopener noreferrer" class="dataset-url-link" onclick="event.stopPropagation()"${titleAttr(urls[0])}>${escapeHtml(truncate(urls[0]))}</a>`
       : '—';
 
     // Only the first assignee is shown here — the full list lives on the
     // detail page's chip list; this column is just a compact glance.
-    const assigneesCell = Array.isArray(d.assignees) && d.assignees.length > 0
-      ? escapeHtml(d.assignees[0])
+    const firstAssignee = Array.isArray(d.assignees) && d.assignees.length > 0 ? d.assignees[0] : '';
+    const assigneesCell = firstAssignee
+      ? `<span${titleAttr(firstAssignee)}>${escapeHtml(truncate(firstAssignee))}</span>`
       : '—';
 
     tr.innerHTML = `
-      <td><strong>${escapeHtml(d.name)}</strong></td>
-      <td>${escapeHtml(d.license || '—')}</td>
+      <td><strong${titleAttr(d.name)}>${escapeHtml(truncate(d.name))}</strong></td>
+      <td${titleAttr(d.license)}>${escapeHtml(truncate(d.license) || '—')}</td>
       <td>${assigneesCell}</td>
       <td>${yesNoBadge(d.available)}</td>
       <td>${yesNoBadge(d.on_modal)}</td>
@@ -188,6 +191,29 @@ function renderTable(datasets) {
     });
     tbody.appendChild(tr);
   });
+}
+
+// Overview-table columns get truncated (unlike the detail page, which
+// always shows the full value) — .table-scroll already lets a reasonably
+// long value scroll into view rather than being clipped, but some field
+// values found in the wild are extreme (people using free-text fields in
+// unexpected ways), long enough that even one such row would force
+// horizontal scrolling for the entire table just to see the other,
+// perfectly normal rows next to it. 60 characters comfortably fits every
+// real value seen so far (the longest reported License/URL/Assignees
+// values are all well under it) while still capping the pathological case.
+const OVERVIEW_TRUNCATE_LENGTH = 60;
+
+function truncate(str, maxLength = OVERVIEW_TRUNCATE_LENGTH) {
+  if (!str) return str;
+  return str.length > maxLength ? `${str.slice(0, maxLength)}…` : str;
+}
+
+// A title attribute (native hover tooltip) only when the value is actually
+// truncated — an untruncated cell has no need for one, and this doubles as
+// how to see the untruncated value without opening the detail page.
+function titleAttr(str) {
+  return str && str.length > OVERVIEW_TRUNCATE_LENGTH ? ` title="${escapeHtml(str)}"` : '';
 }
 
 // Shared by Available and On Modal — both are yes/no/"" (unanswered).

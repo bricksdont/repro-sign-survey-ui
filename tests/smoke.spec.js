@@ -1117,8 +1117,10 @@ test.describe('Datasets overview page', () => {
     const tableScroll = await page.locator('.table-scroll').boundingBox();
     expect(Math.round(tableScroll.x + tableScroll.width)).toBe(Math.round(filterBar.x + filterBar.width));
 
-    // The value itself is neither truncated nor wrapped onto multiple
-    // lines — full text on one line, scrollable rather than clipped.
+    // The value itself is neither wrapped onto multiple lines nor truncated
+    // — it's under the overview's 60-char truncation threshold (see the
+    // "extreme value" test below), so the full text renders on one line,
+    // scrollable rather than clipped.
     const licenseCellText = await page.locator('tbody tr').first().locator('td').nth(1).innerText();
     expect(licenseCellText).toBe(longLicense);
     const scrollInfo = await page.locator('.table-scroll').evaluate(el => ({
@@ -1129,6 +1131,57 @@ test.describe('Datasets overview page', () => {
     await page.request.patch(`http://localhost:8090/api/collections/datasets/records/${record.id}`, { // restore
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       data: { license: record.license || '' },
+    });
+  });
+
+  test('extremely long Name/License/Assignees/URL values are truncated with an ellipsis, keeping the full value in a title tooltip and (for URL) the link href', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get('http://localhost:8090/api/collections/datasets/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } });
+    const record = (await res.json()).items[0];
+    test.skip(!record, 'No datasets in backend — skipping');
+
+    // Reasonable-length values (the case above) are shown in full, scrolled
+    // into view rather than clipped — but people use free-text fields in
+    // unexpected ways, and an extreme value would otherwise still force
+    // horizontal scrolling on every row just to see the other, normal ones
+    // next to it. Each of these is well past the 60-char threshold.
+    const extremeName = 'A'.repeat(80);
+    const extremeLicense = 'B'.repeat(80);
+    const extremeAssignee = `c${'d'.repeat(80)}@example.com`;
+    const extremeUrl = `https://example.com/${'e'.repeat(80)}`;
+    await page.request.patch(`http://localhost:8090/api/collections/datasets/records/${record.id}`, {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      data: { name: extremeName, license: extremeLicense, url: [extremeUrl], assignees: [extremeAssignee] },
+    });
+
+    await page.goto('/datasets-index.html');
+    await page.waitForSelector('table tbody tr');
+    const row = page.locator('tbody tr').first();
+
+    const nameCell = row.locator('td').nth(0).locator('strong');
+    const licenseCell = row.locator('td').nth(1);
+    const assigneeCell = row.locator('td').nth(2);
+    const urlLink = row.locator('td').nth(6).locator('a');
+
+    // Truncated to 60 chars + an ellipsis, and the untruncated value is
+    // still available via a native hover tooltip.
+    await expect(nameCell).toHaveText(`${'A'.repeat(60)}…`);
+    await expect(nameCell).toHaveAttribute('title', extremeName);
+    await expect(licenseCell).toHaveText(`${'B'.repeat(60)}…`);
+    await expect(licenseCell).toHaveAttribute('title', extremeLicense);
+    await expect(assigneeCell.locator('span')).toHaveText(`${extremeAssignee.slice(0, 60)}…`);
+    await expect(assigneeCell.locator('span')).toHaveAttribute('title', extremeAssignee);
+    await expect(urlLink).toHaveText(`${extremeUrl.slice(0, 60)}…`);
+    // The link itself still points at the FULL url — only the label shown
+    // in the table is shortened, clicking it must still go to the right
+    // place.
+    await expect(urlLink).toHaveAttribute('href', extremeUrl);
+
+    await page.request.patch(`http://localhost:8090/api/collections/datasets/records/${record.id}`, { // restore
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      data: { name: record.name, license: record.license || '', url: record.url || [], assignees: record.assignees || [] },
     });
   });
 
