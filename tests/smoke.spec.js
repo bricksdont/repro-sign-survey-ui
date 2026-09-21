@@ -1087,6 +1087,63 @@ test.describe('Datasets overview page', () => {
     await expect(page).toHaveURL(/dataset\.html\?id=/);
   });
 
+  test('a long unbroken License value scrolls inside the table rather than pushing the page or getting truncated', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get('http://localhost:8090/api/collections/datasets/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } });
+    const record = (await res.json()).items[0];
+    test.skip(!record, 'No datasets in backend — skipping');
+
+    // A bare URL with no whitespace to wrap at — table-layout: auto (the
+    // table's default) computes this column's minimum width as the string's
+    // full rendered length, which would otherwise push the whole table
+    // wider than its container.
+    const longLicense = 'https://creativecommons.org/licenses/by-nc-nd/4.0/';
+    await page.request.patch(`http://localhost:8090/api/collections/datasets/records/${record.id}`, {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      data: { license: longLicense },
+    });
+
+    await page.goto('/datasets-index.html');
+    await page.waitForSelector('table tbody tr');
+
+    // The page itself never overflows — .table-scroll contains it instead.
+    const pageOverflowing = await page.evaluate(() =>
+      document.documentElement.scrollWidth > document.documentElement.clientWidth);
+    expect(pageOverflowing).toBe(false);
+
+    const filterBar = await page.locator('.filter-bar').boundingBox();
+    const tableScroll = await page.locator('.table-scroll').boundingBox();
+    expect(Math.round(tableScroll.x + tableScroll.width)).toBe(Math.round(filterBar.x + filterBar.width));
+
+    // The value itself is neither truncated nor wrapped onto multiple
+    // lines — full text on one line, scrollable rather than clipped.
+    const licenseCellText = await page.locator('tbody tr').first().locator('td').nth(1).innerText();
+    expect(licenseCellText).toBe(longLicense);
+    const scrollInfo = await page.locator('.table-scroll').evaluate(el => ({
+      scrollWidth: el.scrollWidth, clientWidth: el.clientWidth,
+    }));
+    expect(scrollInfo.scrollWidth).toBeGreaterThan(scrollInfo.clientWidth);
+
+    await page.request.patch(`http://localhost:8090/api/collections/datasets/records/${record.id}`, { // restore
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      data: { license: record.license || '' },
+    });
+  });
+
+  test('the table pane has a bounded height, so its horizontal scrollbar stays within the initial viewport regardless of row count', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    await page.waitForSelector('table tbody tr');
+    const viewportHeight = page.viewportSize().height;
+    const box = await page.locator('.table-scroll').boundingBox();
+    // Without a height cap, a long dataset list would push .table-scroll's
+    // own bottom edge (and the horizontal scrollbar that lives there) well
+    // past the bottom of the viewport, unreachable without scrolling the
+    // whole page first.
+    expect(box.y + box.height).toBeLessThanOrEqual(viewportHeight);
+  });
+
   test('stats row reports on-Modal, used-in-final, contacted, and got-reply counts alongside the totals, numbers bolded (#106)', async ({ page }) => {
     await page.goto('/datasets-index.html');
     // Each stat (number + label) is one .stat span; spacing between stats
