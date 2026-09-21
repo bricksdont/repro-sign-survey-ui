@@ -71,31 +71,23 @@
 
     <div id="results-count" class="results-count hidden"></div>
 
-    <table class="papers-table dataset-table-fixed">
-      <colgroup>
-        <col>
-        <col class="col-truncated">
-        <col>
-        <col>
-        <col>
-        <col>
-        <col class="col-truncated">
-        <col class="col-action-fixed">
-      </colgroup>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>License</th>
-          <th>Assignees</th>
-          <th>Available</th>
-          <th>On Modal</th>
-          <th>Correspondence</th>
-          <th>URL</th>
-          <th class="col-action"></th>
-        </tr>
-      </thead>
-      <tbody id="datasets-tbody"></tbody>
-    </table>
+    <div class="table-scroll">
+      <table class="papers-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>License</th>
+            <th>Assignees</th>
+            <th>Available</th>
+            <th>On Modal</th>
+            <th>Correspondence</th>
+            <th>URL</th>
+            <th class="col-action"></th>
+          </tr>
+        </thead>
+        <tbody id="datasets-tbody"></tbody>
+      </table>
+    </div>
   </div>
 
   <script src="js/api.js"></script>

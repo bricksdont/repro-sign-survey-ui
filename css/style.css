@@ -208,14 +208,18 @@ body {
   padding: 0 24px;
 }
 
-/* Datasets overview only (#106) — the filter bar (search + 5 selects) needs
-   more room than the shared 860px column to fit comfortably in one row, and
-   the wider table has two more badge columns (On Modal, Correspondence) to
-   fit alongside Name/License/Available/URL. Scoped to this one page rather
-   than widening .overview globally, which every other overview/detail page
-   also uses and hasn't asked to be wider. */
+/* Datasets overview only (#106, widened further per #122's follow-up) — the
+   filter bar (search + 5 selects) needs more room than the shared 860px
+   column to fit comfortably in one row, and the table has several columns
+   (On Modal, Correspondence, plus whatever's scrollable in .table-scroll)
+   to fit alongside Name/License/Available/URL. No cap at all, using
+   whatever horizontal space the viewport actually has, rather than an
+   arbitrary 1400px that still left visible margins on a wide screen.
+   Scoped to this one page rather than widening .overview globally, which
+   every other overview/detail page also uses and hasn't asked to be
+   wider. */
 .overview-wide {
-  max-width: 1400px;
+  max-width: none;
 }
 
 .overview-header {
@@ -1772,45 +1776,64 @@ hr.field-divider {
   color: #7a4200;
 }
 
-/* datasets-index.html only: in table-layout's default "auto" mode, a
-   single unbroken string (a URL, mainly, but License can hold one too —
-   e.g. a bare Creative Commons link) has no whitespace to wrap at, so the
-   browser's minimum-content-width computation for that column is the
-   string's full rendered width — no combination of width/max-width/
-   overflow/white-space on the cell can shrink it below that, since those
-   properties only ever affect layout *within* an already-computed column
-   width, not the auto algorithm's own column-width computation. That let a
-   single long cell push the whole table wider than its container,
-   misaligning the table's right edge against the filter bar/buttons above
-   (which wrap normally and always stay within the container). table-layout:
-   fixed sidesteps this entirely — column widths come from the <colgroup>
-   below instead of any cell's content, so a cell's own width/overflow rules
-   can finally do their job. Scoped to this one table (not .papers-table
-   globally, which every other overview page also uses and has no reason to
-   fix at a specific width) via its own class. */
-.dataset-table-fixed {
-  table-layout: fixed;
+/* datasets-index.html only: a value with no whitespace to wrap at (a bare
+   URL, an email address, occasionally a License link) used to overflow
+   visibly into the next column, or — under table-layout: fixed, tried
+   first — get force-truncated with an ellipsis, losing information a
+   reviewer might actually want to read or copy in full. Neither is great,
+   so instead: don't truncate or wrap anything (nowrap on every cell), and
+   let the table grow to its natural content width, however wide that is —
+   .table-scroll contains that overflow in its own horizontal scrollbar
+   rather than letting it push the page (and misalign the table's right
+   edge against the filter bar/buttons above, which stay put) or the
+   table (auto layout auto-grows the whole page) wider. Scoped to this one
+   table via its own wrapper, not .papers-table/.papers-table td globally,
+   which every other overview page also uses and relies on normal title
+   wrapping for (e.g. review-index.html's .paper-title). */
+/* Bounded height + its own vertical scroll — without this, the horizontal
+   scrollbar sits at the very bottom of however many rows there are, which
+   on a long dataset list means scrolling the whole page down just to reach
+   it. Capping the pane's height keeps that scrollbar within the initial
+   viewport regardless of row count. overflow-x: auto (not scroll) so the
+   scrollbar only appears when content actually needs it — with a wide
+   enough window, every column can fit without scrolling, and there's no
+   reason to show one then. Getting it to actually render as a permanently-
+   visible classic bar (not a hover-only overlay) once it IS needed doesn't
+   come from auto vs scroll at all, on macOS/modern Chromium — that choice
+   only controls whether the scroll capability is unconditionally active,
+   not overlay-vs-classic rendering (confirmed by measuring offsetWidth -
+   clientWidth: zero either way when a custom scrollbar isn't defined).
+   That's a separate OS/browser preference standard `overflow` can't reach;
+   the ::-webkit-scrollbar rules below are what force classic rendering in
+   Chrome/Safari/Edge, and they only ever paint when overflow-x: auto has
+   actually decided a scrollbar is needed. Firefox already renders classic
+   scrollbars by default. */
+.table-scroll {
+  overflow-x: auto;
+  max-height: calc(100vh - 280px);
+  overflow-y: auto;
 }
 
-.col-truncated {
-  width: 200px;
+.table-scroll::-webkit-scrollbar {
+  height: 12px;
+  width: 12px;
 }
 
-/* .col-action's own `width: 1%` (used by every other .papers-table, all
-   table-layout: auto) is a shrink-wrap hint that only makes sense in auto
-   layout — in table-layout: fixed it's taken literally as 1% of the whole
-   table's width (~12px here), squeezing "Details →" down to a sliver and
-   overflowing past its own column. A <col> width always wins over a <th>'s
-   own width in the fixed-layout column-sizing algorithm, so this overrides
-   it with enough room for the link's actual content. */
-.col-action-fixed {
-  width: 90px;
+.table-scroll::-webkit-scrollbar-track {
+  background: #ececec;
 }
 
-.dataset-url-cell,
-.dataset-license-cell {
-  overflow: hidden;
-  text-overflow: ellipsis;
+.table-scroll::-webkit-scrollbar-thumb {
+  background: #b8b8b8;
+  border-radius: 6px;
+  border: 2px solid #ececec;
+}
+
+.table-scroll::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+.table-scroll .papers-table td {
   white-space: nowrap;
 }
 
