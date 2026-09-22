@@ -6,10 +6,36 @@ let allDatasets = [];
 // adding an entry here plus the matching <select> in datasets-index.html —
 // applyFilters()/buildFilterQuery()/restoreFiltersFromURL() all drive off
 // this list generically, nothing else needs touching.
+// Two weeks after a dataset's first contact with no reply, the workflow
+// calls for a reminder email; two weeks after the second (still no reply),
+// the dataset gets declared unavailable. followupStatus() below maps a
+// dataset's contact_dates onto that workflow so the Follow-up filter
+// answers "who needs action today" directly, rather than needing separate
+// contact-count and staleness filters cross-referenced by hand.
+const FOLLOWUP_THRESHOLD_DAYS = 14;
+
+function followupStatus(d) {
+  const dates = Array.isArray(d.contact_dates) ? d.contact_dates : [];
+  if (dates.length === 0) return 'never';
+  // Not assumed to already be sorted — this reads raw backend data, and
+  // dataset-detail.js's own sort-on-save is a UI convention, not a
+  // guarantee for every record that might exist (e.g. older/migrated data).
+  const mostRecentMs = Math.max(...dates.map(ds => new Date(ds).getTime()));
+  const daysSinceLast = (Date.now() - mostRecentMs) / (1000 * 60 * 60 * 24);
+  if (daysSinceLast < FOLLOWUP_THRESHOLD_DAYS) return 'waiting';
+  return dates.length === 1 ? 'reminder_due' : 'unavailable_due';
+}
+
 const FILTERS = [
   {
     param: 'assigned', elementId: 'filter-assigned', default: 'all',
-    match: (d, v) => v === 'all' || (!!getEmail() && Array.isArray(d.assignees) && d.assignees.includes(getEmail())),
+    match: (d, v) => {
+      if (v === 'all') return true;
+      if (v === 'mine') return !!getEmail() && Array.isArray(d.assignees) && d.assignees.includes(getEmail());
+      if (v === 'anyone') return Array.isArray(d.assignees) && d.assignees.length > 0;
+      if (v === 'nobody') return !Array.isArray(d.assignees) || d.assignees.length === 0;
+      return true;
+    },
   },
   {
     param: 'available', elementId: 'filter-available', default: 'all',
@@ -27,6 +53,10 @@ const FILTERS = [
       const backendValue = { got_reply: 'contacted_got_reply', waiting: 'contacted_waiting' }[v];
       return d.correspondence === backendValue;
     },
+  },
+  {
+    param: 'followup', elementId: 'filter-followup', default: 'all',
+    match: (d, v) => v === 'all' || followupStatus(d) === v,
   },
   {
     param: 'orphan', elementId: 'filter-orphan', default: 'all',

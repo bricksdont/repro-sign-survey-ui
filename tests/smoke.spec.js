@@ -1237,6 +1237,7 @@ test.describe('Datasets overview page', () => {
     await expect(page.locator('#filter-available')).toBeVisible();
     await expect(page.locator('#filter-on-modal')).toBeVisible();
     await expect(page.locator('#filter-correspondence')).toBeVisible();
+    await expect(page.locator('#filter-followup')).toBeVisible();
     await expect(page.locator('#filter-orphan')).toBeVisible();
     await expect(page.locator('#filter-final')).toBeVisible();
     await expect(page.locator('#results-count')).toBeHidden(); // unfiltered by default
@@ -1297,6 +1298,82 @@ test.describe('Datasets overview page', () => {
     await patchDataset({ assignees: originalAssignees }); // restore
   });
 
+  test('the Assigned-to filter\'s "anyone"/"nobody" options partition the dataset list', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    // #stats-row always renders once init()'s async data load finishes,
+    // whether there are 0 or 300 datasets — waiting on it (rather than on
+    // .paper-row, which wouldn't exist at all in a genuinely empty
+    // database) avoids a race where .count() below runs before rows have
+    // rendered and reads a false 0.
+    await expect(page.locator('#stats-row')).not.toBeEmpty();
+    const totalRows = await page.locator('.paper-row').count();
+    test.skip(totalRows === 0, 'No datasets in the backend — skipping');
+
+    await page.selectOption('#filter-assigned', 'anyone');
+    const anyoneCount = await page.locator('.paper-row').count();
+    await page.selectOption('#filter-assigned', 'nobody');
+    const nobodyCount = await page.locator('.paper-row').count();
+    expect(anyoneCount + nobodyCount).toBe(totalRows);
+    await expect(page).toHaveURL(/[?&]assigned=nobody/);
+  });
+
+  test('the Follow-up filter buckets datasets by contact_dates into never/waiting/reminder-due/mark-unavailable', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get('http://localhost:8090/api/collections/datasets/records?perPage=3',
+      { headers: { Authorization: `Bearer ${token}` } });
+    const records = (await res.json()).items;
+    test.skip(records.length < 3, 'Fewer than 3 datasets in backend — skipping');
+    const [waitingRecord, reminderRecord, unavailableRecord] = records;
+    const originals = Object.fromEntries(records.map(r => [r.id, r.contact_dates || []]));
+
+    const isoDaysAgo = n => {
+      const d = new Date();
+      d.setDate(d.getDate() - n);
+      return d.toISOString().slice(0, 10);
+    };
+
+    async function patchDataset(id, contact_dates) {
+      await page.request.patch(`http://localhost:8090/api/collections/datasets/records/${id}`,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, data: { contact_dates } });
+    }
+    // Contacted once, 3 days ago — still within the 14-day window.
+    await patchDataset(waitingRecord.id, [isoDaysAgo(3)]);
+    // Contacted once, 20 days ago — reminder due.
+    await patchDataset(reminderRecord.id, [isoDaysAgo(20)]);
+    // Contacted twice, most recent 30 days ago — mark unavailable.
+    await patchDataset(unavailableRecord.id, [isoDaysAgo(60), isoDaysAgo(30)]);
+
+    await page.goto('/datasets-index.html');
+    await page.waitForSelector('table tbody tr');
+
+    // Exact match on the Name cell, not a substring hasText on the whole
+    // row — dataset names in this data commonly share a prefix (e.g.
+    // "PHOENIX-2014" / "PHOENIX-2014-T"), which a plain substring match
+    // would conflate.
+    const exactName = name => new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`);
+    const rowFor = name => page.locator('.paper-row').filter({
+      has: page.locator('td:first-child strong', { hasText: exactName(name) }),
+    });
+
+    await page.selectOption('#filter-followup', 'waiting');
+    await expect(rowFor(waitingRecord.name)).toBeVisible();
+    await expect(rowFor(reminderRecord.name)).toHaveCount(0);
+
+    await page.selectOption('#filter-followup', 'reminder_due');
+    await expect(rowFor(reminderRecord.name)).toBeVisible();
+    await expect(rowFor(waitingRecord.name)).toHaveCount(0);
+
+    await page.selectOption('#filter-followup', 'unavailable_due');
+    await expect(rowFor(unavailableRecord.name)).toBeVisible();
+    await expect(rowFor(reminderRecord.name)).toHaveCount(0);
+    await expect(page).toHaveURL(/[?&]followup=unavailable_due/);
+
+    for (const [id, contact_dates] of Object.entries(originals)) {
+      await patchDataset(id, contact_dates); // restore
+    }
+  });
+
   test('search filters live and shows the result count (#106)', async ({ page }) => {
     await page.goto('/datasets-index.html');
     const totalRows = await page.locator('.paper-row').count();
@@ -1341,6 +1418,7 @@ test.describe('Datasets overview page', () => {
     await expect(page.locator('#filter-assigned')).not.toHaveClass(/active/);
     await expect(page.locator('#filter-on-modal')).not.toHaveClass(/active/);
     await expect(page.locator('#filter-correspondence')).not.toHaveClass(/active/);
+    await expect(page.locator('#filter-followup')).not.toHaveClass(/active/);
     await expect(page.locator('#filter-orphan')).not.toHaveClass(/active/);
     await expect(page.locator('#filter-final')).not.toHaveClass(/active/);
 

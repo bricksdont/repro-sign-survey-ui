@@ -8,20 +8,45 @@ let isReadOnly = false;
 let heartbeatInterval = null;
 let isDirty = false; // true once a field has changed since load/last save — drives the leave-page guard
 
-// ?q=/?available=/?on_modal=/?correspondence=/?orphan=/?final= from the URL
-// — mirrors datasets-index.html's filter bar, carried through to the Back
-// link so returning there restores the same filtered view, and used below
-// to recompute the ◀ ▶ navigation subset.
-const NAV_FILTER_PARAMS = ['available', 'on_modal', 'correspondence', 'orphan', 'final'];
+// ?q=/?assigned=/?available=/?on_modal=/?correspondence=/?followup=/?orphan=/?final=
+// from the URL — mirrors datasets-index.html's filter bar, carried through
+// to the Back link so returning there restores the same filtered view, and
+// used below to recompute the ◀ ▶ navigation subset.
+const NAV_FILTER_PARAMS = ['assigned', 'available', 'on_modal', 'correspondence', 'followup', 'orphan', 'final'];
 let navQuery = '';
 let navFilters = {};
 let navOrder = []; // dataset IDs matching navQuery/navFilters, in datasets-index.html's order
+
+// See datasets-overview.js's own copy of this constant/function for why —
+// duplicated here for the same reason the FILTERS array below is: this
+// file mirrors datasets-overview.js's filtering logic rather than sharing
+// it directly.
+const FOLLOWUP_THRESHOLD_DAYS = 14;
+
+function followupStatus(d) {
+  const dates = Array.isArray(d.contact_dates) ? d.contact_dates : [];
+  if (dates.length === 0) return 'never';
+  const mostRecentMs = Math.max(...dates.map(ds => new Date(ds).getTime()));
+  const daysSinceLast = (Date.now() - mostRecentMs) / (1000 * 60 * 60 * 24);
+  if (daysSinceLast < FOLLOWUP_THRESHOLD_DAYS) return 'waiting';
+  return dates.length === 1 ? 'reminder_due' : 'unavailable_due';
+}
 
 // Mirrors datasets-overview.js's FILTERS array/predicates exactly, so
 // navOrder reproduces the same filtered subset the dataset was opened from
 // — computed from live data rather than a frozen ID list, same approach as
 // paper.html's computeNavOrder() (issue #75).
 const FILTERS = [
+  {
+    param: 'assigned', default: 'all',
+    match: (d, v) => {
+      if (v === 'all') return true;
+      if (v === 'mine') return !!getEmail() && Array.isArray(d.assignees) && d.assignees.includes(getEmail());
+      if (v === 'anyone') return Array.isArray(d.assignees) && d.assignees.length > 0;
+      if (v === 'nobody') return !Array.isArray(d.assignees) || d.assignees.length === 0;
+      return true;
+    },
+  },
   {
     param: 'available', default: 'all',
     match: (d, v) => v === 'all' || (v === 'unanswered' ? !d.available : d.available === v),
@@ -38,6 +63,10 @@ const FILTERS = [
       const backendValue = { got_reply: 'contacted_got_reply', waiting: 'contacted_waiting' }[v];
       return d.correspondence === backendValue;
     },
+  },
+  {
+    param: 'followup', default: 'all',
+    match: (d, v) => v === 'all' || followupStatus(d) === v,
   },
   {
     param: 'orphan', default: 'all',

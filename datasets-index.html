@@ -38,6 +38,8 @@
       <select id="filter-assigned" class="filter-select">
         <option value="all">Assigned to: All</option>
         <option value="mine">Only assigned to me</option>
+        <option value="anyone">Assigned to anyone</option>
+        <option value="nobody">Assigned to nobody</option>
       </select>
       <select id="filter-available" class="filter-select">
         <option value="all">Availability: All</option>
@@ -56,6 +58,13 @@
         <option value="got_reply">Got reply</option>
         <option value="waiting">Awaiting reply</option>
         <option value="not_contacted">Not contacted</option>
+      </select>
+      <select id="filter-followup" class="filter-select">
+        <option value="all">Follow-up: All</option>
+        <option value="never">Never contacted</option>
+        <option value="waiting">Waiting for reply</option>
+        <option value="reminder_due">Reminder due (14+ days)</option>
+        <option value="unavailable_due">Mark unavailable (14+ days)</option>
       </select>
       <select id="filter-orphan" class="filter-select">
         <option value="all">Orphans: All</option>
