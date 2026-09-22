@@ -36,13 +36,13 @@ function followupStatus(d) {
   return dates.length === 1 ? 'reminder_due' : 'unavailable_due';
 }
 
-// "YYYY-MM-DD" -> "DD.MM.YYYY" — same display convention dataset.html's own
+// "YYYY-MM-DD" -> "DD-MM-YYYY" — same display convention dataset.html's own
 // formatContactDate() uses for its chips, plain string reordering (not a
 // Date object) so there's no timezone conversion to reason about for a
 // value that's just a calendar date.
 function formatContactDate(iso) {
   const [y, m, dd] = iso.split('-');
-  return `${dd}.${m}.${y}`;
+  return `${dd}-${m}-${y}`;
 }
 
 const FILTERS = [

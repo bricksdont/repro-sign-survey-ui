@@ -343,12 +343,12 @@ function addUrlChip() {
 }
 
 // "YYYY-MM-DD" (the stored/wire format, and what <input type="date"> both
-// reads and writes) -> "DD.MM.YYYY" for chip display. Plain string
+// reads and writes) -> "DD-MM-YYYY" for chip display. Plain string
 // reordering rather than a Date object, so there's no timezone conversion
 // to worry about for a value that's just a calendar date.
 function formatContactDate(iso) {
   const [y, m, d] = iso.split('-');
-  return `${d}.${m}.${y}`;
+  return `${d}-${m}-${y}`;
 }
 
 // contactDates is kept sorted chronologically at all times (ISO strings sort

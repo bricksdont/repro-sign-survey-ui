@@ -1381,7 +1381,7 @@ test.describe('Datasets overview page', () => {
     }
   });
 
-  test('"Last contact date" column shows the most recent contact_dates entry as DD.MM.YYYY, or — when never contacted', async ({ page }) => {
+  test('"Last contact date" column shows the most recent contact_dates entry as DD-MM-YYYY, or — when never contacted', async ({ page }) => {
     await page.goto('/login.html');
     const token = await page.evaluate(() => localStorage.getItem('pb_token'));
     const res = await page.request.get('http://localhost:8090/api/collections/datasets/records?perPage=2',
@@ -1409,7 +1409,7 @@ test.describe('Datasets overview page', () => {
       has: page.locator('td:first-child strong', { hasText: exactName(name) }),
     });
 
-    await expect(rowFor(contactedRecord.name).locator('td').nth(6)).toHaveText('01.09.2026');
+    await expect(rowFor(contactedRecord.name).locator('td').nth(6)).toHaveText('01-09-2026');
     await expect(rowFor(neverRecord.name).locator('td').nth(6)).toHaveText('—');
 
     for (const [id, contact_dates] of Object.entries(originals)) {
@@ -1725,7 +1725,7 @@ test.describe('Dataset detail page', () => {
     await page.click('#add-contact-date-btn');
     await page.fill('#contact-date-input', '2026-03-04');
     await page.click('#add-contact-date-btn');
-    await expect(page.locator('#contact-dates-chips .chip')).toHaveText(['04.03.2026×', '18.09.2026×']);
+    await expect(page.locator('#contact-dates-chips .chip')).toHaveText(['04-03-2026×', '18-09-2026×']);
 
     // Re-adding an already-present date is a no-op, same as the URL field.
     await page.fill('#contact-date-input', '2026-03-04');
@@ -1738,7 +1738,7 @@ test.describe('Dataset detail page', () => {
     await expect(page.locator('#save-confirm')).toBeVisible();
 
     await page.reload();
-    await expect(page.locator('#contact-dates-chips .chip')).toHaveText(['04.03.2026×', '18.09.2026×']);
+    await expect(page.locator('#contact-dates-chips .chip')).toHaveText(['04-03-2026×', '18-09-2026×']);
     await expect(page.locator('input[name="permission_to_reproduce"][value="yes"]')).toBeChecked();
     await expect(page.locator('input[name="permission_model_weights"][value="no"]')).toBeChecked();
 
@@ -1747,7 +1747,7 @@ test.describe('Dataset detail page', () => {
     await page.click('#save-btn');
     await expect(page.locator('#save-confirm')).toBeVisible();
     await page.reload();
-    await expect(page.locator('#contact-dates-chips .chip')).toHaveText(['18.09.2026×']);
+    await expect(page.locator('#contact-dates-chips .chip')).toHaveText(['18-09-2026×']);
 
     await patchDataset({ // restore — leave no permanent side effects
       contact_dates:             record.contact_dates             || [],
