@@ -58,8 +58,13 @@
         <div class="chip-container" id="assignees-chips"></div>
         <button type="button" id="assign-me-btn" class="text-action-btn" aria-pressed="false">Assign myself</button>
       </div>
+      <hr class="dataset-form-divider">
+      <div class="dataset-form-section-title">Availability</div>
       <div class="dataset-form-group">
-        <label class="dataset-form-label">Available</label>
+        <label class="dataset-form-label">
+          Available
+          <span class="info-wrap"><button type="button" class="info-btn" aria-label="Info">&#9432;</button><span class="info-popup">Yes if the physical files appear available to us and we have permission to reproduce.</span></span>
+        </label>
         <div class="dataset-radio-group">
           <label><input type="radio" name="available" value="yes"> Yes</label>
           <label><input type="radio" name="available" value="no"> No</label>
@@ -77,6 +82,8 @@
           <label><input type="radio" name="on_modal" value=""> Not answered</label>
         </div>
       </div>
+      <hr class="dataset-form-divider">
+      <div class="dataset-form-section-title">Outreach &amp; Permissions</div>
       <div class="dataset-form-group">
         <label class="dataset-form-label">
           Correspondence
@@ -88,6 +95,32 @@
           <label><input type="radio" name="correspondence" value=""> Not contacted</label>
         </div>
       </div>
+      <div class="dataset-form-group">
+        <label class="dataset-form-label">Contact dates</label>
+        <div id="contact-dates-chips" class="chip-container"></div>
+        <div class="tag-input-row">
+          <input type="date" id="contact-date-input" class="field-input">
+          <button id="add-contact-date-btn" class="btn-secondary">Add</button>
+        </div>
+      </div>
+      <div class="dataset-form-group">
+        <label class="dataset-form-label">Permission to reproduce</label>
+        <div class="dataset-radio-group">
+          <label><input type="radio" name="permission_to_reproduce" value="yes"> Yes</label>
+          <label><input type="radio" name="permission_to_reproduce" value="no"> No</label>
+          <label><input type="radio" name="permission_to_reproduce" value=""> Not answered</label>
+        </div>
+      </div>
+      <div class="dataset-form-group">
+        <label class="dataset-form-label">Permission to publish model weights</label>
+        <div class="dataset-radio-group">
+          <label><input type="radio" name="permission_model_weights" value="yes"> Yes</label>
+          <label><input type="radio" name="permission_model_weights" value="no"> No</label>
+          <label><input type="radio" name="permission_model_weights" value=""> Not answered</label>
+        </div>
+      </div>
+      <hr class="dataset-form-divider">
+      <div class="dataset-form-section-title">Misc</div>
       <div class="dataset-form-group">
         <label class="dataset-form-label" for="field-comments">Comments</label>
         <textarea id="field-comments" class="field-input dataset-textarea" rows="4" placeholder="Any notes about this dataset…"></textarea>
