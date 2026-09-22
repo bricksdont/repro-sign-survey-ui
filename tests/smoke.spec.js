@@ -1113,9 +1113,14 @@ test.describe('Datasets overview page', () => {
       document.documentElement.scrollWidth > document.documentElement.clientWidth);
     expect(pageOverflowing).toBe(false);
 
-    const filterBar = await page.locator('.filter-bar').boundingBox();
+    // .table-scroll deliberately extends flush to the viewport's right edge
+    // (margin-right: -24px cancels .overview's right padding for this one
+    // child) so the vertical scrollbar hugs the true screen edge rather
+    // than sitting inset — everything else (.filter-bar included) stays at
+    // the normal inset.
     const tableScroll = await page.locator('.table-scroll').boundingBox();
-    expect(Math.round(tableScroll.x + tableScroll.width)).toBe(Math.round(filterBar.x + filterBar.width));
+    const viewportWidth = page.viewportSize().width;
+    expect(Math.round(tableScroll.x + tableScroll.width)).toBe(viewportWidth);
 
     // The value itself is neither wrapped onto multiple lines nor truncated
     // — it's under the overview's 60-char truncation threshold (see the
@@ -1195,6 +1200,23 @@ test.describe('Datasets overview page', () => {
     // past the bottom of the viewport, unreachable without scrolling the
     // whole page first.
     expect(box.y + box.height).toBeLessThanOrEqual(viewportHeight);
+  });
+
+  test('scrolling the table toggles is-scrolling, clearing again after a short idle period', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    await page.waitForSelector('table tbody tr');
+
+    const tableScroll = page.locator('.table-scroll');
+    await expect(tableScroll).not.toHaveClass(/is-scrolling/);
+
+    // The vertical scrollbar is hidden until the pane is actually scrolled
+    // (or hovered) — dispatching scroll directly (rather than a mouse
+    // wheel action) mirrors how a scroll can happen without the pointer
+    // staying over the pane, e.g. trackpad momentum scrolling.
+    await tableScroll.evaluate(el => { el.scrollTop = 200; el.dispatchEvent(new Event('scroll')); });
+    await expect(tableScroll).toHaveClass(/is-scrolling/);
+
+    await expect(tableScroll).not.toHaveClass(/is-scrolling/, { timeout: 2000 });
   });
 
   test('stats row reports on-Modal, used-in-final, contacted, and got-reply counts alongside the totals, numbers bolded (#106)', async ({ page }) => {
