@@ -1087,6 +1087,138 @@ test.describe('Datasets overview page', () => {
     await expect(page).toHaveURL(/dataset\.html\?id=/);
   });
 
+  test('a long unbroken License value scrolls inside the table rather than pushing the page or getting truncated', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get('http://localhost:8090/api/collections/datasets/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } });
+    const record = (await res.json()).items[0];
+    test.skip(!record, 'No datasets in backend — skipping');
+
+    // A bare URL with no whitespace to wrap at — table-layout: auto (the
+    // table's default) computes this column's minimum width as the string's
+    // full rendered length, which would otherwise push the whole table
+    // wider than its container.
+    const longLicense = 'https://creativecommons.org/licenses/by-nc-nd/4.0/';
+    await page.request.patch(`http://localhost:8090/api/collections/datasets/records/${record.id}`, {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      data: { license: longLicense },
+    });
+
+    await page.goto('/datasets-index.html');
+    await page.waitForSelector('table tbody tr');
+
+    // The page itself never overflows — .table-scroll contains it instead.
+    const pageOverflowing = await page.evaluate(() =>
+      document.documentElement.scrollWidth > document.documentElement.clientWidth);
+    expect(pageOverflowing).toBe(false);
+
+    // .table-scroll deliberately extends flush to the viewport's right edge
+    // (margin-right: -24px cancels .overview's right padding for this one
+    // child) so the vertical scrollbar hugs the true screen edge rather
+    // than sitting inset — everything else (.filter-bar included) stays at
+    // the normal inset.
+    const tableScroll = await page.locator('.table-scroll').boundingBox();
+    const viewportWidth = page.viewportSize().width;
+    expect(Math.round(tableScroll.x + tableScroll.width)).toBe(viewportWidth);
+
+    // The value itself is neither wrapped onto multiple lines nor truncated
+    // — it's under the overview's 60-char truncation threshold (see the
+    // "extreme value" test below), so the full text renders on one line,
+    // scrollable rather than clipped.
+    const licenseCellText = await page.locator('tbody tr').first().locator('td').nth(1).innerText();
+    expect(licenseCellText).toBe(longLicense);
+    const scrollInfo = await page.locator('.table-scroll').evaluate(el => ({
+      scrollWidth: el.scrollWidth, clientWidth: el.clientWidth,
+    }));
+    expect(scrollInfo.scrollWidth).toBeGreaterThan(scrollInfo.clientWidth);
+
+    await page.request.patch(`http://localhost:8090/api/collections/datasets/records/${record.id}`, { // restore
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      data: { license: record.license || '' },
+    });
+  });
+
+  test('extremely long Name/License/Assignees/URL values are truncated with an ellipsis, keeping the full value in a title tooltip and (for URL) the link href', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get('http://localhost:8090/api/collections/datasets/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } });
+    const record = (await res.json()).items[0];
+    test.skip(!record, 'No datasets in backend — skipping');
+
+    // Reasonable-length values (the case above) are shown in full, scrolled
+    // into view rather than clipped — but people use free-text fields in
+    // unexpected ways, and an extreme value would otherwise still force
+    // horizontal scrolling on every row just to see the other, normal ones
+    // next to it. Each of these is well past the 60-char threshold.
+    const extremeName = 'A'.repeat(80);
+    const extremeLicense = 'B'.repeat(80);
+    const extremeAssignee = `c${'d'.repeat(80)}@example.com`;
+    const extremeUrl = `https://example.com/${'e'.repeat(80)}`;
+    await page.request.patch(`http://localhost:8090/api/collections/datasets/records/${record.id}`, {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      data: { name: extremeName, license: extremeLicense, url: [extremeUrl], assignees: [extremeAssignee] },
+    });
+
+    await page.goto('/datasets-index.html');
+    await page.waitForSelector('table tbody tr');
+    const row = page.locator('tbody tr').first();
+
+    const nameCell = row.locator('td').nth(0).locator('strong');
+    const licenseCell = row.locator('td').nth(1);
+    const assigneeCell = row.locator('td').nth(2);
+    const urlLink = row.locator('td').nth(6).locator('a');
+
+    // Truncated to 60 chars + an ellipsis, and the untruncated value is
+    // still available via a native hover tooltip.
+    await expect(nameCell).toHaveText(`${'A'.repeat(60)}…`);
+    await expect(nameCell).toHaveAttribute('title', extremeName);
+    await expect(licenseCell).toHaveText(`${'B'.repeat(60)}…`);
+    await expect(licenseCell).toHaveAttribute('title', extremeLicense);
+    await expect(assigneeCell.locator('span')).toHaveText(`${extremeAssignee.slice(0, 60)}…`);
+    await expect(assigneeCell.locator('span')).toHaveAttribute('title', extremeAssignee);
+    await expect(urlLink).toHaveText(`${extremeUrl.slice(0, 60)}…`);
+    // The link itself still points at the FULL url — only the label shown
+    // in the table is shortened, clicking it must still go to the right
+    // place.
+    await expect(urlLink).toHaveAttribute('href', extremeUrl);
+
+    await page.request.patch(`http://localhost:8090/api/collections/datasets/records/${record.id}`, { // restore
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      data: { name: record.name, license: record.license || '', url: record.url || [], assignees: record.assignees || [] },
+    });
+  });
+
+  test('the table pane has a bounded height, so its horizontal scrollbar stays within the initial viewport regardless of row count', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    await page.waitForSelector('table tbody tr');
+    const viewportHeight = page.viewportSize().height;
+    const box = await page.locator('.table-scroll').boundingBox();
+    // Without a height cap, a long dataset list would push .table-scroll's
+    // own bottom edge (and the horizontal scrollbar that lives there) well
+    // past the bottom of the viewport, unreachable without scrolling the
+    // whole page first.
+    expect(box.y + box.height).toBeLessThanOrEqual(viewportHeight);
+  });
+
+  test('scrolling the table toggles is-scrolling, clearing again after a short idle period', async ({ page }) => {
+    await page.goto('/datasets-index.html');
+    await page.waitForSelector('table tbody tr');
+
+    const tableScroll = page.locator('.table-scroll');
+    await expect(tableScroll).not.toHaveClass(/is-scrolling/);
+
+    // The vertical scrollbar is hidden until the pane is actually scrolled
+    // (or hovered) — dispatching scroll directly (rather than a mouse
+    // wheel action) mirrors how a scroll can happen without the pointer
+    // staying over the pane, e.g. trackpad momentum scrolling.
+    await tableScroll.evaluate(el => { el.scrollTop = 200; el.dispatchEvent(new Event('scroll')); });
+    await expect(tableScroll).toHaveClass(/is-scrolling/);
+
+    await expect(tableScroll).not.toHaveClass(/is-scrolling/, { timeout: 2000 });
+  });
+
   test('stats row reports on-Modal, used-in-final, contacted, and got-reply counts alongside the totals, numbers bolded (#106)', async ({ page }) => {
     await page.goto('/datasets-index.html');
     // Each stat (number + label) is one .stat span; spacing between stats
