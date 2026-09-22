@@ -6,10 +6,55 @@ let allDatasets = [];
 // adding an entry here plus the matching <select> in datasets-index.html —
 // applyFilters()/buildFilterQuery()/restoreFiltersFromURL() all drive off
 // this list generically, nothing else needs touching.
+// Two weeks after a dataset's first contact with no reply, the workflow
+// calls for a reminder email; two weeks after the second (still no reply),
+// the dataset gets declared unavailable. followupStatus() below maps a
+// dataset's contact_dates onto that workflow so the Follow-up filter
+// answers "who needs action today" directly, rather than needing separate
+// contact-count and staleness filters cross-referenced by hand. Only the
+// two actionable states are exposed as filter options — "never contacted"/
+// "waiting for reply" would just duplicate what the existing Correspondence
+// filter already covers.
+const FOLLOWUP_THRESHOLD_DAYS = 14;
+
+// Not assumed to already be sorted — this reads raw backend data, and
+// dataset-detail.js's own sort-on-save is a UI convention, not a guarantee
+// for every record that might exist (e.g. older/migrated data). Returns the
+// ISO "YYYY-MM-DD" string, or null if never contacted.
+function mostRecentContactDate(d) {
+  const dates = Array.isArray(d.contact_dates) ? d.contact_dates : [];
+  if (dates.length === 0) return null;
+  return dates.reduce((latest, ds) => (new Date(ds) > new Date(latest) ? ds : latest));
+}
+
+function followupStatus(d) {
+  const dates = Array.isArray(d.contact_dates) ? d.contact_dates : [];
+  const mostRecent = mostRecentContactDate(d);
+  if (!mostRecent) return 'never';
+  const daysSinceLast = (Date.now() - new Date(mostRecent).getTime()) / (1000 * 60 * 60 * 24);
+  if (daysSinceLast < FOLLOWUP_THRESHOLD_DAYS) return 'waiting';
+  return dates.length === 1 ? 'reminder_due' : 'unavailable_due';
+}
+
+// "YYYY-MM-DD" -> "DD.MM.YYYY" — same display convention dataset.html's own
+// formatContactDate() uses for its chips, plain string reordering (not a
+// Date object) so there's no timezone conversion to reason about for a
+// value that's just a calendar date.
+function formatContactDate(iso) {
+  const [y, m, dd] = iso.split('-');
+  return `${dd}.${m}.${y}`;
+}
+
 const FILTERS = [
   {
     param: 'assigned', elementId: 'filter-assigned', default: 'all',
-    match: (d, v) => v === 'all' || (!!getEmail() && Array.isArray(d.assignees) && d.assignees.includes(getEmail())),
+    match: (d, v) => {
+      if (v === 'all') return true;
+      if (v === 'mine') return !!getEmail() && Array.isArray(d.assignees) && d.assignees.includes(getEmail());
+      if (v === 'anyone') return Array.isArray(d.assignees) && d.assignees.length > 0;
+      if (v === 'nobody') return !Array.isArray(d.assignees) || d.assignees.length === 0;
+      return true;
+    },
   },
   {
     param: 'available', elementId: 'filter-available', default: 'all',
@@ -27,6 +72,10 @@ const FILTERS = [
       const backendValue = { got_reply: 'contacted_got_reply', waiting: 'contacted_waiting' }[v];
       return d.correspondence === backendValue;
     },
+  },
+  {
+    param: 'followup', elementId: 'filter-followup', default: 'all',
+    match: (d, v) => v === 'all' || followupStatus(d) === v,
   },
   {
     param: 'orphan', elementId: 'filter-orphan', default: 'all',
@@ -163,8 +212,8 @@ function renderTable(datasets) {
   if (datasets.length === 0) {
     const tr = document.createElement('tr');
     tr.innerHTML = allDatasets.length === 0
-      ? '<td colspan="8" class="no-results">No datasets yet. <a href="dataset.html">Add the first one.</a></td>'
-      : '<td colspan="8" class="no-results">No datasets match your search/filters.</td>';
+      ? '<td colspan="9" class="no-results">No datasets yet. <a href="dataset.html">Add the first one.</a></td>'
+      : '<td colspan="9" class="no-results">No datasets match your search/filters.</td>';
     tbody.appendChild(tr);
     return;
   }
@@ -193,6 +242,9 @@ function renderTable(datasets) {
       ? `<span${titleAttr(firstAssignee)}>${escapeHtml(truncate(firstAssignee))}</span>`
       : '—';
 
+    const mostRecent = mostRecentContactDate(d);
+    const lastContactCell = mostRecent ? formatContactDate(mostRecent) : '—';
+
     tr.innerHTML = `
       <td><strong${titleAttr(d.name)}>${escapeHtml(truncate(d.name))}</strong></td>
       <td${titleAttr(d.license)}>${escapeHtml(truncate(d.license) || '—')}</td>
@@ -200,6 +252,7 @@ function renderTable(datasets) {
       <td>${yesNoBadge(d.available)}</td>
       <td>${yesNoBadge(d.on_modal)}</td>
       <td>${correspondenceBadge(d.correspondence)}</td>
+      <td>${lastContactCell}</td>
       <td class="dataset-url-cell">${urlCell}</td>
       <td class="col-action"><a href="dataset.html?id=${d.id}${qs ? '&' + qs : ''}" class="review-link" onclick="event.stopPropagation()">Details &#8594;</a></td>
     `;
