@@ -1114,6 +1114,14 @@ a.filter-btn {
   color: #1a5a1a;
 }
 
+.suggestion-hint {
+  padding: 8px 12px;
+  font-size: 13px;
+  font-style: italic;
+  color: #999;
+  cursor: default;
+}
+
 .tag-input-row {
   display: flex;
   gap: 6px;
