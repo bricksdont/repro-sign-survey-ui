@@ -1994,6 +1994,46 @@ hr.field-divider {
   max-width: none;
 }
 
+/* dataset.html only (not reproduction.html, which also has
+   .overview-detail-nav) — the form grew past a typical viewport height
+   (#104/#122/#129 each added fields), leaving the Back/Save row below the
+   fold with no autosave to fall back on, so reaching Save meant scrolling
+   down first every time. Pins the footer to the bottom of the viewport
+   instead of the bottom of the document — position: fixed, not sticky,
+   since sticky only stops an element at an edge once you scroll near it,
+   it doesn't pull an already-below-the-fold element into view on load.
+   Split into two layers so the bar's background/border can run edge to
+   edge (no visible left/right edge of its own) while the Back/Save
+   content still lines up under the 860px column above it: the outer
+   .detail-footer-bar is the full-width fixed strip (no max-width — left:
+   0; right: 0 spans the whole viewport), and .detail-footer inside it
+   keeps the max-width: 860px; margin: 0 auto centering, replicating
+   .overview's own column width + 24px side padding, which position:
+   fixed otherwise escapes (it's relative to the viewport, not .overview,
+   so a single fixed element can't be both full-bleed and content-width
+   at once). */
+.dataset-detail-page {
+  padding-bottom: 90px;
+}
+
+.dataset-detail-page .detail-footer-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  background: #f5f5f5; /* matches body's background, not #fff — the footer floats over the page itself, not a white card */
+  border-top: 1px solid #e8e8e8;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.06);
+}
+
+.dataset-detail-page .detail-footer {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  border-top: none;
+}
+
 .detail-footer {
   display: flex;
   align-items: center;
