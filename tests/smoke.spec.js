@@ -1869,6 +1869,18 @@ test.describe('Review Stats page', () => {
     }
   });
 
+  test('Top Reviewers shows every reviewer with no cap', async ({ page }) => {
+    await page.goto('/stats.html');
+    await page.waitForSelector('#top-reviewers .stat-bar-row, #top-reviewers .stats-empty', { timeout: 10000 });
+
+    // renderBarSection's default topN (10) is explicitly overridden to
+    // Infinity for this section only, so the "+ N more" truncation note
+    // (renderBarSection's own regression signal for a cap) must never
+    // appear here regardless of how many reviewers there are.
+    const topReviewersSection = page.locator('.stats-section', { has: page.locator('#top-reviewers') });
+    await expect(topReviewersSection.getByText(/\+ \d+ more/)).toHaveCount(0);
+  });
+
   test('the availability badge does not misalign the bar tracks in Top Datasets, even for unanswered availability', async ({ page }) => {
     await page.goto('/stats.html');
     await page.waitForSelector('#top-datasets .stat-bar-row', { timeout: 10000 });
