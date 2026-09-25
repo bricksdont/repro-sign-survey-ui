@@ -107,6 +107,7 @@ async function init() {
   const reviewerCounts = tally(allStatusChanges, entry => entry.by);
   renderBarSection('top-reviewers', sortedEntries(reviewerCounts), {
     emptyMessage: 'No status changes recorded yet.',
+    topN: Infinity,
   });
 
   const datasetNameById = new Map();
