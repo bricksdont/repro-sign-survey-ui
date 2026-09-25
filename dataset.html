@@ -59,6 +59,30 @@
         <button type="button" id="assign-me-btn" class="text-action-btn" aria-pressed="false">Assign myself</button>
       </div>
       <hr class="dataset-form-divider">
+      <div class="dataset-form-section-title">Languages</div>
+      <div class="dataset-form-group">
+        <label class="dataset-form-label">Signed languages</label>
+        <div class="chip-container" id="signed-languages-chips"></div>
+        <div class="tag-input-wrapper">
+          <div class="tag-input-row">
+            <input type="text" id="signed-language-input" placeholder="Search by code or name…" autocomplete="off">
+            <button id="add-signed-language-btn" class="btn-secondary">Add</button>
+          </div>
+          <div id="signed-language-suggestions" class="suggestions-dropdown hidden"></div>
+        </div>
+      </div>
+      <div class="dataset-form-group">
+        <label class="dataset-form-label">Spoken languages</label>
+        <div class="chip-container" id="spoken-languages-chips"></div>
+        <div class="tag-input-wrapper">
+          <div class="tag-input-row">
+            <input type="text" id="spoken-language-input" placeholder="Search by code or name…" autocomplete="off">
+            <button id="add-spoken-language-btn" class="btn-secondary">Add</button>
+          </div>
+          <div id="spoken-language-suggestions" class="suggestions-dropdown hidden"></div>
+        </div>
+      </div>
+      <hr class="dataset-form-divider">
       <div class="dataset-form-section-title">Availability</div>
       <div class="dataset-form-group">
         <label class="dataset-form-label">
@@ -144,6 +168,7 @@
   </div>
 
   <script src="js/api.js"></script>
+  <script src="js/datasets/iso639-3.js"></script>
   <script src="js/datasets/dataset-detail.js"></script>
 </body>
 </html>
