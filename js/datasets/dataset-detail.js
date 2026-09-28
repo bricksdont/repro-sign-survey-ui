@@ -86,18 +86,26 @@ const FILTERS = [
 // iso639-3.js, loaded before this file. Split once into a small "signed"
 // pool (name contains "Sign Language" — the ISO 639-3 name text already
 // tags these, no manual curation needed) and everything else for "spoken".
-// This split only narrows which pool each field's dropdown *suggests* —
-// addLanguageChip() below still accepts an exact code/name match against
-// the full list either way, so typing an exact code always works even if
-// it's not in that field's usual pool.
+// Each field is hard-scoped to its own pool — both the dropdown suggestions
+// and an exact code/name match typed + Enter/Add — so e.g. a spoken
+// language like Mongo can't be added under Signed languages just because
+// its exact name was typed.
 const ISO_639_3_NAME_BY_CODE = new Map(ISO_639_3);
 const SIGNED_LANGUAGES_POOL = ISO_639_3.filter(([, name]) => /sign language/i.test(name));
 const SPOKEN_LANGUAGES_POOL = ISO_639_3.filter(([, name]) => !/sign language/i.test(name));
 
-function findLanguageMatch(rawValue) {
+// Matches the bare code ("sqk"), the bare name ("Albanian Sign Language"),
+// or the exact "Name (code)" string the dropdown/chips actually display
+// ("Albanian Sign Language (sqk)") — a user who types out what they saw
+// rendered, rather than just the code or just the name, should still match.
+function findLanguageMatch(pool, rawValue) {
   const v = rawValue.trim().toLowerCase();
   if (!v) return null;
-  return ISO_639_3.find(([code, name]) => code.toLowerCase() === v || name.toLowerCase() === v) || null;
+  return pool.find(([code, name]) =>
+    code.toLowerCase() === v ||
+    name.toLowerCase() === v ||
+    `${name} (${code})`.toLowerCase() === v
+  ) || null;
 }
 
 function renderLanguageChips(containerId, list) {
@@ -180,12 +188,12 @@ function initLanguageAutocomplete({ inputId, dropdownId, containerId, addBtnId, 
   input.addEventListener('blur', () => setTimeout(() => dropdown.classList.add('hidden'), 150));
 
   document.getElementById(addBtnId).addEventListener('click', () => {
-    const match = findLanguageMatch(input.value);
+    const match = findLanguageMatch(pool, input.value);
     if (match) { addLanguageChip(getList(), containerId, match[0]); input.value = ''; refresh(); }
   });
   input.addEventListener('keydown', e => {
     if (e.key !== 'Enter') return;
-    const match = findLanguageMatch(input.value);
+    const match = findLanguageMatch(pool, input.value);
     if (match) { addLanguageChip(getList(), containerId, match[0]); input.value = ''; refresh(); }
   });
 }

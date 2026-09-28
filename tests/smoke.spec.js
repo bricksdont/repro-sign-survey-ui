@@ -1818,6 +1818,29 @@ test.describe('Dataset detail page', () => {
     await page.click('#spoken-language-suggestions .suggestion-item:has-text("German (deu)")');
     await expect(page.locator('#spoken-languages-chips .chip')).toHaveText(['German (deu)×']);
 
+    // A spoken language typed into Signed languages must not be addable,
+    // even by its exact ISO 639-3 name — the field is hard-scoped to its
+    // own pool, not just suggestion-scoped. "Mongo" (code "lol") is a real
+    // ISO 639-3 entry, just not a sign language — note the dropdown still
+    // shows "Mongolian Sign Language" here (a genuine substring match, and
+    // a real sign language), so this checks there's no *exact* "Mongo"
+    // suggestion, not that the dropdown is empty.
+    await page.fill('#signed-language-input', 'Mongo');
+    await expect(page.locator('#signed-language-suggestions .suggestion-item', { hasText: /^Mongo \(lol\)$/ })).toHaveCount(0);
+    await page.click('#add-signed-language-btn');
+    await expect(page.locator('#signed-languages-chips .chip')).toHaveText(['German Sign Language (gsg)×']);
+
+    // Typing the exact "Name (code)" string as displayed in the dropdown/
+    // chips (not just the bare code or bare name) and clicking Add must
+    // also work — a user typing out what they saw rendered shouldn't hit
+    // a dead end.
+    await page.fill('#signed-language-input', 'Albanian Sign Language (sqk)');
+    await page.click('#add-signed-language-btn');
+    await expect(page.locator('#signed-languages-chips .chip')).toHaveText([
+      'German Sign Language (gsg)×', 'Albanian Sign Language (sqk)×',
+    ]);
+    await page.locator('#signed-languages-chips .chip', { hasText: 'Albanian' }).locator('.chip-remove').click();
+
     await page.click('#save-btn');
     await expect(page.locator('#save-confirm')).toBeVisible();
 
