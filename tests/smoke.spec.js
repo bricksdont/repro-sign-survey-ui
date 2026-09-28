@@ -1918,15 +1918,28 @@ test.describe('Dataset detail page', () => {
     await expect(page.locator('#signed-languages-chips .chip')).toHaveText(['German Sign Language (gsg)×']);
 
     // Typing the exact "Name (code)" string as displayed in the dropdown/
-    // chips (not just the bare code or bare name) and clicking Add must
-    // also work — a user typing out what they saw rendered shouldn't hit
-    // a dead end.
+    // chips (not just the bare code or bare name) must show that same
+    // suggestion in the dropdown too, not just work silently via Add — a
+    // suggestion filter that doesn't also match the combined form reads as
+    // "not recognized" even though the exact-match Add path already works.
     await page.fill('#signed-language-input', 'Albanian Sign Language (sqk)');
+    await expect(page.locator('#signed-language-suggestions .suggestion-item', { hasText: 'Albanian Sign Language (sqk)' })).toBeVisible();
     await page.click('#add-signed-language-btn');
     await expect(page.locator('#signed-languages-chips .chip')).toHaveText([
       'German Sign Language (gsg)×', 'Albanian Sign Language (sqk)×',
     ]);
     await page.locator('#signed-languages-chips .chip', { hasText: 'Albanian' }).locator('.chip-remove').click();
+
+    // Same check on Spoken languages — the combined-format dropdown match
+    // is shared code, but verify both fields independently rather than
+    // assuming a fix to one covers the other.
+    await page.fill('#spoken-language-input', 'English (eng)');
+    await expect(page.locator('#spoken-language-suggestions .suggestion-item', { hasText: 'English (eng)' })).toBeVisible();
+    await page.click('#add-spoken-language-btn');
+    await expect(page.locator('#spoken-languages-chips .chip')).toHaveText([
+      'German (deu)×', 'English (eng)×',
+    ]);
+    await page.locator('#spoken-languages-chips .chip', { hasText: 'English' }).locator('.chip-remove').click();
 
     await page.click('#save-btn');
     await expect(page.locator('#save-confirm')).toBeVisible();

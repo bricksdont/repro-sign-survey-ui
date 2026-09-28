@@ -163,8 +163,16 @@ function initLanguageAutocomplete({ inputId, dropdownId, containerId, addBtnId, 
       return;
     }
 
+    // Matches the code, the name, or the combined "Name (code)" string —
+    // the same three forms findLanguageMatch() accepts for a typed exact
+    // add. Without the combined form here, typing exactly what a chip/
+    // suggestion displays (e.g. "English (eng)") showed zero suggestions
+    // — Add still secretly worked via findLanguageMatch(), but with no
+    // dropdown feedback it read as the field not recognizing the value.
     const matches = (q === '' ? pool : pool.filter(([code, name]) =>
-      code.toLowerCase().includes(q) || name.toLowerCase().includes(q)
+      code.toLowerCase().includes(q) ||
+      name.toLowerCase().includes(q) ||
+      `${name} (${code})`.toLowerCase().includes(q)
     )).filter(([code]) => !list.includes(code)).slice(0, maxResults);
 
     matches.forEach(([code, name]) => {
