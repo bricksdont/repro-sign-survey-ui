@@ -413,6 +413,58 @@ test.describe('Review detail page', () => {
     });
   });
 
+  test('Dataset autocomplete search also matches by signed/spoken language code or name (#130)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+
+    const papersRes = await page.request.get(
+      'http://localhost:8090/api/collections/papers/records?filter=(paper_id="emnlp-2024-518")',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const record = (await papersRes.json()).items[0];
+    test.skip(!record, 'Fixture paper not found — skipping');
+
+    const datasetsRes = await page.request.get('http://localhost:8090/api/collections/datasets/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } });
+    const dataset = (await datasetsRes.json()).items[0];
+    test.skip(!dataset, 'No datasets in backend — skipping');
+
+    async function patchPaper(data) {
+      await page.request.patch(`http://localhost:8090/api/collections/papers/records/${record.id}`,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, data });
+    }
+    async function patchDataset(data) {
+      await page.request.patch(`http://localhost:8090/api/collections/datasets/records/${dataset.id}`,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, data });
+    }
+
+    // Only remove the target dataset from the fixture's own list (if
+    // present) rather than clobbering the whole field, so any other
+    // datasets already required there are undisturbed.
+    const datasetsWithoutTarget = (record.datasets || []).filter(id => id !== dataset.id);
+    await patchPaper({ datasets: datasetsWithoutTarget });
+    await patchDataset({ signed_languages: ['gsg'], spoken_languages: ['deu'] });
+
+    await page.goto('/paper.html?id=emnlp-2024-518');
+
+    // Neither "German Sign Language" nor "deu" need appear anywhere in the
+    // dataset's own name — the match comes from its language fields.
+    await page.fill('#dataset-input', 'German Sign Language');
+    await expect(page.locator('#dataset-suggestions .suggestion-item', { hasText: dataset.name })).toBeVisible();
+
+    await page.fill('#dataset-input', 'deu');
+    await expect(page.locator('#dataset-suggestions .suggestion-item', { hasText: dataset.name })).toBeVisible();
+
+    await page.locator('#dataset-suggestions .suggestion-item', { hasText: dataset.name }).click();
+    await expect(page.locator('#datasets-container .chip', { hasText: dataset.name })).toBeVisible();
+
+    await patchPaper({ datasets: record.datasets || [] });
+    await patchDataset({
+      signed_languages: dataset.signed_languages || [],
+      spoken_languages: dataset.spoken_languages || [],
+    });
+  });
+
   test('Sub-area of SLP suggestions depend on Area of SLP, and the field is optional (#101)', async ({ page }) => {
     await page.goto('/login.html');
     const token = await page.evaluate(() => localStorage.getItem('pb_token'));
@@ -1432,6 +1484,41 @@ test.describe('Datasets overview page', () => {
     await page.click('#search-clear-btn');
     await expect(page.locator('#results-count')).toBeHidden();
     await expect(page).toHaveURL(/datasets-index\.html$/);
+  });
+
+  test('search also matches by signed/spoken language code or name, and by dataset id (#130)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const listRes = await page.request.get('http://localhost:8090/api/collections/datasets/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } });
+    const record = (await listRes.json()).items[0];
+    test.skip(!record, 'No datasets in backend — skipping');
+
+    async function patchDataset(data) {
+      await page.request.patch(`http://localhost:8090/api/collections/datasets/records/${record.id}`,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, data });
+    }
+    await patchDataset({ signed_languages: ['gsg'], spoken_languages: ['deu'] });
+
+    await page.goto('/datasets-index.html');
+    const rowFor = name => page.locator('.paper-row', { has: page.locator('td strong', { hasText: name }) });
+
+    // Neither "German Sign Language" nor "deu" need appear anywhere in the
+    // dataset's own name — the match comes from its language fields.
+    await page.fill('#search-input', 'German Sign Language');
+    await expect(rowFor(record.name)).toBeVisible();
+
+    await page.fill('#search-input', 'deu');
+    await expect(rowFor(record.name)).toBeVisible();
+
+    // Search by (a substring of) the dataset's own PocketBase id.
+    await page.fill('#search-input', record.id.slice(0, 8));
+    await expect(rowFor(record.name)).toBeVisible();
+
+    await patchDataset({ // restore — leave no permanent side effects
+      signed_languages: record.signed_languages || [],
+      spoken_languages: record.spoken_languages || [],
+    });
   });
 
   test('orphan and final-paper filters partition the dataset list (#106)', async ({ page }) => {

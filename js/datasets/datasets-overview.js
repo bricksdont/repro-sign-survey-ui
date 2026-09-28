@@ -152,6 +152,27 @@ function wireFilterEvents() {
 
 // ── Filtering ──────────────────────────────────────────────────────────────
 
+// ISO_639_3 ([code, name] pairs) comes from js/datasets/iso639-3.js, loaded
+// before this file — same lookup dataset-detail.js builds for its own
+// Signed/Spoken languages fields, duplicated here rather than shared (issue
+// #130: search also needs to resolve a dataset's language codes to their
+// full names, so e.g. typing "German" finds a dataset tagged "deu"/"gsg").
+const ISO_639_3_NAME_BY_CODE = new Map(ISO_639_3);
+
+// True if q matches d's name, id, or any of its signed/spoken language
+// codes or full names (substring, case-insensitive) — id search is issue
+// #130's second ask, "search by dataset id", folded into the same
+// predicate rather than a separate control since it's still just widening
+// what the one existing search box matches.
+function datasetMatchesQuery(d, q) {
+  if (!q) return true;
+  if (d.name.toLowerCase().includes(q) || d.id.toLowerCase().includes(q)) return true;
+  const codes = [...(d.signed_languages || []), ...(d.spoken_languages || [])];
+  return codes.some(code =>
+    code.toLowerCase().includes(q) || (ISO_639_3_NAME_BY_CODE.get(code) || '').toLowerCase().includes(q)
+  );
+}
+
 // Builds the current search text + filter selections as a query string,
 // omitting params at their "all"/unfiltered default so an unfiltered view
 // keeps a clean URL. Empty string when unfiltered.
@@ -180,7 +201,7 @@ function applyFilters() {
   const filterValues = FILTERS.map(f => document.getElementById(f.elementId).value);
 
   const filtered = allDatasets.filter(d => {
-    const matchesSearch = !q || d.name.toLowerCase().includes(q);
+    const matchesSearch = datasetMatchesQuery(d, q);
     const matchesFilters = FILTERS.every((f, i) => f.match(d, filterValues[i]));
     return matchesSearch && matchesFilters;
   });
