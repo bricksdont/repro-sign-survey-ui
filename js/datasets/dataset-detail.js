@@ -4,6 +4,8 @@ let record = null; // null = new record
 let urlChips = [];
 let contactDates = []; // ["YYYY-MM-DD", ...] — kept sorted chronologically, see renderContactDateChips()
 let assignees = []; // [email] — self-assign only, see toggleAssignMe()
+let signedLanguages = []; // [iso6393 code, ...] — see initLanguageAutocomplete()
+let spokenLanguages = []; // [iso6393 code, ...]
 let isReadOnly = false;
 let heartbeatInterval = null;
 let isDirty = false; // true once a field has changed since load/last save — drives the leave-page guard
@@ -77,6 +79,116 @@ const FILTERS = [
     match: (d, v) => v === 'all' || d.hasFinalPaper,
   },
 ];
+
+// ── Languages ──────────────────────────────────────────────────────────────
+
+// ISO_639_3 ([code, name] pairs, ~7900 entries) comes from js/datasets/
+// iso639-3.js, loaded before this file. Split once into a small "signed"
+// pool (name contains "Sign Language" — the ISO 639-3 name text already
+// tags these, no manual curation needed) and everything else for "spoken".
+// This split only narrows which pool each field's dropdown *suggests* —
+// addLanguageChip() below still accepts an exact code/name match against
+// the full list either way, so typing an exact code always works even if
+// it's not in that field's usual pool.
+const ISO_639_3_NAME_BY_CODE = new Map(ISO_639_3);
+const SIGNED_LANGUAGES_POOL = ISO_639_3.filter(([, name]) => /sign language/i.test(name));
+const SPOKEN_LANGUAGES_POOL = ISO_639_3.filter(([, name]) => !/sign language/i.test(name));
+
+function findLanguageMatch(rawValue) {
+  const v = rawValue.trim().toLowerCase();
+  if (!v) return null;
+  return ISO_639_3.find(([code, name]) => code.toLowerCase() === v || name.toLowerCase() === v) || null;
+}
+
+function renderLanguageChips(containerId, list) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  list.forEach((code, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.textContent = `${ISO_639_3_NAME_BY_CODE.get(code) || code} (${code})`;
+    const rm = document.createElement('button');
+    rm.className = 'chip-remove'; rm.innerHTML = '&times;'; rm.title = 'Remove';
+    rm.addEventListener('click', () => {
+      if (isReadOnly) return;
+      list.splice(i, 1);
+      renderLanguageChips(containerId, list);
+      markDirty();
+    });
+    chip.appendChild(rm);
+    container.appendChild(chip);
+  });
+}
+
+function addLanguageChip(list, containerId, code) {
+  if (!code || list.includes(code)) return;
+  list.push(code);
+  renderLanguageChips(containerId, list);
+  markDirty();
+}
+
+// Generic dropdown wired to a fixed vocabulary (pool) rather than a
+// PocketBase collection (datasets/metrics) or free text (area_of_slp) — no
+// "add as new" option, since ISO 639-3 is a closed, externally-defined list.
+// getList() reads the live module-level array (not a captured snapshot) so
+// it stays correct across populateForm() reassigning signedLanguages/
+// spokenLanguages on load.
+function initLanguageAutocomplete({ inputId, dropdownId, containerId, addBtnId, pool, getList, showAllOnEmpty, maxResults = pool.length }) {
+  const input = document.getElementById(inputId);
+  const dropdown = document.getElementById(dropdownId);
+
+  function refresh() {
+    const q = input.value.trim().toLowerCase();
+    const list = getList();
+    dropdown.innerHTML = '';
+
+    // Rather than just hiding the dropdown for an untyped query on a huge
+    // pool (Spoken languages) — indistinguishable from the field being
+    // broken — show a non-interactive hint explaining why nothing's listed
+    // yet, so there's still visible feedback that the field is working.
+    if (q === '' && !showAllOnEmpty) {
+      const hint = document.createElement('div');
+      hint.className = 'suggestion-hint';
+      hint.textContent = `Type to search ${pool.length.toLocaleString()} languages…`;
+      dropdown.appendChild(hint);
+      dropdown.classList.remove('hidden');
+      return;
+    }
+
+    const matches = (q === '' ? pool : pool.filter(([code, name]) =>
+      code.toLowerCase().includes(q) || name.toLowerCase().includes(q)
+    )).filter(([code]) => !list.includes(code)).slice(0, maxResults);
+
+    matches.forEach(([code, name]) => {
+      const item = document.createElement('div');
+      item.className = 'suggestion-item';
+      item.textContent = `${name} (${code})`;
+      item.addEventListener('mousedown', e => {
+        e.preventDefault();
+        addLanguageChip(list, containerId, code);
+        input.value = '';
+        refresh();
+      });
+      dropdown.appendChild(item);
+    });
+
+    dropdown.classList.toggle('hidden', dropdown.children.length === 0);
+  }
+
+  input.addEventListener('focus', refresh);
+  input.addEventListener('input', refresh);
+  input.addEventListener('blur', () => setTimeout(() => dropdown.classList.add('hidden'), 150));
+
+  document.getElementById(addBtnId).addEventListener('click', () => {
+    const match = findLanguageMatch(input.value);
+    if (match) { addLanguageChip(getList(), containerId, match[0]); input.value = ''; refresh(); }
+  });
+  input.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const match = findLanguageMatch(input.value);
+    if (match) { addLanguageChip(getList(), containerId, match[0]); input.value = ''; refresh(); }
+  });
+}
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 
@@ -269,6 +381,10 @@ function populateForm(r) {
   assignees = Array.isArray(r.assignees) ? [...r.assignees] : [];
   renderAssigneeChips();
   updateAssignMeButton();
+  signedLanguages = Array.isArray(r.signed_languages) ? [...r.signed_languages] : [];
+  spokenLanguages = Array.isArray(r.spoken_languages) ? [...r.spoken_languages] : [];
+  renderLanguageChips('signed-languages-chips', signedLanguages);
+  renderLanguageChips('spoken-languages-chips', spokenLanguages);
 }
 
 // ── Assignees ──────────────────────────────────────────────────────────────
@@ -412,6 +528,8 @@ async function save() {
     permission_to_reproduce:   document.querySelector('input[name="permission_to_reproduce"]:checked')?.value || '',
     permission_model_weights:  document.querySelector('input[name="permission_model_weights"]:checked')?.value || '',
     assignees:                 [...assignees],
+    signed_languages:          [...signedLanguages],
+    spoken_languages:          [...spokenLanguages],
     comments:                  document.getElementById('field-comments').value.trim(),
   };
 
@@ -502,6 +620,10 @@ function setReadOnly(ro) {
   document.getElementById('add-url-btn').disabled = ro;
   document.getElementById('contact-date-input').disabled = ro;
   document.getElementById('add-contact-date-btn').disabled = ro;
+  document.getElementById('signed-language-input').disabled = ro;
+  document.getElementById('add-signed-language-btn').disabled = ro;
+  document.getElementById('spoken-language-input').disabled = ro;
+  document.getElementById('add-spoken-language-btn').disabled = ro;
   document.getElementById('save-btn').disabled    = ro;
   // Only re-enable if it was actually assignable (getEmail() present) —
   // updateAssignMeButton() already handles that disabled state otherwise.
@@ -562,6 +684,35 @@ function wireEvents() {
   });
   document.querySelectorAll('input[name="permission_model_weights"]').forEach(radio => {
     radio.addEventListener('change', markDirty);
+  });
+
+  // Signed languages' pool is small (~140 entries, every ISO 639-3 name
+  // containing "Sign Language") so it shows all of them on focus, uncapped
+  // (maxResults defaults to pool.length) — the dropdown's own 180px
+  // max-height + scroll handles display, same as Area of SLP's 12-entry
+  // list just with more to scroll through. Spoken languages' pool is nearly
+  // the full ISO 639-3 list (~7700), far too many to dump on focus, so it
+  // shows a "type to search" hint until a query narrows it — and a typed
+  // search there still caps at 40 results, since an unbounded match count
+  // against ~7700 entries would be its own scroll-forever problem.
+  initLanguageAutocomplete({
+    inputId: 'signed-language-input',
+    dropdownId: 'signed-language-suggestions',
+    containerId: 'signed-languages-chips',
+    addBtnId: 'add-signed-language-btn',
+    pool: SIGNED_LANGUAGES_POOL,
+    getList: () => signedLanguages,
+    showAllOnEmpty: true,
+  });
+  initLanguageAutocomplete({
+    inputId: 'spoken-language-input',
+    dropdownId: 'spoken-language-suggestions',
+    containerId: 'spoken-languages-chips',
+    addBtnId: 'add-spoken-language-btn',
+    pool: SPOKEN_LANGUAGES_POOL,
+    getList: () => spokenLanguages,
+    showAllOnEmpty: false,
+    maxResults: 40,
   });
 }
 

@@ -1756,6 +1756,88 @@ test.describe('Dataset detail page', () => {
     });
   });
 
+  test('Signed languages / Spoken languages chips add via the autocomplete dropdown, persist, and remove (#129)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const res = await page.request.get('http://localhost:8090/api/collections/datasets/records?perPage=1',
+      { headers: { Authorization: `Bearer ${token}` } });
+    const record = (await res.json()).items[0];
+    test.skip(!record, 'No datasets in backend — skipping');
+
+    async function patchDataset(data) {
+      await page.request.patch(`http://localhost:8090/api/collections/datasets/records/${record.id}`,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, data });
+    }
+
+    // #129 depends on backend PR #67 (signed_languages/spoken_languages on
+    // datasets) — skip gracefully if the deployed schema hasn't caught up
+    // yet, same convention as #104/#122 above.
+    await patchDataset({ signed_languages: ['gsg'] });
+    const check = await (await page.request.get(
+      `http://localhost:8090/api/collections/datasets/records/${record.id}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    )).json();
+    test.skip(!Array.isArray(check.signed_languages) || check.signed_languages[0] !== 'gsg',
+      'Backend does not have signed_languages/spoken_languages fields yet — skipping (depends on backend PR #67)');
+
+    await patchDataset({ signed_languages: [], spoken_languages: [] }); // reset before loading the UI
+
+    await page.goto(`/dataset.html?id=${record.id}`);
+    await expect(page.locator('#signed-languages-chips .chip')).toHaveCount(0);
+    await expect(page.locator('#spoken-languages-chips .chip')).toHaveCount(0);
+
+    // Signed languages' pool (~140 entries, every ISO 639-3 name containing
+    // "Sign Language") is small enough to show in full on focus, with no
+    // text typed — same convention as Area of SLP's 12-entry list.
+    await page.click('#signed-language-input');
+    await expect(page.locator('#signed-language-suggestions .suggestion-item').first()).toBeVisible();
+    // The open dropdown floats over the Spoken languages field directly
+    // below it (same as any dropdown-below-input widget) — blur explicitly
+    // rather than clicking straight through it, same as a real user
+    // dismissing it by clicking elsewhere first.
+    await page.locator('#signed-language-input').blur();
+    await expect(page.locator('#signed-language-suggestions')).toBeHidden();
+
+    // Spoken languages' pool is nearly the full ISO 639-3 list (~7700
+    // entries) — far too many to dump on focus, so instead of an empty
+    // (indistinguishable-from-broken) dropdown, it shows a non-interactive
+    // "type to search" hint until a query narrows it.
+    await page.click('#spoken-language-input');
+    await expect(page.locator('#spoken-language-suggestions')).toBeVisible();
+    await expect(page.locator('#spoken-language-suggestions .suggestion-hint')).toContainText('Type to search');
+    await expect(page.locator('#spoken-language-suggestions .suggestion-item')).toHaveCount(0);
+
+    // Search by code, add via the dropdown suggestion (not the Add button —
+    // exercises the actual "select from a dropdown" flow the issue asked for).
+    await page.fill('#signed-language-input', 'gsg');
+    await page.click('#signed-language-suggestions .suggestion-item:has-text("German Sign Language (gsg)")');
+    await expect(page.locator('#signed-languages-chips .chip')).toHaveText(['German Sign Language (gsg)×']);
+
+    // Search by full name this time, in the Spoken languages field.
+    await page.fill('#spoken-language-input', 'German');
+    await page.click('#spoken-language-suggestions .suggestion-item:has-text("German (deu)")');
+    await expect(page.locator('#spoken-languages-chips .chip')).toHaveText(['German (deu)×']);
+
+    await page.click('#save-btn');
+    await expect(page.locator('#save-confirm')).toBeVisible();
+
+    await page.reload();
+    await expect(page.locator('#signed-languages-chips .chip')).toHaveText(['German Sign Language (gsg)×']);
+    await expect(page.locator('#spoken-languages-chips .chip')).toHaveText(['German (deu)×']);
+
+    // Removing a chip and saving persists across another reload.
+    await page.locator('#signed-languages-chips .chip .chip-remove').first().click();
+    await page.click('#save-btn');
+    await expect(page.locator('#save-confirm')).toBeVisible();
+    await page.reload();
+    await expect(page.locator('#signed-languages-chips .chip')).toHaveCount(0);
+
+    await patchDataset({ // restore — leave no permanent side effects
+      signed_languages: record.signed_languages || [],
+      spoken_languages: record.spoken_languages || [],
+    });
+  });
+
   test('shows Used in Papers section for an existing dataset (#used-in-papers)', async ({ page }) => {
     await page.goto('/datasets-index.html');
     const rows = page.locator('.paper-row');
