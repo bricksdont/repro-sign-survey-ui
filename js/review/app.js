@@ -156,6 +156,7 @@ async function loadAllDatasets() {
   return items.map(item => ({
     id: item.id, name: item.name,
     url: item.url, license: item.license, available: item.available,
+    signed_languages: item.signed_languages, spoken_languages: item.spoken_languages,
   }));
 }
 
@@ -1108,6 +1109,22 @@ async function createUnnamedDataset() {
   onFieldChanged();
 }
 
+// ISO_639_3 ([code, name] pairs) comes from js/datasets/iso639-3.js, loaded
+// before this file — same lookup dataset-detail.js/datasets-overview.js
+// build for their own language search (issue #130), duplicated here rather
+// than shared. Matches a dataset's name (substring, not just a prefix —
+// startsWith missed a dataset whose name simply didn't happen to start with
+// what was typed) or any of its signed/spoken language codes/full names.
+const ISO_639_3_NAME_BY_CODE = new Map(ISO_639_3);
+
+function datasetMatchesQuery(d, ql) {
+  if (d.name.toLowerCase().includes(ql)) return true;
+  const codes = [...(d.signed_languages || []), ...(d.spoken_languages || [])];
+  return codes.some(code =>
+    code.toLowerCase().includes(ql) || (ISO_639_3_NAME_BY_CODE.get(code) || '').toLowerCase().includes(ql)
+  );
+}
+
 function initDatasetAutocomplete() {
   const input    = document.getElementById('dataset-input');
   const dropdown = document.getElementById('dataset-suggestions');
@@ -1117,7 +1134,7 @@ function initDatasetAutocomplete() {
     const ql = q.toLowerCase();
     const addedIds = new Set(datasets.map(d => d.id));
     const matches = allDatasets.filter(d =>
-      !addedIds.has(d.id) && (q === '' || d.name.toLowerCase().startsWith(ql))
+      !addedIds.has(d.id) && (q === '' || datasetMatchesQuery(d, ql))
     );
     const hasExactMatch = allDatasets.some(d => d.name.toLowerCase() === ql);
 
