@@ -8,6 +8,10 @@
 // export (map to [code, name] pairs, sorted by name) if the standard is ever
 // revised -- ISO 639-3 codes are rarely reassigned once published.
 //
+// A small number of entries below are hand-added, not part of that export
+// -- marked inline with their own comment. Regenerating this file from the
+// npm package again would silently drop them; re-add them afterward.
+//
 // [code, name] pairs, sorted by name. Used by js/datasets/dataset-detail.js
 // for the Signed languages / Spoken languages autocomplete (issue #129).
 const ISO_639_3 = [
@@ -339,6 +343,14 @@ const ISO_639_3 = [
   ["ard","Arabana"],
   ["arl","Arabela"],
   ["ara","Arabic"],
+  // Hand-added (not from the npm export) -- ISO 639-3 has no code for a
+  // sign language whose country/variant is unspecified. Plenty of
+  // country-specific Arabic-region sign languages already have their own
+  // codes (Algerian "asp", Egyptian, Jordanian "jos", etc.), but there is
+  // no generic catch-all for "Arabic Sign Language" alone. "qaa" is the
+  // first of the qaa-qtz range ISO 639-3 reserves for exactly this kind of
+  // private/local use (SIL, "Reserved for local use").
+  ["qaa","Arabic Sign Language - country unknown"],
   ["arg","Aragonese"],
   ["akr","Araki"],
   ["rkw","Arakwal"],

@@ -1961,6 +1961,18 @@ test.describe('Dataset detail page', () => {
     });
   });
 
+  test('Signed languages pool includes the hand-added "Arabic Sign Language - country unknown" (qaa) entry', async ({ page }) => {
+    // Regression guard for js/datasets/iso639-3.js's one hand-added entry
+    // (not part of the generated npm-package export) — if that file is
+    // ever regenerated without re-adding it, this is what would catch it.
+    // qaa is in ISO 639-3's qaa-qtz range reserved for private/local use,
+    // covering a sign language whose specific country/variant is unknown.
+    await page.goto('/dataset.html');
+    await page.waitForSelector('#signed-language-input');
+    const entry = await page.evaluate(() => SIGNED_LANGUAGES_POOL.find(([code]) => code === 'qaa'));
+    expect(entry).toEqual(['qaa', 'Arabic Sign Language - country unknown']);
+  });
+
   test('shows Used in Papers section for an existing dataset (#used-in-papers)', async ({ page }) => {
     await page.goto('/datasets-index.html');
     const rows = page.locator('.paper-row');
