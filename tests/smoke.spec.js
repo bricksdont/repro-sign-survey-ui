@@ -1961,16 +1961,19 @@ test.describe('Dataset detail page', () => {
     });
   });
 
-  test('Signed languages pool includes the hand-added "Arabic Sign Language - country unknown" (qaa) entry', async ({ page }) => {
-    // Regression guard for js/datasets/iso639-3.js's one hand-added entry
+  test('Signed languages pool includes the hand-added "generic" qaa/qab entries', async ({ page }) => {
+    // Regression guard for js/datasets/iso639-3.js's hand-added entries
     // (not part of the generated npm-package export) — if that file is
-    // ever regenerated without re-adding it, this is what would catch it.
-    // qaa is in ISO 639-3's qaa-qtz range reserved for private/local use,
-    // covering a sign language whose specific country/variant is unknown.
+    // ever regenerated without re-adding them, this is what would catch
+    // it. Both codes are in ISO 639-3's qaa-qtz range reserved for
+    // private/local use, each covering a sign language with no specific
+    // country/variant/region code of its own.
     await page.goto('/dataset.html');
     await page.waitForSelector('#signed-language-input');
-    const entry = await page.evaluate(() => SIGNED_LANGUAGES_POOL.find(([code]) => code === 'qaa'));
-    expect(entry).toEqual(['qaa', 'Arabic Sign Language - country unknown']);
+    const qaa = await page.evaluate(() => SIGNED_LANGUAGES_POOL.find(([code]) => code === 'qaa'));
+    const qab = await page.evaluate(() => SIGNED_LANGUAGES_POOL.find(([code]) => code === 'qab'));
+    expect(qaa).toEqual(['qaa', 'Arabic Sign Language - generic']);
+    expect(qab).toEqual(['qab', 'Vietnamese Sign Language - generic']);
   });
 
   test('shows Used in Papers section for an existing dataset (#used-in-papers)', async ({ page }) => {

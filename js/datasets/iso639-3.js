@@ -350,7 +350,7 @@ const ISO_639_3 = [
   // no generic catch-all for "Arabic Sign Language" alone. "qaa" is the
   // first of the qaa-qtz range ISO 639-3 reserves for exactly this kind of
   // private/local use (SIL, "Reserved for local use").
-  ["qaa","Arabic Sign Language - country unknown"],
+  ["qaa","Arabic Sign Language - generic"],
   ["arg","Aragonese"],
   ["akr","Araki"],
   ["rkw","Arakwal"],
@@ -7263,6 +7263,13 @@ const ISO_639_3 = [
   ["vid","Vidunda"],
   ["vig","Viemo"],
   ["vie","Vietnamese"],
+  // Hand-added (not from the npm export), same rationale as "qaa" above --
+  // ISO 639-3 already splits Vietnamese sign languages by city/region
+  // (Hanoi "hab", Haiphong "haf", Ho Chi Minh City "hos"), but has no
+  // generic code for a dataset tagged just "Vietnamese Sign Language"
+  // with no region specified. "qab" is the next unused code in the same
+  // qaa-qtz private/local-use range as "qaa".
+  ["qab","Vietnamese Sign Language - generic"],
   ["vil","Vilela"],
   ["vif","Vili"],
   ["dyg","Villa Viciosa Agta"],
