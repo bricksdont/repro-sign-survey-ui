@@ -645,6 +645,13 @@ const ISO_639_3 = [
   ["bni","Bangi"],
   ["dba","Bangime"],
   ["mfb","Bangka"],
+  // Hand-added (not from the npm export), same rationale as "qaa"/"qab"
+  // above -- "Bangla" (Bengali) is spoken across both Bangladesh and the
+  // Indian state of West Bengal, so "Bangla Sign Language" alone doesn't
+  // specify a country. ISO 639-3 has "wbs" (West Bengal Sign Language,
+  // India-specific) but nothing for Bangladesh or an unspecified side of
+  // the border. "qac" is the next unused code in the qaa-qtz range.
+  ["qac","Bangla Sign Language - generic"],
   ["bgj","Bangolan"],
   ["bnx","Bangubangu"],
   ["bsj","Bangwinji"],
