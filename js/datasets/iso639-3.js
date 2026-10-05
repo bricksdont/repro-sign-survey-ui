@@ -7801,6 +7801,14 @@ const ISO_639_3 = [
   ["yox","Yoron"],
   ["xyy","Yorta Yorta"],
   ["yor","Yoruba"],
+  // Hand-added (not from the npm export), same rationale as "qaa"/"qab"/
+  // "qac" above. ISO 639-3 has "nsi" (Nigerian Sign Language, a
+  // country-level code), but Yoruba-speaking deaf communities are also
+  // associated with local/community sign languages distinct from NSL --
+  // "qad" is for a dataset tagged "Yoruba Sign Language" where that
+  // narrower sense is meant, rather than general NSL. Next unused code in
+  // the qaa-qtz range.
+  ["qad","Yoruba Sign Language"],
   ["mpm","Yosondúa Mixtec"],
   ["yot","Yotti"],
   ["zyj","Youjiang Zhuang"],
