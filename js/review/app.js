@@ -852,7 +852,22 @@ async function confirmFlag() {
     reason = selected.value;
   }
 
-  await persistPaper(currentIndex, { status: 'flagged', flag_reason: reason });
+  // persistPaper() mutates papers[currentIndex] optimistically before the
+  // PATCH even fires — on failure (e.g. a reason over the backend's 500-char
+  // limit), undo that mutation rather than leaving the paper's in-memory
+  // state claiming a flag that was never actually saved (issue #140: the
+  // badge previously updated and the dialog closed regardless of whether
+  // the save succeeded, with no error shown).
+  const confirmBtn = document.getElementById('flag-confirm-btn');
+  confirmBtn.disabled = true;
+  const previous = { ...papers[currentIndex] };
+  const { ok } = await persistPaper(currentIndex, { status: 'flagged', flag_reason: reason });
+  if (!ok) {
+    papers[currentIndex] = previous;
+    confirmBtn.disabled = false;
+    alert('Failed to save the flag. Please try again.');
+    return;
+  }
   updateStatusBadge('flagged', reason, papers[currentIndex].finalized_by);
   closeFlagDialog();
 }
@@ -881,7 +896,18 @@ async function confirmReject() {
     reason = selected.value;
   }
 
-  await persistPaper(currentIndex, { status: 'rejected', rejection_reason: reason });
+  // See confirmFlag()'s comment above — same undo-on-failure handling,
+  // same issue #140.
+  const confirmBtn = document.getElementById('reject-confirm-btn');
+  confirmBtn.disabled = true;
+  const previous = { ...papers[currentIndex] };
+  const { ok } = await persistPaper(currentIndex, { status: 'rejected', rejection_reason: reason });
+  if (!ok) {
+    papers[currentIndex] = previous;
+    confirmBtn.disabled = false;
+    alert('Failed to save the rejection. Please try again.');
+    return;
+  }
   updateStatusBadge('rejected', reason, papers[currentIndex].finalized_by);
   closeRejectDialog();
 }
