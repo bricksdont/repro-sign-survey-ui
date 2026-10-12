@@ -779,6 +779,65 @@ test.describe('Review detail page', () => {
     });
   });
 
+  test('flag/reject "other" text is capped at 500 chars, and a save failure surfaces an error rather than silently updating the badge (#140)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const listRes = await page.request.get(
+      'http://localhost:8090/api/collections/papers/records?filter=(paper_id="emnlp-2024-518")',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const { items } = await listRes.json();
+    const record = items[0];
+    test.skip(!record, 'Fixture paper not found — skipping');
+
+    async function patchPaper(data) {
+      await page.request.patch(
+        `http://localhost:8090/api/collections/papers/records/${record.id}`,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, data }
+      );
+    }
+
+    await patchPaper({ status: 'needs_review', flag_reason: '', rejection_reason: '' });
+    await page.goto('/paper.html?id=emnlp-2024-518');
+
+    // The backend caps flag_reason/rejection_reason at 500 chars — maxlength
+    // here prevents the common case of typing past it in the first place.
+    await expect(page.locator('#flag-other-text')).toHaveAttribute('maxlength', '500');
+    await expect(page.locator('#reject-other-text')).toHaveAttribute('maxlength', '500');
+
+    // Defense in depth: simulate a reason that somehow exceeds the limit
+    // anyway (bypassing maxlength directly, e.g. a future regression that
+    // removes the attribute) and confirm the save failure is surfaced
+    // rather than silently updating the badge and closing the dialog —
+    // the exact bug reported in #140.
+    await page.click('#flag-btn');
+    await page.click('input[name="flag-reason"][value="other"]');
+    await page.locator('#flag-other-text').evaluate((el, text) => { el.value = text; el.dispatchEvent(new Event('input')); }, 'x'.repeat(600));
+
+    let dialogMessage = null;
+    page.once('dialog', dialog => { dialogMessage = dialog.message(); dialog.accept(); });
+    await page.click('#flag-confirm-btn');
+    await expect.poll(() => dialogMessage).toContain('Failed to save');
+
+    // Dialog stays open (not silently closed) and the badge is untouched.
+    await expect(page.locator('#flag-overlay')).toBeVisible();
+    await expect(page.locator('#status-badge')).toContainText('Needs Review');
+    await page.click('#flag-cancel-btn');
+
+    const stillUnflagged = await (await page.request.get(
+      `http://localhost:8090/api/collections/papers/records/${record.id}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    )).json();
+    expect(stillUnflagged.status).toBe('needs_review');
+    expect(stillUnflagged.flag_reason).toBe('');
+
+    await patchPaper({ // restore — leave no permanent side effects
+      status: record.status || 'needs_review',
+      flag_reason: record.flag_reason || '',
+      rejection_reason: record.rejection_reason || '',
+    });
+  });
+
   test('paper navigation updates URL', async ({ page }) => {
     await page.goto('/paper.html?id=emnlp-2024-518');
     const initialUrl = page.url();
@@ -1042,6 +1101,55 @@ test.describe('Check detail page', () => {
     );
     const updated = await res.json();
     expect(updated.flag_reason).toBe('');
+
+    await patchPaper({ // restore — leave no permanent side effects
+      status: record.status || 'needs_check',
+      flag_reason: record.flag_reason || '',
+    });
+  });
+
+  test('flag "other" text is capped at 500 chars, and a save failure surfaces an error rather than silently updating the badge (#140)', async ({ page }) => {
+    await page.goto('/login.html');
+    const token = await page.evaluate(() => localStorage.getItem('pb_token'));
+    const listRes = await page.request.get(
+      'http://localhost:8090/api/collections/check_papers/records?filter=(paper_id="arxiv-2303-10782")',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const { items } = await listRes.json();
+    const record = items[0];
+    test.skip(!record, 'Fixture paper not found — skipping');
+
+    async function patchPaper(data) {
+      await page.request.patch(
+        `http://localhost:8090/api/collections/check_papers/records/${record.id}`,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, data }
+      );
+    }
+
+    await patchPaper({ status: 'needs_check', flag_reason: '' });
+    await page.goto('/paper-check.html?id=arxiv-2303-10782');
+
+    await expect(page.locator('#flag-other-text')).toHaveAttribute('maxlength', '500');
+
+    await page.click('#flag-btn');
+    await page.click('input[name="flag-reason"][value="other"]');
+    await page.locator('#flag-other-text').evaluate((el, text) => { el.value = text; el.dispatchEvent(new Event('input')); }, 'x'.repeat(600));
+
+    let dialogMessage = null;
+    page.once('dialog', dialog => { dialogMessage = dialog.message(); dialog.accept(); });
+    await page.click('#flag-confirm-btn');
+    await expect.poll(() => dialogMessage).toContain('Failed to save');
+
+    await expect(page.locator('#flag-overlay')).toBeVisible();
+    await expect(page.locator('#status-badge')).toContainText('Needs Check');
+    await page.click('#flag-cancel-btn');
+
+    const stillUnflagged = await (await page.request.get(
+      `http://localhost:8090/api/collections/check_papers/records/${record.id}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    )).json();
+    expect(stillUnflagged.status).toBe('needs_check');
+    expect(stillUnflagged.flag_reason).toBe('');
 
     await patchPaper({ // restore — leave no permanent side effects
       status: record.status || 'needs_check',
